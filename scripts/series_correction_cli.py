@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-import sys, os
-# Add scripts directory for finding modules within scripts/
-SCRIPT_DIR = os.path.dirname(__file__)
-sys.path.insert(0, SCRIPT_DIR)
-# Add project root directory for finding modules at project root
-sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..')))
+import sys
+import os
 import argparse
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Adjust system path for custom module imports
+SCRIPT_DIR = os.path.dirname(__file__)
+sys.path.insert(0, SCRIPT_DIR)
+sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..')))
+
 from loaders import load_config, load_series_data
 from batch_correction import batch_process
+
 
 def print_schedule(mode):
     commands = {
@@ -19,6 +21,7 @@ def print_schedule(mode):
         "windows": "SCHTASKS /CREATE /SC WEEKLY /D MON /TN \"SeriesCorrection\" /TR \"python C:\\path\\to\\scripts\\series_correction_cli.py --series all --archive\" /ST 02:00"
     }
     print(commands.get(mode, "Unsupported schedule mode. Use 'cron' or 'windows'."))
+
 
 def main():
     parser = argparse.ArgumentParser(description="CLI for batch correction of Seatek sensor data.")
@@ -55,13 +58,15 @@ def main():
     outputs_dir = Path('outputs')
     config = load_config(scripts_dir / 'config.json')
     rm_map = config.get('series', {})
-    all_series = list(rm_map.keys())
+    all_series = list(config['series'].keys())
 
     selected_sensors = (
         args.sensors or
-        [sensor for mile in args.river_miles for sensor in rm_map.get(str(mile), [])] if args.river_miles else
-        [sensor for sub in rm_map.values() for sensor in sub]
+        [sensor for mile in args.river_miles for sensor in rm_map.get(str(int(mile)), [])] if args.river_miles else
+        [sensor for sub in rm_map.values() for sensor in sub] if rm_map else []
     )
+
+    print(f"Selected sensors: {selected_sensors}")
 
     series_ids = [int(s) for s in all_series] if args.series == ['all'] else [int(s) for s in args.series]
 
@@ -95,6 +100,7 @@ def main():
         shutil.copy(master_wb, archive_dir / timestamped)
 
     print("Batch correction complete.")
+
 
 if __name__ == '__main__':
     main()
