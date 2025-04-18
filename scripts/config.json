@@ -1,0 +1,25 @@
+{
+  "series": {
+    "26": {
+      "diagnostic": "data/diagnostics/Series26_Diagnostics.csv",
+      "raw_data": [
+        "data/raw_exports/Raw_Data_Year_1995 (Y01).gsheet"
+      ],
+      "description": "Series 26: Sensor readings from Year 1995 onward"
+    },
+    "27": {
+      "diagnostic": "data/diagnostics/Series27_Diagnostics.csv",
+      "raw_data": [
+        "data/raw_exports/Year_1995 (Y01)_Data.gsheet"
+      ],
+      "description": "Series 27: Sensor readings from Year 1995 onward"
+    }
+  },
+  "defaults": {
+    "window_size": 5,
+    "threshold": 0.1,
+    "blank_policy": "zero",
+    "log_dir": "logs",
+    "archive_dir": "outputs/archive"
+  }
+}
