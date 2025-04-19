@@ -1,10 +1,8 @@
 # Series Correction Project (Seatek Sensor Data)
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://example.com/build) <!-- Replace with your actual build status badge -->
-[![Code Coverage](https://img.shields.io/badge/coverage-85%25-yellowgreen)](https://example.com/coverage) <!-- Replace with your actual coverage badge -->
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) <!-- Choose your license -->
+[![Python Tests](https://github.com/yourusername/series-correction-project/actions/workflows/python-tests.yml/badge.svg)](https://github.com/yourusername/series-correction-project/actions/workflows/python-tests.yml) [![Code Coverage](https://codecov.io/gh/yourusername/series-correction-project/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/series-correction-project) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-This project provides tools to automatically detect and correct discontinuities (such as jumps, gaps, or outliers) commonly found in time-series data from Seatek sensors. The goal is to produce cleaner, more reliable datasets for further analysis.
+This project provides tools to automatically detect and correct discontinuities (such as jumps, gaps, or outliers) commonly found in time-series data from Seatek sensors. The goal is to produce cleaner, more reliable datasets for further analysis, suitable for integration with systems like NESST II.
 
 ## Table of Contents
 
@@ -14,6 +12,8 @@ This project provides tools to automatically detect and correct discontinuities 
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Data Format](#data-format)
+  - [Input Data Requirements](#input-data-requirements)
+  - [Sample Data](#sample-data)
 - [Methodology](#methodology)
 - [Project Structure](#project-structure)
 - [Testing](#testing)
@@ -21,6 +21,7 @@ This project provides tools to automatically detect and correct discontinuities 
 - [License](#license)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
+- [Future Improvements](#future-improvements)
 
 ## Problem Statement
 
@@ -35,274 +36,257 @@ Manually identifying and correcting these discontinuities is time-consuming, sub
 
 ## Features
 
-- **Discontinuity Detection:** Implements algorithms to automatically identify potential jumps, gaps, and outliers in Seatek sensor time-series data.
-- **Discontinuity Correction:** Offers methods to correct detected discontinuities, such as:
-  - Interpolation for gaps (e.g., linear, spline).
-  - Step correction for jumps.
-  - Filtering or removal for outliers.
-  - (Optional: Add other specific correction methods you use).
-- **Configurable Parameters:** Allows tuning of detection sensitivity (e.g., thresholds) and selection of correction methods via configuration files.
-- **Batch Processing:** Capable of processing multiple data files efficiently.
-- **Reporting/Visualization (Optional):** Generates reports or plots highlighting detected discontinuities and the applied corrections.
+- **Discontinuity Detection:** Implements algorithms (`processor.py`) to automatically identify potential jumps, gaps, and outliers in Seatek sensor time-series data.
+- **Discontinuity Correction:** Offers methods (`processor.py`) to correct detected discontinuities:
+  - Interpolation for gaps (e.g., 'time', 'linear').
+  - Offset correction for jumps.
+  - Replacement for outliers (e.g., 'median', 'mean', 'interpolate').
+- **Configurable Parameters:** Allows tuning of detection sensitivity (e.g., thresholds, window sizes) and selection of correction methods via configuration files (`config.json`).
+- **Batch Processing:** Capable of processing multiple data files (`S<series>_Y<index>.txt`) efficiently based on series, year range, and river mile criteria (`batch_correction.py`).
+- **Command-Line Interface:** Provides a CLI tool (`seatek-correction`) for easy execution (`series_correction_cli.py`).
+- **Reporting:** Generates a summary CSV file (`Batch_Processing_Summary.csv`) and detailed logs (`processing_log.txt`).
+- **Testing & CI:** Includes unit tests (`tests/`) and a GitHub Actions workflow (`.github/workflows/python-tests.yml`) for automated testing.
 
 ## Installation
 
 **Prerequisites:**
 
-- Python (e.g., 3.8+ recommended)
+- Python >= 3.8
 - `pip` (Python package installer)
+- `git` (for cloning the repository)
 - (Optional: `virtualenv` or `conda` for environment management)
 
 **Steps:**
 
 1. **Clone the repository:**
 
-    ```bash
-    git clone <your-repository-url>
-    cd series_correction_project_updated
-    ```
+   ```bash
+   # TODO: Replace with your actual repository URL
+   git clone [https://github.com/yourusername/series-correction-project.git](https://github.com/yourusername/series-correction-project.git)
+   cd series-correction-project
+   ```
 
 2. **Create and activate a virtual environment (Recommended):**
 
-    ```bash
-    # Using venv
-    python -m venv venv
-    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```bash
+   # Using venv
+   python -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 
-    # Or using conda
-    # conda create --name seatek_corr python=3.9
-    # conda activate seatek_corr
-    ```
+   # Or using conda
+   # conda create --name seatek_corr python=3.9
+   # conda activate seatek_corr
+   ```
 
-3. **Install dependencies:**
+3. **Install the package and its dependencies:**
+   This command uses `setup.py` to install the project, including the CLI tool and required libraries from `requirements.txt`.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+   ```bash
+   pip install -e .
+   ```
+
+   _(The `-e` flag installs the project in "editable" mode, meaning changes to the source code are reflected immediately without needing to reinstall.)_
 
 ## Usage
 
+The primary way to use the tool is via the `seatek-correction` command-line interface.
+
 **Command-Line Arguments:**
 
-- `--series`: Series number to process, or 'all' for all available series.
-- `--river-miles`: Upstream and downstream river mile markers (e.g., 54.0 53.0).
-- `--years`: Start and end years of data to process (e.g., 1995 2014).
-- `--dry-run`: If set, process data without saving output files.
-- `--input`: Path to the raw Seatek sensor data file (e.g., CSV).
-- `--output`: Path where the corrected data file will be saved.
-- `--config`: Path to the configuration file (see Configuration).
-- `--plot`: Generate visualizations of the correction process.
-- `--log`: Path to the log file (e.g., `--log processing.log`).
+```bash
+seatek-correction --help
+Output:
+usage: seatek-correction [-h] [--series SERIES] --river-miles RIVER_MILES RIVER_MILES --years YEARS YEARS [--dry-run] [--config CONFIG_PATH] [--output OUTPUT_DIR] [--log LOG_FILE]
 
-**Example:**
+Run series correction batch processing on sensor data.
+
+options:
+  -h, --help            show this help message and exit
+  --series SERIES       Series number to process, or 'all' for all available series. (default: all)
+  --river-miles RIVER_MILES RIVER_MILES
+                        Upstream and downstream river mile markers (e.g., 54.0 53.0). (required)
+  --years YEARS YEARS   Start and end years of data to process (e.g., 1995 2014). (required)
+  --dry-run             If set, process data without saving output files.
+  --config CONFIG_PATH  Path to the configuration JSON file. (default: scripts/config.json)
+  --output OUTPUT_DIR   Directory to save output files (default: data/output/).
+  --log LOG_FILE        Path to the log file (default: processing_log.txt).
+```
+
+**Example: Process Series 26 data between river miles 53.0 and 54.0 for the years 1995 to 2014, using a custom configuration and saving output to ./corrected_output/.**
 
 ```bash
-python scripts/series_correction_cli.py --series 26 --river-miles 54.0 53.0 --years 1995 2014 --config config.json --output ./corrected_data/ --plot
+# This command processes data for a specific series (26) within the given river mile range and years.
+# It uses a custom config file and directs output to a specific folder.
+seatek-correction --series 26 --river-miles 54.0 53.0 --years 1995 2014 --config custom_config.json --output ./corrected_output/
+```
+
+**Example (Dry Run for All Series): Perform a dry run (no files saved) for all series associated with river miles 53.0-54.0 between 1995-1996, logging to a specific file.**
+
+```bash
+# This command simulates processing for all applicable series in the range without saving output files.
+# It's useful for checking which files would be processed and verifying logs.
+seatek-correction --series all --river-miles 54.0 53.0 --years 1995 1996 --dry-run --log dry_run.log
 ```
 
 ## Configuration
 
-The behavior of the detection and correction algorithms can be tuned using a configuration file (`config.json`). This file allows you to specify:
+The processing behavior is controlled by a JSON configuration file (default: `scripts/config.json`). See `config.json` for the structure. Key sections include:
 
-- **Series Configuration:**
-  - Paths to diagnostic data files
-  - Paths to raw data exports
-  - Series descriptions
-
-- **Processing Parameters:**
-  - `window_size`: Size of the moving window for statistical calculations
-  - `threshold`: Sensitivity threshold for discontinuity detection
-  - `blank_policy`: How to handle missing values ("zero", "interpolate", or "ignore")
-
-- **Output Settings:**
-  - `log_dir`: Directory for log files
-  - `archive_dir`: Directory for archiving processed outputs
-
-### Example Configuration
-
-```json
-{
-  "series": {
-    "26": {
-      "diagnostic": "data/diagnostics/Series26_Diagnostics.csv",
-      "raw_data": ["data/raw_exports/Raw_Data_Year_1995 (Y01).gsheet"],
-      "description": "Series 26: Sensor readings from Year 1995 onward"
-    }
-  },
-  "defaults": {
-    "window_size": 5,
-    "threshold": 0.1,
-    "blank_policy": "zero",
-    "log_dir": "logs",
-    "archive_dir": "outputs/archive"
-  }
-}
-```
-
-You can specify the configuration file path when running the CLI tool:
-
-```bash
-python scripts/series_correction_cli.py --config custom_config.json --series 26 --river-miles 54.0 53.0 --years 1995 2014
-```
+- **series** (Optional): Mapping series numbers to specific diagnostic or raw data file paths (less used now as batch processing relies on file patterns).
+- **defaults / processor_config**: Parameters passed to the `processor.py` module:
+  - `window_size`: Rolling window size (default: 5).
+  - `threshold`: Sensitivity threshold for jumps/outliers (default: 3.0).
+  - `gap_threshold_factor`: Multiplier for gap detection (default: 3.0).
+  - `gap_method`: Gap interpolation method ('time', 'linear', etc.).
+  - `outlier_method`: Outlier correction method ('median', 'mean', 'interpolate', 'remove').
+  - `time_col`: Name of the time column (default: "Time (Seconds)").
+  - `value_col`: Name of the value column (default: null for auto-detect).
+- **RAW_DATA_DIR** (Optional): Path to the directory containing input .txt files (defaults to `./data/`).
+- **RIVER_MILE_MAP_PATH** (Optional): Path to the JSON file mapping sensors to river miles (defaults to `scripts/river_mile_map.json`).
 
 ## Data Format
 
 ### Input Data Requirements
 
-The tool expects input data in the following format:
+- **Location**: Input files should reside in the directory specified by `RAW_DATA_DIR` in the config, or the `./data/` directory by default.
+- **Filename Pattern**: Files must follow the pattern `S<series>_Y<index>.txt`, where `<series>` is the series number (e.g., 26) and `<index>` is a zero-padded sequential index representing the year within the processing range (e.g., Y01 for the first year, Y02 for the second, etc.).
+- **File Format**: Text files (.txt).
+- **Content**: Space or tab-delimited columns. Must contain at least a time column and one numeric sensor value column. Header rows are typically absent or should be handled by pandas.read_csv (e.g., using comment='#'). Data should be roughly chronological.
 
-- **File Formats:** CSV files (preferred), Excel (.xlsx), or Google Sheets exports (.gsheet)
-- **Required Structure:**
-  - A timestamp column named either `Date`, `Timestamp`, or `Time` in ISO format (YYYY-MM-DD HH:MM:SS)
-  - One or more sensor value columns with numeric readings
-  - Data must be sorted chronologically by timestamp
-  - River mile markers should be included as a column named `River_Mile` or in the filename
+**Example File (data/S26_Y01.txt)**
 
-#### Example CSV Format
-
-```csv
-Timestamp,River_Mile,Sensor_1,Sensor_2,Sensor_3
-2023-01-01 00:00:00,54.0,23.5,24.1,22.9
-2023-01-01 01:00:00,54.0,23.6,24.2,23.0
-...
+```
+# Example data for Series 26, Year 1 (e.g., 1995)
+# Time(Seconds) Value
+100             23.5
+102             23.6
+104             23.5
+108             23.7  # Potential small gap here
+110             23.8
+112             50.0  # Potential outlier
+114             23.9
+116             30.1  # Potential jump start
+118             30.2
+120             30.0
 ```
 
-#### Data Preprocessing
+### Sample Data
 
-Before processing, the tool will:
+**Status: Required**
 
-- Convert all timestamps to a standard datetime format
-- Check for and handle missing values according to the configured blank policy
-- Validate that sensor readings are within expected ranges
+This repository does not include sample `S<series>_Y<index>.txt` files due to data sensitivity or size. To run the processing and tests effectively, you must provide your own representative (anonymized if necessary) data files and place them in the `./data/` directory.
+
+**Action Required**: Create files like `data/S26_Y01.txt`, `data/S27_Y01.txt`, etc., using your Seatek data, ensuring they match the required filename pattern and content format described above.
+
+**Importance**: Without these files in the `./data/` directory, the batch processing script will not find any input, and end-to-end testing cannot be performed.
 
 ## Methodology
 
-### Detection
+The correction process involves sequentially detecting and correcting gaps, outliers, and jumps using statistical methods within rolling windows. For detailed steps and algorithms, please refer to:
 
-- **Gaps:** Identified by checking time differences between consecutive timestamps against an expected frequency. The algorithm uses pandas' time-delta calculations to flag periods exceeding 3x the normal sampling interval.
-
-- **Jumps/Steps:** Detected using a combination of CUSUM (Cumulative Sum Control Chart) analysis and moving window standard deviation checks. When the cumulative sum of deviations exceeds a configurable threshold, a jump is flagged.
-
-- **Outliers:** Identified using modified Z-scores on rolling windows, with adjustable sensitivity thresholds. This approach is robust against non-normal distributions in sensor data.
-
-### Correction
-
-- **Gaps:** Filled using pandas.DataFrame.interpolate() with time-weighted methods ('time' or 'akima' depending on gap size). For gaps exceeding configurable thresholds, optional contextual averaging from historical data may be applied.
-
-- **Jumps/Steps:** Corrected by applying an offset to the data segment after the jump point. The offset is calculated as the difference between medians of pre-jump and post-jump windows.
-
-- **Outliers:** Handled by replacing with values derived from a Savitzky-Golay filter or LOWESS smoothing, preserving the underlying signal trends while removing anomalous points.
-
-The correction pipeline applies these techniques sequentially, with validation checks between each stage to ensure corrections don't introduce new artifacts.
-
-## Project Structure
+`docs/correction_methodology.md`
 
 ## Project Structure
 
 ```
-series_correction_project/
+series-correction-project/
 │
-├── data/                     # Example input data, raw data (if small)
-│   └── raw_seatek_example.csv
+├── data/                     # Input data directory (MUST ADD SAMPLE S<series>_Y<index>.txt FILES HERE)
+│   └── S26_Y01.txt           # Example required input file format
 │
 ├── output/                   # Default directory for corrected data and reports
-│   ├── corrected_seatek_example.csv
-│   └── correction_report.txt
+│   └── S26_Y01_1995_CorrectedData.csv # Example output format
+│   └── Batch_Processing_Summary.csv   # Example summary output
 │
-├── scripts/                  # Source code
+├── scripts/                  # Source code package
 │   ├── __init__.py
-│   ├── series_correction_cli.py  # Main CLI entry point
-│   ├── batch_correction.py       # Core batch processing logic
-│   ├── loaders.py                # Data loading utilities
-│   ├── processor.py              # Data processing logic
-│   ├── visualization.py          # Plotting functions
-│   └── river_mile_map.json       # River mile to sensor mapping
+│   ├── batch_correction.py
+│   ├── loaders.py
+│   ├── processor.py
+│   ├── series_correction_cli.py
+│   ├── config.json           # Default configuration
+│   ├── river_mile_map.json   # Default mapping
+│   └── requirements.txt
 │
 ├── tests/                    # Unit and integration tests
 │   ├── __init__.py
-│   ├── test_batch_correction.py
-│   ├── test_loaders.py
-│   └── test_processor.py
+│   └── test_batch_correction.py # Example test file
+│   # (Add other test files like test_processor.py here)
 │
 ├── docs/                     # Documentation files
 │   ├── correction_methodology.md
 │   └── automation_setup.md
 │
-├── .vscode/                  # IDE configuration
-│   └── settings.json
+├── .github/                  # GitHub Actions Workflows
+│   └── workflows/
+│       └── python-tests.yml
 │
-├── .gitignore                # Git ignore file
-├── LICENSE                   # Project license file (MIT)
-├── README.md                 # Project documentation
-├── config.json               # Main configuration file
-└── requirements.txt          # Project dependencies
+├── .gitignore
+├── LICENSE
+├── README.md                 # This file
+└── setup.py                  # Installation script
+```
 
 ## Testing
 
-This project uses pytest for testing. To run the tests:
+This project uses pytest for testing.
 
-1. Make sure you have installed the test dependencies:
+1. Ensure development dependencies are installed (included in `pip install -e .` if requirements.txt includes them, or use a separate requirements-dev.txt).
+
    ```bash
-   pip install -r scripts/requirements.txt
+   pip install pytest pytest-cov pytest-mock
    ```
 
 2. Navigate to the project's root directory.
 
-3. Run the tests:
+3. Run tests:
 
    ```bash
    pytest
    ```
 
-4. For more verbose output or to run specific test files:
+4. Run tests with coverage:
 
    ```bash
-   pytest -v
-   pytest scripts/tests/test_batch_correction.py
+   pytest --cov=scripts tests/
    ```
 
-5. To generate a coverage report:
-
-   ```bash
-   pytest --cov=scripts
-   ```
+(Note: Comprehensive testing, especially integration tests, requires the presence of sample data files in the `data/` directory.)
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix (`git checkout -b feature/your-feature-name` or `bugfix/issue-number`).
-3. Make your changes, ensuring code follows project style guidelines (e.g., PEP 8 for Python).
-4. Add tests for your changes.
-5. Ensure all tests pass (`pytest`).
-6. Update documentation (including this README) if necessary.
-7. Commit your changes (`git commit -m 'Add some feature'`).
-8. Push to your branch (`git push origin feature/your-feature-name`).
-9. Open a Pull Request against the main (or develop) branch of the original repository.
-
-Please also check the CONTRIBUTING.md file for more detailed guidelines. You can report bugs or suggest features by opening an issue on the GitHub repository.
+Contributions are welcome! Please follow standard GitHub Fork & Pull Request workflows. Ensure code includes tests, passes linting/formatting checks, and updates documentation where necessary.
 
 ## License
 
-This project is licensed under the MIT License. Please see the LICENSE file for details.
+This project is licensed under the MIT License. See the LICENSE file for details.
 
 ## Contact
 
-For questions or support, please open an issue on the GitHub repository: [https://github.com/yourusername/series-correction-project/issues](https://github.com/yourusername/series-correction-project/issues)
+For questions or support, please open an issue on the GitHub repository:
 
-Alternatively, contact <AbhiMhrtr@pm.me>
+<https://github.com/yourusername/series-correction-project/issues>
+
+Alternatively, contact Abhi Mehrotra <AbhiMhrtr@pm.me>
 
 ## Acknowledgements
 
-- **Libraries**: pandas, numpy, scipy for data processing and analysis
-- **Testing**: pytest framework for comprehensive testing
-- **Inspiration**: Based on techniques described in "Time Series Analysis for Environmental Sensor Data" (2018)
-- **Contributors**: Thanks to all project contributors, reviewers, Baton Rouge Community College (**BRCC**), Louisiana State University (LSU), and the LSU Center for River Studies
+- **Libraries**: pandas, numpy, click
+- **Testing**: pytest
+- **Guidance**: Audit report and best practices.
+- **Support**: Baton Rouge Community College (BRCC), Louisiana State University (LSU), LSU Center for River Studies.
 
 ## Future Improvements
 
-- **Data Validation**: Add more robust data validation checks.
-- **Performance**: Optimize data processing for larger datasets.
-- **Documentation**: Expand documentation with more examples and tutorials.
-- **Testing**: Increase test coverage and add more test cases.
+Based on the audit report and potential enhancements:
+
+- **Sample Data**: Add standardized, anonymized sample data files.
+- **Integration Tests**: Develop tests that run the full pipeline on sample data.
+- **Visualization**: Implement a visualization.py module (e.g., using Matplotlib/Seaborn) to plot raw vs. corrected data, highlighting changes. Add a --plot flag to the CLI.
+- **Data Validation**: Add more explicit data validation checks during loading (e.g., expected columns, value ranges).
+- **Configuration**: Refactor configuration loading, potentially using Pydantic or dataclasses for better structure and validation.
+- **Error Handling**: Enhance error reporting and recovery within the batch process.
+- **Documentation**: Generate API reference documentation (e.g., using Sphinx). Add more examples and tutorials (Jupyter Notebooks).
+- **Performance**: Profile and optimize processing for very large datasets if needed.
+- **Packaging**: Consider using pyproject.toml for modern packaging standards.
+- **Dependency Pinning**: Provide a pinned requirements.txt for reproducible environments.
