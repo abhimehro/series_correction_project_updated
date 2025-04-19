@@ -1,3 +1,6 @@
 {
-  "cSpell.words": ["SCHTASKS", "Seatek"]
+  "cSpell.words": ["SCHTASKS", "Seatek"],
+  "python.testing.pytestArgs": ["."],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }
