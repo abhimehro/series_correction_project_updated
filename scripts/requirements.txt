@@ -1,3 +1,9 @@
 pandas
 openpyxl
 click
+pytest
+pytest-mock
+black
+flake8
+pylint
+pylint-django

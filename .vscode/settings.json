@@ -1,6 +1,23 @@
 {
-  "cSpell.words": ["SCHTASKS", "Seatek"],
+  "cSpell.words": [
+    "akima",
+    "BRCC",
+    "caplog",
+    "CUSUM",
+    "Golay",
+    "LOWESS",
+    "numpy",
+    "openpyxl",
+    "pytest",
+    "Savitzky",
+    "SCHTASKS",
+    "scipy",
+    "Seatek",
+    "venv",
+    "virtualenv"
+  ],
   "python.testing.pytestArgs": ["."],
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "markdown.validate.ignoredLinks": ["#testing"]
 }
