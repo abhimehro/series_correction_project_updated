@@ -6,13 +6,13 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Adjust system path for custom module imports
-SCRIPT_DIR = os.path.dirname(__file__)
-sys.path.insert(0, SCRIPT_DIR)
-sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..')))
+from .loaders import load_config, load_series_data
+from .batch_correction import batch_process
 
-from loaders import load_config, load_series_data
-from batch_correction import batch_process
+# Adjust system path for custom module imports
+# SCRIPT_DIR = os.path.dirname(__file__)
+# sys.path.insert(0, SCRIPT_DIR)
+# sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..')))
 
 
 def print_schedule(mode):
