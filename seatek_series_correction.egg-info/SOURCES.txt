@@ -1,0 +1,14 @@
+LICENSE
+README.md
+setup.py
+scripts/__init__.py
+scripts/batch_correction.py
+scripts/loaders.py
+scripts/processor.py
+scripts/series_correction_cli.py
+seatek_series_correction.egg-info/PKG-INFO
+seatek_series_correction.egg-info/SOURCES.txt
+seatek_series_correction.egg-info/dependency_links.txt
+seatek_series_correction.egg-info/entry_points.txt
+seatek_series_correction.egg-info/requires.txt
+seatek_series_correction.egg-info/top_level.txt

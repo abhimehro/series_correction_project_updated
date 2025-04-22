@@ -1,0 +1,2 @@
+[console_scripts]
+seatek-correction = scripts.series_correction_cli:main

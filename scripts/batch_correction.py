@@ -8,8 +8,6 @@ and saves output data and summaries.
 
 import logging
 import os
-import json
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -41,6 +39,12 @@ except ImportError as e:
     raise ImportError(
         "Core modules 'loaders' or 'processor' could not be imported. Cannot proceed."
     ) from e
+
+# Optional data_loader module (may be absent). Provide a stub so tests can patch it.
+try:
+    from . import data_loader  # type: ignore
+except ImportError:  # pragma: no cover
+    data_loader = None  # type: ignore
 
 
 class ProcessingError(Exception):
@@ -278,16 +282,17 @@ def batch_process(
             config_data = load_config_func(config_path)
             log.info("Configuration loaded successfully from %s.", config_path)
             rm_map_path = config_data.get(
-                "RIVER_MILE_MAP_PATH", "scripts/river_mile_map.json"
+                "RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv"
             )
             if os.path.isfile(rm_map_path):
-                with open(rm_map_path, "r") as f_map:
-                    rm_data = json.load(f_map)
-                    config_data["SENSOR_TO_RIVER"] = rm_data.get("SENSOR_TO_RIVER", {})
-                    config_data["RIVER_TO_SENSORS"] = rm_data.get(
-                        "RIVER_TO_SENSORS", {}
-                    )
-                    log.info("Loaded river mile map from %s", rm_map_path)
+                rm_data = pd.read_csv(rm_map_path)
+                config_data["SENSOR_TO_RIVER"] = rm_data.set_index("SENSOR_ID")[
+                    "RIVER_MILE"
+                ].to_dict()
+                config_data["RIVER_TO_SENSORS"] = (
+                    rm_data.groupby("RIVER_MILE")["SENSOR_ID"].apply(list).to_dict()
+                )
+                log.info("Loaded river mile map from %s", rm_map_path)
             else:
                 log.warning("River mile map file not found at %s", rm_map_path)
         except FileNotFoundError:
