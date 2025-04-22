@@ -4,6 +4,7 @@
     "BRCC",
     "caplog",
     "CUSUM",
+    "filt",
     "Golay",
     "LOWESS",
     "numpy",

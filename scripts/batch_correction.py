@@ -22,21 +22,25 @@ ConfigLoaderType = Callable[..., Dict[str, Any]]
 # processor is now expected based on the audit. Loaders is also used.
 try:
     from . import loaders  # Assuming loaders.py is in the same directory
-    from . import processor # Import the new processor module
+    from . import processor  # Import the new processor module
 
     load_config_func: Optional[ConfigLoaderType] = loaders.load_config
-    log = logging.getLogger(__name__) # Use standard logging setup
+    log = logging.getLogger(__name__)  # Use standard logging setup
     log.info("Successfully imported loaders and processor modules.")
 
 except ImportError as e:
     # Log an error if essential modules are missing
-    logging.basicConfig(level=logging.ERROR) # Ensure logging is configured
+    logging.basicConfig(level=logging.ERROR)  # Ensure logging is configured
     log = logging.getLogger(__name__)
-    log.error("Failed to import required modules (loaders, processor): %s", e, exc_info=True)
+    log.error(
+        "Failed to import required modules (loaders, processor): %s", e, exc_info=True
+    )
     # Define fallbacks or raise an error to prevent execution without core components
     load_config_func = None
     processor = None  # type: ignore
-    raise ImportError("Core modules 'loaders' or 'processor' could not be imported. Cannot proceed.") from e
+    raise ImportError(
+        "Core modules 'loaders' or 'processor' could not be imported. Cannot proceed."
+    ) from e
 
 
 class ProcessingError(Exception):
@@ -56,12 +60,15 @@ def _get_data_directory(config_data: Dict[str, Any]) -> str:
         if data_dir:
             log.warning(
                 "Path '%s' from config key '%s' is not a valid directory. Using default: %s",
-                data_dir, data_dir_key, default_data_dir
+                data_dir,
+                data_dir_key,
+                default_data_dir,
             )
         else:
             log.warning(
                 "'%s' not found in config. Using default data directory: %s",
-                data_dir_key, default_data_dir
+                data_dir_key,
+                default_data_dir,
             )
         if not os.path.isdir(default_data_dir):
             raise FileNotFoundError(
@@ -88,7 +95,9 @@ def _determine_series_to_process(
             try:
                 rm_to_sensors_map[rm_str].append(int(sensor_str))
             except ValueError:
-                log.warning("Could not parse sensor ID '%s' in %s map.", sensor_str, rm_map_key)
+                log.warning(
+                    "Could not parse sensor ID '%s' in %s map.", sensor_str, rm_map_key
+                )
 
     if isinstance(series_selection, str) and series_selection.lower() == "all":
         if rm_to_sensors_map and river_miles:
@@ -98,7 +107,9 @@ def _determine_series_to_process(
                 rm_str = str(float(rm))
                 selected.update(rm_to_sensors_map.get(rm_str, []))
             series_list = sorted(selected)
-            log.info("Selected series from river miles %s: %s", river_miles, series_list)
+            log.info(
+                "Selected series from river miles %s: %s", river_miles, series_list
+            )
         elif sensor_to_rm_map:
             log.info("Selecting all series found in the %s map.", rm_map_key)
             all_sensors = []
@@ -111,7 +122,9 @@ def _determine_series_to_process(
             log.info("Selected all series from map: %s", series_list)
         else:
             log.warning(
-                "Config map '%s' not found or empty. Scanning data dir '%s'.", rm_map_key, data_dir
+                "Config map '%s' not found or empty. Scanning data dir '%s'.",
+                rm_map_key,
+                data_dir,
             )
             found = set()
             for fname in os.listdir(data_dir):
@@ -128,7 +141,11 @@ def _determine_series_to_process(
                     "River miles provided, but no map to filter. Cannot filter by RM."
                 )
     else:
-        raw = [series_selection] if not isinstance(series_selection, (list, tuple)) else list(series_selection)
+        raw = (
+            [series_selection]
+            if not isinstance(series_selection, (list, tuple))
+            else list(series_selection)
+        )
         try:
             series_list = [int(s) for s in raw]
             log.info("Processing specified series: %s", series_list)
@@ -139,20 +156,32 @@ def _determine_series_to_process(
             orig = list(series_list)
             for rm in river_miles:
                 rm_str = str(float(rm))
-                for s in series_list:
-                    if s in rm_to_sensors_map.get(rm_str, []):
-                        filt.add(s)
-            series_list = sorted(filt)
-            log.info("Filtered specified series %s by river miles %s -> %s", orig, river_miles, series_list)
+                filt.update(rm_to_sensors_map.get(rm_str, []))
+            if not filt.intersection(series_list):
+                log.warning(
+                    "No series in the specified list match the provided river miles. "
+                    "Returning an empty list."
+                )
+            series_list = sorted(set(series_list) & filt)
+            log.info(
+                "Filtered specified series by river miles %s -> %s",
+                river_miles,
+                series_list,
+            )
         elif river_miles:
-            log.warning("River miles provided, but no %s map. Cannot filter.", rm_map_key)
+            log.warning(
+                "River miles provided, but no %s map. Cannot filter.", rm_map_key
+            )
     if not series_list:
         log.warning("No series selected for processing based on criteria.")
     return series_list
 
 
 def _find_files_to_process(
-    series_list: List[int], years: Tuple[int, int], data_dir: str, config_data: Dict[str, Any]
+    series_list: List[int],
+    years: Tuple[int, int],
+    data_dir: str,
+    config_data: Dict[str, Any],
 ) -> List[Tuple[int, int, int, str]]:
     """Finds existing data files matching the series and year range."""
     files = []
@@ -162,11 +191,11 @@ def _find_files_to_process(
     for s in series_list:
         idx_map[s] = 1
         year_map[s] = {}
-        for y in range(start, end+1):
+        for y in range(start, end + 1):
             year_map[s][y] = idx_map[s]
             idx_map[s] += 1
     for s in series_list:
-        for y in range(start, end+1):
+        for y in range(start, end + 1):
             yi = year_map[s].get(y)
             if yi is None:
                 continue
@@ -191,27 +220,29 @@ def _load_raw_data(file_path: str) -> pd.DataFrame:
         raw_df = pd.read_csv(
             file_path,
             header=None,
-            sep=r'\s+',
-            engine='python',
+            sep=r"\s+",
+            engine="python",
             dtype=str,
             skipinitialspace=True,
-            comment='#',
-            skip_blank_lines=True
+            comment="#",
+            skip_blank_lines=True,
         )
         log.info("Loaded data using pandas read_csv for %s.", fname)
         for col in raw_df.columns:
             try:
-                raw_df[col] = pd.to_numeric(raw_df[col], errors='coerce')
+                raw_df[col] = pd.to_numeric(raw_df[col], errors="coerce")
             except ValueError:
-                log.debug("Column %s in %s could not be converted to numeric.", col, fname)
+                log.debug(
+                    "Column %s in %s could not be converted to numeric.", col, fname
+                )
         raw_df = raw_df.infer_objects()
         if raw_df.empty:
             log.warning("Loaded DataFrame is empty for file: %s", fname)
             return pd.DataFrame()
         if all(isinstance(c, int) for c in raw_df.columns):
-            cols = [f'Value{i+1}' for i in range(len(raw_df.columns))]
+            cols = [f"Value{i+1}" for i in range(len(raw_df.columns))]
             if cols:
-                cols[0] = 'Time (Seconds)'
+                cols[0] = "Time (Seconds)"
             raw_df.columns = cols
             log.debug("Assigned default column names: %s", cols)
         return raw_df
@@ -229,24 +260,33 @@ def batch_process(
     years: Tuple[int, int],
     dry_run: bool = False,
     config_path: str = "scripts/config.json",
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
 ) -> pd.DataFrame:
     """Process sensor data files for the given series and year range."""
     log.info("--- Starting Batch Processing ---")
-    log.info("Series: %s, River Miles: %s, Years: %s, Dry Run: %s",
-             series_selection, river_miles, years, dry_run)
+    log.info(
+        "Series: %s, River Miles: %s, Years: %s, Dry Run: %s",
+        series_selection,
+        river_miles,
+        years,
+        dry_run,
+    )
 
     config_data: Dict[str, Any] = {}
     if load_config_func:
         try:
             config_data = load_config_func(config_path)
             log.info("Configuration loaded successfully from %s.", config_path)
-            rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.json")
+            rm_map_path = config_data.get(
+                "RIVER_MILE_MAP_PATH", "scripts/river_mile_map.json"
+            )
             if os.path.isfile(rm_map_path):
-                with open(rm_map_path, 'r') as f_map:
+                with open(rm_map_path, "r") as f_map:
                     rm_data = json.load(f_map)
                     config_data["SENSOR_TO_RIVER"] = rm_data.get("SENSOR_TO_RIVER", {})
-                    config_data["RIVER_TO_SENSORS"] = rm_data.get("RIVER_TO_SENSORS", {})
+                    config_data["RIVER_TO_SENSORS"] = rm_data.get(
+                        "RIVER_TO_SENSORS", {}
+                    )
                     log.info("Loaded river mile map from %s", rm_map_path)
             else:
                 log.warning("River mile map file not found at %s", rm_map_path)
@@ -297,7 +337,13 @@ def batch_process(
 
     for series, year, yi, file_path in files_to_process:
         fname = os.path.basename(file_path)
-        log.info("--- Processing File: %s (Series: %d, Year: %d, Index: Y%02d) ---", fname, series, year, yi)
+        log.info(
+            "--- Processing File: %s (Series: %d, Year: %d, Index: Y%02d) ---",
+            fname,
+            series,
+            year,
+            yi,
+        )
         file_status = "Processed"
         raw_data_points = None
         processed_data_points = None
@@ -308,18 +354,29 @@ def batch_process(
             raw_df = _load_raw_data(file_path)
             if raw_df.empty:
                 log.warning("Skipping processing for empty file: %s", fname)
-                summary_records.append({
-                    "Series": series, "Year": year, "YearIndex": f"Y{yi:02d}",
-                    "File": fname, "RawDataPoints": 0, "ProcessedDataPoints": 0,
-                    "Status": "Skipped (Empty/Load Error)",
-                })
+                summary_records.append(
+                    {
+                        "Series": series,
+                        "Year": year,
+                        "YearIndex": f"Y{yi:02d}",
+                        "File": fname,
+                        "RawDataPoints": 0,
+                        "ProcessedDataPoints": 0,
+                        "Status": "Skipped (Empty/Load Error)",
+                    }
+                )
                 continue
             raw_data_points = len(raw_df)
             log.info("Successfully loaded %d data points.", raw_data_points)
             if processor:
-                processed_df = processor.process_data(raw_df.copy(), config=processor_config)
+                processed_df = processor.process_data(
+                    raw_df.copy(), config=processor_config
+                )
                 processed_data_points = len(processed_df)
-                log.info("Processing complete. Resulting data points: %d", processed_data_points)
+                log.info(
+                    "Processing complete. Resulting data points: %d",
+                    processed_data_points,
+                )
             else:
                 log.warning("Processor module not available. Using raw data.")
                 processed_df = raw_df.copy()
@@ -332,19 +389,29 @@ def batch_process(
                     processed_df.to_csv(out_path, index=False)
                     log.info("Corrected data saved to: %s", out_path)
                 except Exception as e:
-                    log.error("Failed to save output for %s: %s", fname, e, exc_info=True)
+                    log.error(
+                        "Failed to save output for %s: %s", fname, e, exc_info=True
+                    )
                     file_status = "Processed (Save Failed)"
         except ProcessingError as e:
             log.error("Processing error for file %s: %s", fname, e, exc_info=True)
             file_status = f"Failed ({e})"
         except Exception as e:
-            log.error("Unexpected error during processing for %s: %s", fname, e, exc_info=True)
+            log.error(
+                "Unexpected error during processing for %s: %s", fname, e, exc_info=True
+            )
             file_status = "Failed (Unexpected Error)"
-        summary_records.append({
-            "Series": series, "Year": year, "YearIndex": f"Y{yi:02d}",
-            "File": fname, "RawDataPoints": raw_data_points,
-            "ProcessedDataPoints": processed_data_points, "Status": file_status
-        })
+        summary_records.append(
+            {
+                "Series": series,
+                "Year": year,
+                "YearIndex": f"Y{yi:02d}",
+                "File": fname,
+                "RawDataPoints": raw_data_points,
+                "ProcessedDataPoints": processed_data_points,
+                "Status": file_status,
+            }
+        )
         log.info("--- Finished Processing File: %s ---", fname)
 
     log.info("--- Batch Processing Complete ---")
