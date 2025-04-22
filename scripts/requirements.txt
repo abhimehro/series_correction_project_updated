@@ -1,8 +1,9 @@
 # Core dependencies for the Seatek Series Correction project
-pandas>=1.3 # For data manipulation and analysis
-numpy>=1.20 # For numerical operations, used by processor and pandas
-click>=8.0 # For creating the command-line interface
-openpyxl>=3.0 # For reading/writing Excel files (optional, if needed by loaders/savers)
+pandas>=1.3,<2.0 # For data manipulation and analysis
+numpy>=1.20,<2.0 # For numerical operations, used by processor and pandas
+filelock
+click>=8.0,<9.0 # For creating the command-line interface
+openpyxl>=3.0,<4.0 # For reading/writing Excel files (optional, if needed by loaders/savers)
 
 # Specify Python version (Note: This is informational in requirements.txt,
 # the actual enforcement happens in setup.py's python_requires)
@@ -11,14 +12,15 @@ openpyxl>=3.0 # For reading/writing Excel files (optional, if needed by loaders/
 # --- Development and Testing Dependencies ---
 # It's often better to keep these in a separate file (e.g., requirements-dev.txt)
 # but including here as per original file structure.
-pytest>=6.0 # Testing framework
-pytest-cov>=2.10 # Coverage reporting for pytest
-pytest-mock>=3.0 # Fixture for mocking objects in tests
+pytest>=6.0,<7.0 # Testing framework
+pytest-cov>=2.10,<3.0 # Coverage reporting for pytest
+pytest-mock>=3.0,<4.0 # Fixture for mocking objects in tests
 
 # Linters and Formatters (Optional but recommended)
-black>=22.0 # Uncompromising code formatter
-flake8>=4.0 # Linter for style guide enforcement (PEP 8)
-pylint>=2.10 # Another powerful linter
+black>=22.0,<23.0 # Uncompromising code formatter
+flake8>=4.0,<5.0 # Linter for style guide enforcement (PEP 8)
+pylint>=2.10,<3.0 # Another powerful linter
+psutil>=6.0,<7.0 # For process and system utilities
 
 # Note on Version Pinning:
 # For development, unpinned versions (like above) are often okay.
