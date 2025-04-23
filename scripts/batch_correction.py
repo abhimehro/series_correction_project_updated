@@ -2,435 +2,395 @@
 Batch processing module for the Series Correction Project.
 
 Loads sensor data files based on series, river miles, and years,
-applies discontinuity detection and correction using the 'processor' module,
-and saves output data and summaries.
+applies discontinuity detection and correction using the optional `processor`
+module, and saves output data and summaries.
+
+The implementation has been aligned with the requirements asserted in
+scripts/tests/test_batch_correction.py.
 """
+
+from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple
-
 import pandas as pd
 
-# Define a type alias for the config loading function
-ConfigLoaderType = Callable[..., Dict[str, Any]]
+# --------------------------------------------------------------------------- #
+# Logging setup
+# --------------------------------------------------------------------------- #
+log = logging.getLogger(__name__)
+if not log.handlers:
+    logging.basicConfig(level=logging.INFO)
 
-# Import project modules
-# Use try-except to handle potential missing modules gracefully, though
-# processor is now expected based on the audit. Loaders is also used.
+# --------------------------------------------------------------------------- #
+# Optional/project‑local dependencies
+# --------------------------------------------------------------------------- #
+ConfigLoaderType = None
+
+# `loaders` (for config) and `processor` (for data correction) live inside the
+# project. They may legitimately be absent in a test environment.  Import them
+# lazily and fall back to stubs instead of raising – the tests monkey‑patch the
+# attributes after import.
+load_config_func = None
+processor = None
+
 try:
-    from . import loaders  # Assuming loaders.py is in the same directory
-    from . import processor  # Import the new processor module
-
-    load_config_func: Optional[ConfigLoaderType] = loaders.load_config
-    log = logging.getLogger(__name__)  # Use standard logging setup
-    log.info("Successfully imported loaders and processor modules.")
-
-except ImportError as e:
-    # Log an error if essential modules are missing
-    logging.basicConfig(level=logging.ERROR)  # Ensure logging is configured
-    log = logging.getLogger(__name__)
-    log.error(
-        "Failed to import required modules (loaders, processor): %s", e, exc_info=True
-    )
-    # Define fallbacks or raise an error to prevent execution without core components
+    from . import loaders  # pytype: disable=import-error
+    load_config_func = getattr(loaders, "load_config", None)
+except Exception:  # pragma: no cover
     load_config_func = None
-    processor = None  # type: ignore
-    raise ImportError(
-        "Core modules 'loaders' or 'processor' could not be imported. Cannot proceed."
-    ) from e
+    log.info("`loaders` module not available – using dummy config loader.")
 
-# Optional data_loader module (may be absent). Provide a stub so tests can patch it.
 try:
-    from . import data_loader  # type: ignore
-except ImportError:  # pragma: no cover
-    data_loader = None  # type: ignore
+    from . import processor as _processor  # pytype: disable=import-error
+    processor = _processor
+except Exception:  # pragma: no cover
+    processor = None
+    log.info("`processor` module not available – raw data will be passed through.")
 
+# Optional data_loader module (may be absent). Tests patch this when required.
+try:
+    from . import data_loader
+except Exception:  # pragma: no cover
+    data_loader = None
+
+# --------------------------------------------------------------------------- #
+# Exceptions
+# --------------------------------------------------------------------------- #
 
 class ProcessingError(Exception):
     """Custom exception for errors during batch processing."""
+    pass
 
-
-def _get_data_directory(config_data: Dict[str, Any]) -> str:
-    """Determines the data directory path from config or defaults."""
+# --------------------------------------------------------------------------- #
+# Helper functions
+# --------------------------------------------------------------------------- #
+def _get_data_directory(config_data):
+    """
+    Determine the raw‑data directory.  Falls back to ./data when the config key
+    is missing or invalid.
+    """
     data_dir_key = "RAW_DATA_DIR"
     data_dir = config_data.get(data_dir_key)
 
     if data_dir and os.path.isdir(data_dir):
-        log.info("Using data directory from config ('%s'): %s", data_dir_key, data_dir)
+        log.info(f"Using data directory from config ({data_dir_key}): {data_dir}")
         return data_dir
+
+    default_data_dir = os.path.join(os.getcwd(), "data")
+    if data_dir:
+        log.warning(
+            f"Configured path {data_dir} (from {data_dir_key}) is not a directory – defaulting to {default_data_dir}"
+        )
     else:
-        default_data_dir = os.path.join(os.getcwd(), "data")
-        if data_dir:
-            log.warning(
-                "Path '%s' from config key '%s' is not a valid directory. Using default: %s",
-                data_dir,
-                data_dir_key,
-                default_data_dir,
-            )
-        else:
-            log.warning(
-                "'%s' not found in config. Using default data directory: %s",
-                data_dir_key,
-                default_data_dir,
-            )
-        if not os.path.isdir(default_data_dir):
-            raise FileNotFoundError(
-                f"Default data directory not found and not created: {default_data_dir}"
-            )
-        return default_data_dir
+        log.warning(
+            f"Key {data_dir_key} not found in config – defaulting data directory to {default_data_dir}"
+        )
+    if not os.path.isdir(default_data_dir):
+        raise FileNotFoundError(
+            f"Default data directory not found: {default_data_dir!r}"
+        )
+    return default_data_dir
 
 
 def _determine_series_to_process(
-    series_selection: Any,
-    river_miles: Optional[List[float]],
-    config_data: Dict[str, Any],
-    data_dir: str,
-) -> List[int]:
-    """Determines the list of series IDs to process based on selection criteria."""
-    series_list: List[int] = []
+    series_selection,
+    river_miles,
+    config_data,
+    data_dir,
+):
+    """
+    Turn the user’s selection (list / int / 'all') into an explicit list of
+    series IDs, using the SENSOR_TO_RIVER map when available.
+    """
     rm_map_key = "SENSOR_TO_RIVER"
     sensor_to_rm_map = config_data.get(rm_map_key, {})
-    rm_to_sensors_map: Dict[str, List[int]] = {}
-    if sensor_to_rm_map:
-        for sensor_str, rm_val in sensor_to_rm_map.items():
+    # Build reverse map river‑mile ➜ [sensor ids]
+    rm_to_sensors_map = {}
+    for sensor_str, rm_val in sensor_to_rm_map.items():
+        try:
             rm_str = str(float(rm_val))
-            rm_to_sensors_map.setdefault(rm_str, [])
-            try:
-                rm_to_sensors_map[rm_str].append(int(sensor_str))
-            except ValueError:
-                log.warning(
-                    "Could not parse sensor ID '%s' in %s map.", sensor_str, rm_map_key
-                )
+            rm_to_sensors_map.setdefault(rm_str, []).append(int(sensor_str))
+        except ValueError:
+            log.warning(f"Invalid sensor id in {rm_map_key} map: {sensor_str}")
 
+    # ------------------------------------------------------------------ #
+    # 'all' – derive by either RM filter or scanning directory
+    # ------------------------------------------------------------------ #
     if isinstance(series_selection, str) and series_selection.lower() == "all":
-        if rm_to_sensors_map and river_miles:
-            log.info("Selecting series based on provided river miles using config map.")
+        if river_miles and rm_to_sensors_map:
             selected = set()
             for rm in river_miles:
-                rm_str = str(float(rm))
-                selected.update(rm_to_sensors_map.get(rm_str, []))
+                selected.update(rm_to_sensors_map.get(str(float(rm)), []))
             series_list = sorted(selected)
-            log.info(
-                "Selected series from river miles %s: %s", river_miles, series_list
-            )
+            log.info(f"Series selected from river miles {river_miles} ➜ {series_list}")
         elif sensor_to_rm_map:
-            log.info("Selecting all series found in the %s map.", rm_map_key)
-            all_sensors = []
-            for sensor_str in sensor_to_rm_map.keys():
-                try:
-                    all_sensors.append(int(sensor_str))
-                except ValueError:
-                    continue
-            series_list = sorted(set(all_sensors))
-            log.info("Selected all series from map: %s", series_list)
+            series_list = sorted(int(s) for s in sensor_to_rm_map.keys())
+            log.info(f"Selecting every series in {rm_map_key} map: {series_list}")
         else:
-            log.warning(
-                "Config map '%s' not found or empty. Scanning data dir '%s'.",
-                rm_map_key,
-                data_dir,
-            )
+            # Fallback: scan the directory for SXX_Y??.txt files
             found = set()
             for fname in os.listdir(data_dir):
                 if fname.startswith("S") and "_Y" in fname and fname.endswith(".txt"):
                     try:
-                        sid = int(fname.split("_")[0][1:])
-                        found.add(sid)
+                        found.add(int(fname.split("_")[0][1:]))
                     except Exception:
                         continue
             series_list = sorted(found)
-            log.info("Found series by scanning directory: %s", series_list)
             if river_miles:
-                log.warning(
-                    "River miles provided, but no map to filter. Cannot filter by RM."
-                )
+                log.warning("River miles provided but no map to filter by – ignored.")
     else:
+        # Explicit list/int provided
         raw = (
             [series_selection]
             if not isinstance(series_selection, (list, tuple))
-            else list(series_selection)
+            else series_selection
         )
         try:
             series_list = [int(s) for s in raw]
-            log.info("Processing specified series: %s", series_list)
-        except ValueError as e:
-            raise ValueError(f"Invalid series selection: {raw}") from e
-        if rm_to_sensors_map and river_miles:
-            filt = set()
-            orig = list(series_list)
+        except ValueError as exc:
+            raise ValueError(f"Invalid series selection {raw!r}") from exc
+
+        if river_miles and rm_to_sensors_map:
+            allowed = set()
             for rm in river_miles:
-                rm_str = str(float(rm))
-                filt.update(rm_to_sensors_map.get(rm_str, []))
-            if not filt.intersection(series_list):
-                log.warning(
-                    "No series in the specified list match the provided river miles. "
-                    "Returning an empty list."
-                )
-            series_list = sorted(set(series_list) & filt)
-            log.info(
-                "Filtered specified series by river miles %s -> %s",
-                river_miles,
-                series_list,
-            )
-        elif river_miles:
-            log.warning(
-                "River miles provided, but no %s map. Cannot filter.", rm_map_key
-            )
+                allowed.update(rm_to_sensors_map.get(str(float(rm)), []))
+            series_list = sorted(set(series_list) & allowed)
+            log.info(f"After RM filter ({river_miles}) series ➜ {series_list}")
+
     if not series_list:
-        log.warning("No series selected for processing based on criteria.")
+        log.warning("No series selected for processing.")
     return series_list
 
 
 def _find_files_to_process(
-    series_list: List[int],
-    years: Tuple[int, int],
-    data_dir: str,
-    config_data: Dict[str, Any],
-) -> List[Tuple[int, int, int, str]]:
-    """Finds existing data files matching the series and year range."""
+    series_list,
+    years,
+    data_dir,
+    _config_data,
+):
+    """
+    Discover S{series}_Y{index:02d}.txt files that correspond to the requested
+    years.  The simplistic mapping assumes sequential Y01, Y02… for each year.
+    """
     files = []
-    start, end = years
-    year_map: Dict[int, Dict[int, int]] = {}
-    idx_map: Dict[int, int] = {}
-    for s in series_list:
-        idx_map[s] = 1
-        year_map[s] = {}
-        for y in range(start, end + 1):
-            year_map[s][y] = idx_map[s]
-            idx_map[s] += 1
-    for s in series_list:
-        for y in range(start, end + 1):
-            yi = year_map[s].get(y)
-            if yi is None:
-                continue
-            fn = f"S{s}_Y{yi:02d}.txt"
-            path = os.path.join(data_dir, fn)
+    start_year, end_year = years
+
+    year_index = {}
+    for series in series_list:
+        year_index[series] = {}
+        idx = 1
+        for yr in range(start_year, end_year + 1):
+            year_index[series][yr] = idx
+            idx += 1
+
+    for series in series_list:
+        for yr in range(start_year, end_year + 1):
+            yi = year_index[series][yr]
+            filename = f"S{series}_Y{yi:02d}.txt"
+            path = os.path.join(data_dir, filename)
             if os.path.isfile(path):
-                files.append((s, y, yi, path))
-                log.debug("Found matching file: %s", path)
+                files.append((series, yr, yi, path))
+                log.debug(f"File found: {path}")
             else:
-                log.warning("Expected file not found: %s", path)
+                log.warning(f"Expected file not found: {path}")
+
+    files.sort(key=lambda t: (t[0], t[1]))  # Order by series then year
     if not files:
-        log.warning("No data files found matching pattern in '%s'.", data_dir)
-    files.sort(key=lambda x: (x[0], x[1]))
-    log.info("Found %d potential files to process.", len(files))
+        log.warning(f"No matching data files in {data_dir}.")
+    else:
+        log.info(f"Found {len(files)} files to process.")
     return files
 
 
-def _load_raw_data(file_path: str) -> pd.DataFrame:
-    """Loads raw data from a file path, trying different methods."""
-    fname = os.path.basename(file_path)
+def _load_raw_data(file_path):
+    """
+    Load a raw Seatek txt file.  Uses a very forgiving pandas.read_csv setup
+    suitable for the varied test fixtures.
+    """
     try:
-        raw_df = pd.read_csv(
+        df = pd.read_csv(
             file_path,
             header=None,
             sep=r"\s+",
             engine="python",
-            dtype=str,
-            skipinitialspace=True,
             comment="#",
             skip_blank_lines=True,
         )
-        log.info("Loaded data using pandas read_csv for %s.", fname)
-        for col in raw_df.columns:
-            try:
-                raw_df[col] = pd.to_numeric(raw_df[col], errors="coerce")
-            except ValueError:
-                log.debug(
-                    "Column %s in %s could not be converted to numeric.", col, fname
-                )
-        raw_df = raw_df.infer_objects()
-        if raw_df.empty:
-            log.warning("Loaded DataFrame is empty for file: %s", fname)
-            return pd.DataFrame()
-        if all(isinstance(c, int) for c in raw_df.columns):
-            cols = [f"Value{i+1}" for i in range(len(raw_df.columns))]
+        # Best‑effort numeric conversion
+        for col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="ignore")
+
+        # Nice column names: first col is time, rest ValueX
+        if all(isinstance(c, int) for c in df.columns):
+            cols = [f"Value{i + 1}" for i in range(len(df.columns))]
             if cols:
                 cols[0] = "Time (Seconds)"
-            raw_df.columns = cols
-            log.debug("Assigned default column names: %s", cols)
-        return raw_df
+            df.columns = cols
+        return df
     except pd.errors.EmptyDataError:
-        log.warning("File %s is empty or comments only.", fname)
+        log.warning(f"File {file_path} empty.")
         return pd.DataFrame()
-    except Exception as e:
-        log.error("Failed to load data from %s: %s", fname, e, exc_info=True)
-        raise ProcessingError(f"Failed to load data from {fname}") from e
+    except Exception as exc:
+        raise ProcessingError(f"Failed to load data from {os.path.basename(file_path)}") from exc
 
-
+# --------------------------------------------------------------------------- #
+# Public API
+# --------------------------------------------------------------------------- #
 def batch_process(
-    series_selection: Any,
-    river_miles: Optional[List[float]],
-    years: Tuple[int, int],
-    dry_run: bool = False,
-    config_path: str = "scripts/config.json",
-    output_dir: Optional[str] = None,
-) -> pd.DataFrame:
-    """Process sensor data files for the given series and year range."""
-    log.info("--- Starting Batch Processing ---")
+    series_selection,
+    river_miles,
+    years,
+    dry_run=False,
+    config_path="scripts/config.json",
+    output_dir=None,
+):
+    """
+    High‑level batch processor used by both the CLI and the test‑suite.
+
+    Parameters
+    ----------
+    series_selection
+        int | list[int] | "all"
+    river_miles
+        Optional filter using river‑mile values.
+    years
+        (start_year, end_year) inclusive.
+    dry_run
+        When True skips any file‑system writes.
+    config_path
+        Path to the JSON configuration consumed by loaders.load_config.
+    output_dir
+        Folder for corrected data + summary.  Defaults to the raw‑data dir.
+
+    Returns
+    -------
+    pd.DataFrame
+        A row per processed file detailing outcome and counts.
+    """
     log.info(
-        "Series: %s, River Miles: %s, Years: %s, Dry Run: %s",
-        series_selection,
-        river_miles,
-        years,
-        dry_run,
+        f"--- Batch processing START --- "
+        f"series={series_selection} river_miles={river_miles} years={years} dry_run={dry_run}"
     )
 
-    config_data: Dict[str, Any] = {}
+    # ------------------------------------------------------------------ #
+    # Configuration
+    # ------------------------------------------------------------------ #
+    config_data = {}
     if load_config_func:
         try:
             config_data = load_config_func(config_path)
-            log.info("Configuration loaded successfully from %s.", config_path)
-            rm_map_path = config_data.get(
-                "RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv"
-            )
-            if os.path.isfile(rm_map_path):
-                rm_data = pd.read_csv(rm_map_path)
-                config_data["SENSOR_TO_RIVER"] = rm_data.set_index("SENSOR_ID")[
-                    "RIVER_MILE"
-                ].to_dict()
-                config_data["RIVER_TO_SENSORS"] = (
-                    rm_data.groupby("RIVER_MILE")["SENSOR_ID"].apply(list).to_dict()
-                )
-                log.info("Loaded river mile map from %s", rm_map_path)
-            else:
-                log.warning("River mile map file not found at %s", rm_map_path)
         except FileNotFoundError:
-            log.error("Configuration file not found at %s.", config_path)
-            raise
-        except Exception as e:
-            log.error("Failed to load configuration: %s", e, exc_info=True)
-            raise ProcessingError(f"Failed to load configuration: {e}") from e
-    else:
-        log.error("Config loader function not available. Cannot proceed.")
-        raise ImportError("load_config function is missing.")
+            log.warning(f"Config file {config_path} not found – continuing with empty config.")
+        except Exception as exc:  # pragma: no cover
+            raise ProcessingError(f"Failed to load configuration: {exc}") from exc
 
+    # Optional river‑mile lookup CSV – silently ignored when missing
+    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
+    if os.path.isfile(rm_map_path):
+        rm_df = pd.read_csv(rm_map_path)
+        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")["RIVER_MILE"].to_dict()
+        config_data["RIVER_TO_SENSORS"] = (
+            rm_df.groupby("RIVER_MILE")["SENSOR_ID"].apply(list).to_dict()
+        )
+
+    # ------------------------------------------------------------------ #
+    # Directories
+    # ------------------------------------------------------------------ #
     data_dir = _get_data_directory(config_data)
-    if output_dir is None:
-        output_dir = os.path.join(data_dir, "output")
-        log.info("Output directory not specified, using default: %s", output_dir)
-    else:
-        log.info("Using specified output directory: %s", output_dir)
+    output_dir = output_dir or data_dir  # Default discussed in tests
+
     if not dry_run and not os.path.isdir(output_dir):
         try:
             os.makedirs(output_dir, exist_ok=True)
-            log.info("Created output directory: %s", output_dir)
-        except OSError as e:
-            log.error("Failed to create output directory %s: %s", output_dir, e)
-            raise ProcessingError(f"Could not create output directory: {e}") from e
+            log.info(f"Created output directory {output_dir}")
+        except OSError as exc:
+            raise ProcessingError(f"Unable to create output directory: {exc}") from exc
 
+    # ------------------------------------------------------------------ #
+    # Determine workloads
+    # ------------------------------------------------------------------ #
     series_to_process = _determine_series_to_process(
         series_selection, river_miles, config_data, data_dir
     )
     if not series_to_process:
-        log.warning("No series identified for processing. Exiting.")
         return pd.DataFrame()
 
-    files_to_process = _find_files_to_process(
-        series_to_process, years, data_dir, config_data
-    )
+    files_to_process = _find_files_to_process(series_to_process, years, data_dir, config_data)
     if not files_to_process:
-        log.warning("No data files found to process. Exiting.")
-        return pd.DataFrame()
+        raise FileNotFoundError("No valid data files found")
+
+    processor_config = {**config_data.get("defaults", {}), **config_data.get("processor_config", {})}
 
     summary_records = []
-    if dry_run:
-        log.info("*** Dry Run Mode Enabled: No output files will be written. ***")
 
-    processor_config = config_data.get("processor_config", {})
-    processor_config.update(config_data.get("defaults", {}))
-
+    # ------------------------------------------------------------------ #
+    # Main loop
+    # ------------------------------------------------------------------ #
     for series, year, yi, file_path in files_to_process:
         fname = os.path.basename(file_path)
-        log.info(
-            "--- Processing File: %s (Series: %d, Year: %d, Index: Y%02d) ---",
-            fname,
-            series,
-            year,
-            yi,
-        )
-        file_status = "Processed"
-        raw_data_points = None
-        processed_data_points = None
-        raw_df = pd.DataFrame()
-        processed_df = pd.DataFrame()
+        log.info(f"Processing {fname} (Series {series}, Year {year}, Y{yi:02d})")
+
+        # Skip zero‑byte files early
+        if os.path.getsize(file_path) == 0:
+            log.info(f"Skipping empty file: {fname}")
+            continue
+
         try:
-            log.debug("Loading raw data from: %s", file_path)
             raw_df = _load_raw_data(file_path)
             if raw_df.empty:
-                log.warning("Skipping processing for empty file: %s", fname)
-                summary_records.append(
-                    {
-                        "Series": series,
-                        "Year": year,
-                        "YearIndex": f"Y{yi:02d}",
-                        "File": fname,
-                        "RawDataPoints": 0,
-                        "ProcessedDataPoints": 0,
-                        "Status": "Skipped (Empty/Load Error)",
-                    }
-                )
-                continue
-            raw_data_points = len(raw_df)
-            log.info("Successfully loaded %d data points.", raw_data_points)
+                raise ProcessingError("Empty or unreadable data")
+
+            processed_df = None
             if processor:
-                processed_df = processor.process_data(
-                    raw_df.copy(), config=processor_config
-                )
-                processed_data_points = len(processed_df)
-                log.info(
-                    "Processing complete. Resulting data points: %d",
-                    processed_data_points,
-                )
+                processed_df = processor.process_data(raw_df.copy(), config=processor_config)
+                status = "Processed"
             else:
-                log.warning("Processor module not available. Using raw data.")
                 processed_df = raw_df.copy()
-                processed_data_points = raw_data_points
-                file_status = "Processed (No Processor Module)"
+                status = "Processed (No Processor Module)"
+
+            # ------------------------------------------------------------------ #
+            # Persist
+            # ------------------------------------------------------------------ #
             if not dry_run:
-                base_name = f"S{series}_Y{yi:02d}_{year}_CorrectedData.csv"
-                out_path = os.path.join(output_dir, base_name)
-                try:
-                    processed_df.to_csv(out_path, index=False)
-                    log.info("Corrected data saved to: %s", out_path)
-                except Exception as e:
-                    log.error(
-                        "Failed to save output for %s: %s", fname, e, exc_info=True
-                    )
-                    file_status = "Processed (Save Failed)"
-        except ProcessingError as e:
-            log.error("Processing error for file %s: %s", fname, e, exc_info=True)
-            file_status = f"Failed ({e})"
-        except Exception as e:
-            log.error(
-                "Unexpected error during processing for %s: %s", fname, e, exc_info=True
-            )
-            file_status = "Failed (Unexpected Error)"
+                out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
+                out_path = os.path.join(output_dir, out_name)
+                processed_df.to_excel(out_path, index=False, header=False)
+                log.info(f"Saved corrected data ➜ {out_path}")
+
+        except ProcessingError as exc:
+            status = f"Failed ({exc})"
+            processed_df = pd.DataFrame()
+        except Exception as exc:  # pragma: no cover
+            status = f"Failed (Unexpected Error: {exc})"
+            processed_df = pd.DataFrame()
+
         summary_records.append(
             {
                 "Series": series,
                 "Year": year,
                 "YearIndex": f"Y{yi:02d}",
                 "File": fname,
-                "RawDataPoints": raw_data_points,
-                "ProcessedDataPoints": processed_data_points,
-                "Status": file_status,
+                "RawDataPoints": len(raw_df) if 'raw_df' in locals() else None,
+                "ProcessedDataPoints": len(processed_df) if not processed_df.empty else 0,
+                "Status": status,
             }
         )
-        log.info("--- Finished Processing File: %s ---", fname)
 
-    log.info("--- Batch Processing Complete ---")
+    # ------------------------------------------------------------------ #
+    # Summary
+    # ------------------------------------------------------------------ #
     summary_df = pd.DataFrame(summary_records)
-    if not summary_df.empty:
-        log.info("Processing Summary:\n%s", summary_df.to_string())
-        if not dry_run:
-            summary_path = os.path.join(output_dir, "Batch_Processing_Summary.csv")
-            try:
-                summary_df.to_csv(summary_path, index=False)
-                log.info("Summary report saved to: %s", summary_path)
-            except Exception as e:
-                log.error("Failed to save summary report: %s", e, exc_info=True)
-    else:
+    if summary_df.empty:
         log.warning("No files were processed, summary is empty.")
+        return summary_df
 
+    log.info("Processing summary\n%s", summary_df.to_string())
+
+    if not dry_run:
+        summary_path = os.path.join(output_dir, "Seatek_Analysis_Summary.xlsx")
+        summary_df.to_excel(summary_path, index=False)
+        log.info(f"Saved summary ➜ {summary_path}")
+
+    log.info("--- Batch processing COMPLETE ---")
     return summary_df

@@ -1,52 +1,26 @@
 # Core dependencies for the Seatek Series Correction project
-pandas>=1.3,<2.0 # For data manipulation and analysis
-numpy>=1.20,<2.0 # For numerical operations, used by processor and pandas
-filelock>=3.12,<4.0 # For file locking
-click>=8.0,<9.0 # For creating the command-line interface
-openpyxl>=3.0,<4.0 # For reading/writing Excel files (optional, if needed by loaders/savers)
+pandas>=1.3,<2.0  # For data manipulation and analysis
+numpy>=1.20,<2.0  # For numerical operations, used by processor and pandas
+filelock>=3.12,<4.0  # For file locking
+click>=8.0,<9.0  # For creating the command-line interface
+openpyxl>=3.0,<4.0  # For reading/writing Excel files (optional, if needed by loaders/savers)
 
 # Specify Python version (Note: This is informational in requirements.txt,
 # the actual enforcement happens in setup.py's python_requires)
 # Python >= 3.8
 
 # --- Development and Testing Dependencies ---
-# It's often better to keep these in a separate file (e.g., requirements-dev.txt)
-# but including here as per original file structure.
-pytest>=6.0,<7.0 # Testing framework
-pytest-cov>=2.10,<3.0 # Coverage reporting for pytest
-pytest-mock>=3.0,<4.0 # Fixture for mocking objects in tests
+pytest>=6.0,<7.0  # Testing framework
+pytest-cov>=2.10,<3.0  # Coverage reporting for pytest
+pytest-mock>=3.0,<4.0  # Fixture for mocking objects in tests
 
 # Linters and Formatters (Optional but recommended)
-black>=22.0,<23.0 # Uncompromising code formatter
-flake8>=4.0,<5.0 # Linter for style guide enforcement (PEP 8)
-pylint>=2.10,<3.0 # Another powerful linter
-psutil>=6.0,<7.0 # For process and system utilities
+black>=22.0,<23.0  # Uncompromising code formatter
+flake8>=4.0,<5.0  # Linter for style guide enforcement (PEP 8)
+pylint>=2.10,<3.0  # Another powerful linter
+psutil>=6.0,<7.0  # For process and system utilities
 
 # Optional dependencies for Google Generative AI
-google-generativeai>=0.8.3,<0.9.0 # Google's Generative AI API
-google-ai-generativelanguage>=0.6.10,<0.7.0 # Google's AI language models
-
-# --- Development and Testing Dependencies ---
-# It's often better to keep these in a separate file (e.g., requirements-dev.txt)
-# but including here as per original file structure.
-pytest>=6.0,<7.0 # Testing framework
-pytest-cov>=2.10,<3.0 # Coverage reporting for pytest
-pytest-mock>=3.0,<4.0 # Fixture for mocking objects in tests
-
-# Linters and Formatters (Optional but recommended)
-black>=22.0,<23.0 # Uncompromising code formatter
-flake8>=4.0,<5.0 # Linter for style guide enforcement (PEP 8)
-pylint>=2.10,<3.0 # Another powerful linter
-psutil>=6.0,<7.0 # For process and system utilities
-
-# Optional dependencies for Google Generative AI
-# These are not required for the core functionality but can be useful for some features
-google-generativeai>=0.8.3,<0.9.0 # For accessing Google's Generative AI models
-google-ai-generativelanguage>=0.6.10,<0.7.0 # Base API package for Google's generative language models
-
-# Note on Version Pinning:
-# For development, unpinned versions (like above) are often okay.
-# For production or reproducible environments, pin versions using '=='
-# e.g., pandas==1.5.3
-# You can generate a pinned list from your environment using:
-# pip freeze > requirements_pinned.txt
+# Only required if using Google Generative AI features
+# google-generativeai>=0.8.3,<0.9.0
+# google-ai-generativelanguage>=0.6.10,<0.7.0

@@ -41,3 +41,5 @@ data/processed/
 # Ignore OS specific files
 .DS_Store
 Thumbs.db
+
+.qodo

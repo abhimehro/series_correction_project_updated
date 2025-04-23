@@ -6,7 +6,7 @@ in Seatek sensor time-series data based on the audit report suggestions.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -508,14 +508,15 @@ def process_data(
 
     if config is None:
         config = {}
-    merged_config = {**default_config, **config}
+    merged_config = {**default_config, **(config or {})}
     log.info("Processing data with configuration: %s", merged_config)
 
     processed_data = data.copy()
 
     time_col = merged_config["time_col"]
     if time_col not in processed_data.columns:
-        raise ValueError(f"Time column '{time_col}' not found in data columns: {list(processed_data.columns)}")
+        log.warning("Time column '{time_col}' not found in data columns: {list(processed_data.columns)}")
+        raise ValueError("Time column '{time_col}' not found in data columns: {list(processed_data.columns)}")
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
         try:
@@ -523,21 +524,25 @@ def process_data(
             processed_data[time_col] = (processed_data[time_col] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
             log.info("Converted time column '%s' to numeric (Unix timestamp).", time_col)
         except Exception as e:
-            raise ValueError(f"Time column '{time_col}' is not numeric and could not be converted: {e}")
-
+            raise ValueError('Time column \'{time_col}\' is not numeric and could not be converted: {e}')
     value_col = merged_config["value_col"]
     if value_col is None:
         numeric_cols = processed_data.select_dtypes(include=np.number).columns
         potential_value_cols = [col for col in numeric_cols if col != time_col]
         if not potential_value_cols:
-            raise ValueError(f"No numeric value columns found in the data (excluding time column '{time_col}').")
+            log.warning(
+            log.warning(
+                'No numeric value columns found in the data (excluding time column \'{time_col}\'). '
+                'Please specify a valid value column in the configuration.'
+            raise ValueError('No numeric value columns found in the data (excluding time column \'{time_col}\').')
         value_col = potential_value_cols[0]
         merged_config["value_col"] = value_col
         log.info("Auto-detected value column: '%s'", value_col)
     elif value_col not in processed_data.columns:
-        raise ValueError(f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}")
+        raise ValueError(
+            "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}")
     elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
-        raise ValueError(f"Specified value column '{value_col}' is not numeric.")
+        raise ValueError("Specified value column '{value_col}' is not numeric.")
 
     window_size = merged_config["window_size"]
     threshold = merged_config["threshold"]

@@ -22,8 +22,8 @@ def read_long_description(filename="README.md"):
         with open(filename, encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        print(f"Warning: {filename} not found. Long description will be empty.")
-        return None
+        print('Warning: {filename} not found. Long description will be empty.')
+        return ''
 
 
 # Project metadata
@@ -53,8 +53,7 @@ missing = required - set(
 )
 if missing:
     print(
-        f"Warning: Core dependencies {missing} might be missing from requirements.txt"
-    )
+        "Warning: Core dependencies {', '.join(sorted(missing))} are missing from requirements.txt"
 
 setup(
     name=NAME,
@@ -93,8 +92,8 @@ setup(
     keywords="seatek sensor timeseries data correction environmental science",
 )
 
-print(f"\nSetup complete for {NAME} version {VERSION}.")
-print("To install this package locally for development, run:")
+print('\nSetup complete for {NAME} version {VERSION}.')
+print("To install this package locally for development (e.g., for testing), run:")
 print("  pip install -e .")
 print("To install the command-line tool, run:")
 print("  pip install .")

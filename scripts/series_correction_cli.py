@@ -9,31 +9,31 @@ from .batch_correction import batch_process
 def main():
     """Main entry point for the series correction CLI."""
     parser = argparse.ArgumentParser(
-        description=("Run series correction batch processing on sensor data.")
+        description="Run series correction batch processing on sensor data."
     )
     parser.add_argument(
         "--series",
         default="all",
-        help=("Series number to process, or 'all' for all available series."),
+        help="Series number to process, or 'all' for all available series.",
     )
     parser.add_argument(
         "--river-miles",
         nargs=2,
         type=float,
         required=True,
-        help=("Upstream and downstream river mile markers " "(e.g., 54.0 53.0)."),
+        help="Upstream and downstream river mile markers " "(e.g., 54.0 53.0).",
     )
     parser.add_argument(
         "--years",
         nargs=2,
         type=int,
         required=True,
-        help=("Start and end years of data to process " "(e.g., 1995 2014)."),
+        help="Start and end years of data to process " "(e.g., 1995 2014).",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help=("If set, process data without saving output files."),
+        help="If set, process data without saving output files.",
     )
     args = parser.parse_args()
 
@@ -50,8 +50,11 @@ def main():
     years = sorted(args.years)
     try:
         batch_process(args.series, args.river_miles, years, args.dry_run)
+    except (IOError, ValueError) as e:
+        logging.error("Known error in processing: %s", e)
+        sys.exit(1)
     except Exception as e:
-        logging.error(f"Error in processing: {e}")
+        logging.exception("Unexpected error in processing: %s", e)
         sys.exit(1)
 
 
