@@ -9,6 +9,7 @@ from unittest.mock import ANY, MagicMock, mock_open
 import pandas as pd  # type: ignore
 import pytest
 
+
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
 # Import ProcessingError only if you add a test that specifically catches it
@@ -376,49 +377,44 @@ def test_batch_process_load_error(mock_dependencies, mock_data_loader_mod, caplo
     assert "Failed to load data from S26_Y01.txt: Cannot read file" in caplog.text
 
 
-def test_batch_process_process_error(mock_dependencies, mock_processor_mod, caplog):
+def test_batch_process_process_error(
+    mock_dependencies: Dict[str, MagicMock],
+    mock_processor_mod: MagicMock,
+    caplog: LogCaptureFixture,
+) -> None:
     """Test handling of error during data processing."""
     # Arrange
-    series_selection = 26
-    river_miles = None
-    years = (1995, 1995)
-    dry_run = False
-    # expected_data_dir = os.path.join(os.getcwd(), "data") # Not needed
+    series: int = 26
+    years: Tuple[int, int] = (1995, 1995)
 
-    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
-    mock_dependencies["isfile"].return_value = True
-    # Simulate error during processing
+    mock_dependencies.update(
+        {
+            "listdir.return_value": ["S26_Y01.txt"],
+            "isfile.return_value": True,
+            "read_csv.return_value": pd.DataFrame({"A": range(5)}),
+        }
+    )
     mock_processor_mod.process_data.side_effect = ValueError("Processing failed")
-    # Use fallback loader successfully
-    dummy_raw_data = create_dummy_df(5)
-    mock_dependencies["read_csv"].return_value = dummy_raw_data
 
     # Act
-    summary_df = batch_process(series_selection, river_miles, years, dry_run)
+    summary_df = batch_process(series, None, years, False)
 
     # Assert
-    mock_dependencies["read_csv"].assert_called_once()  # Fallback loader used
-    mock_processor_mod.process_data.assert_called_once()  # Processor was called
-
-    # Check summary status
+    mock_dependencies["read_csv"].assert_called_once()
+    mock_processor_mod.process_data.assert_called_once()
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Process Failed"
-    # Data points should reflect raw data length in case of process failure
     assert summary_df.iloc[0]["DataPoints"] == 5
-
-    # Check log
-    log_msg = "Failed to process data for S26_Y01.txt: Processing failed"
-    assert log_msg in caplog.text
-
-    # Check that raw data was saved, and the *raw* data was saved as 'corrected'
-    # raw, corrected (raw), summary
+    assert "Failed to process data for S26_Y01.txt: Processing failed" in caplog.text
     assert mock_dependencies["to_excel"].call_count == 3
-    raw_save_call = mock_dependencies["to_excel"].call_args_list[0]
-    corrected_save_call = mock_dependencies["to_excel"].call_args_list[1]
-    # Check DF passed
-    pd.testing.assert_frame_equal(raw_save_call.args[0], dummy_raw_data)
-    # Check DF passed
-    pd.testing.assert_frame_equal(corrected_save_call.args[0], dummy_raw_data)
+    pd.testing.assert_frame_equal(
+        mock_dependencies["to_excel"].call_args_list[0].args[0],
+        mock_dependencies["read_csv"].return_value,
+    )
+    pd.testing.assert_frame_equal(
+        mock_dependencies["to_excel"].call_args_list[1].args[0],
+        mock_dependencies["read_csv"].return_value,
+    )
 
 
 def test_batch_process_invalid_series_selection():

@@ -1,5 +1,43 @@
+# Ignore data files
 *.xlsx
 *.log
 __pycache__/
 archive/
 logs/
+
+# Ignore Python bytecode files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore virtual environment directories
+venv/
+env/
+.env/
+.venv/
+
+# Ignore distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Ignore test and coverage files
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Ignore editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ignore logs and data files
+*.log
+logs/
+data/processed/
+*.xlsx
+
+# Ignore OS specific files
+.DS_Store
+Thumbs.db
