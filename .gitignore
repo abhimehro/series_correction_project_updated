@@ -1,5 +1,5 @@
 # Ignore data files
-*.xlsx
+#*.xlsx
 *.log
 __pycache__/
 archive/
@@ -36,7 +36,7 @@ htmlcov/
 *.log
 logs/
 data/processed/
-*.xlsx
+#*.xlsx
 
 # Ignore OS specific files
 .DS_Store

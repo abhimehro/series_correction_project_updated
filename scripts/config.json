@@ -1,16 +1,52 @@
 {
   "series": {
     "26": {
-      "diagnostic": "data/diagnostics/Series26_Diagnostics.csv",
+      "diagnostic": "data/S26_Y01.txt",
       "raw_data": [
-        "data/raw_exports/Raw_Data_Year_1995 (Y01).gsheet"
+        "data/S26_Y01.txt",
+        "data/S26_Y02.txt",
+        "data/S26_Y03.txt",
+        "data/S26_Y04.txt",
+        "data/S26_Y05.txt",
+        "data/S26_Y06.txt",
+        "data/S26_Y08.txt",
+        "data/S26_Y09.txt",
+        "data/S26_Y11.txt",
+        "data/S26_Y12.txt",
+        "data/S26_Y13.txt",
+        "data/S26_Y14.txt",
+        "data/S26_Y15.txt",
+        "data/S26_Y16.txt",
+        "data/S26_Y17.txt",
+        "data/S26_Y18.txt",
+        "data/S26_Y19.txt",
+        "data/S26_Y20.txt"
       ],
       "description": "Series 26: Sensor readings from Year 1995 onward"
     },
     "27": {
-      "diagnostic": "data/diagnostics/Series27_Diagnostics.csv",
+      "diagnostic": "data/S27_Y01.txt",
       "raw_data": [
-        "data/raw_exports/Year_1995 (Y01)_Data.gsheet"
+        "data/S27_Y01.txt",
+        "data/S27_Y02.txt",
+        "data/S27_Y03.txt",
+        "data/S27_Y04.txt",
+        "data/S27_Y05.txt",
+        "data/S27_Y06.txt",
+        "data/S27_Y07.txt",
+        "data/S27_Y08.txt",
+        "data/S27_Y09.txt",
+        "data/S27_Y10.txt",
+        "data/S27_Y11.txt",
+        "data/S27_Y12.txt",
+        "data/S27_Y13.txt",
+        "data/S27_Y14.txt",
+        "data/S27_Y15.txt",
+        "data/S27_Y16.txt",
+        "data/S27_Y17.txt",
+        "data/S27_Y18.txt",
+        "data/S27_Y19.txt",
+        "data/S27_Y20.txt"
       ],
       "description": "Series 27: Sensor readings from Year 1995 onward"
     }

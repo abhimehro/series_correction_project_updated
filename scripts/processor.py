@@ -50,7 +50,7 @@ def detect_gaps(
         return []
 
     # Calculate the median time difference
-    median_diff = time_diffs_valid.median()
+    median_diff = pd.Series(time_diffs_valid).median()
 
     if median_diff <= 0:
         log.warning(
@@ -190,7 +190,7 @@ def detect_outliers(
 
     # Calculate rolling MAD
     rolling_mad = values.rolling(window=window_size, center=True).apply(
-        lambda x: (x - x.median()).abs().median(), raw=True
+        lambda x: pd.Series(x).sub(pd.Series(x).median()).abs().median(), raw=True
     )
 
     mad_scale_factor = 1.4826
@@ -345,15 +345,15 @@ def correct_gaps(
         processed_gap_indices.add(gap_idx)
 
     log.info("Interpolating values for columns %s using method '%s'.", value_cols, method)
-    if method == 'time' and time_col in result_df.columns:
+    if method == 'time' and isinstance(result_df.index, pd.DatetimeIndex):
         result_df_indexed = result_df.set_index(time_col)
         result_df_indexed[value_cols] = result_df_indexed[value_cols].interpolate(method=method, limit_direction='both')
         result_df = result_df_indexed.reset_index()
-    elif method != 'time':
-        result_df[value_cols] = result_df[value_cols].interpolate(method=method, limit_direction='both')
-    else:
-        log.warning("Cannot use 'time' interpolation without a valid time column index.")
+    elif method == 'time':
+        log.warning("Cannot use 'time' interpolation without a valid time column index. Falling back to 'linear'.")
         result_df[value_cols] = result_df[value_cols].interpolate(method='linear', limit_direction='both')
+    else:
+        result_df[value_cols] = result_df[value_cols].interpolate(method=method, limit_direction='both')
 
     log.info("Gap correction complete. DataFrame size changed from %d to %d.", len(data), len(result_df))
     return result_df
@@ -398,8 +398,8 @@ def correct_jumps(
         window_before = result_df[value_col].iloc[jump_idx - window_size : jump_idx]
         window_after = result_df[value_col].iloc[jump_idx : jump_idx + window_size]
 
-        median_before = window_before.median()
-        median_after = window_after.median()
+        median_before = pd.Series(window_before).median()
+        median_after = pd.Series(window_after).median()
 
         if pd.isna(median_before) or pd.isna(median_after):
             log.warning("Skipping jump correction at index %d: NaN median in window.", jump_idx)
@@ -468,7 +468,10 @@ def correct_outliers(
                 log.warning("Cannot calculate replacement for outlier at index %d: no valid surrounding points.", outlier_idx)
                 continue
             surrounding_values = result_df[value_col].loc[valid_indices_in_window]
-            replacement_value = surrounding_values.median() if method == "median" else surrounding_values.mean()
+            if method == "median":
+                replacement_value = pd.Series(list(surrounding_values)).median()
+            else:
+                replacement_value = pd.Series(list(surrounding_values)).mean()
             if pd.notna(replacement_value):
                 original_value = result_df.loc[outlier_idx, value_col]
                 result_df.loc[outlier_idx, value_col] = replacement_value
@@ -531,10 +534,12 @@ def process_data(
         potential_value_cols = [col for col in numeric_cols if col != time_col]
         if not potential_value_cols:
             log.warning(
-            log.warning(
-                'No numeric value columns found in the data (excluding time column \'{time_col}\'). '
-                'Please specify a valid value column in the configuration.'
-            raise ValueError('No numeric value columns found in the data (excluding time column \'{time_col}\').')
+                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
+                time_col
+            )
+            raise ValueError(
+                f"No numeric value columns found in the data (excluding time column '{time_col}')."
+            )
         value_col = potential_value_cols[0]
         merged_config["value_col"] = value_col
         log.info("Auto-detected value column: '%s'", value_col)

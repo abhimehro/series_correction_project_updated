@@ -15,6 +15,8 @@ import logging
 import os
 import pandas as pd
 
+print("[DEBUG] batch_correction.py module loaded and running!")
+
 # --------------------------------------------------------------------------- #
 # Logging setup
 # --------------------------------------------------------------------------- #
@@ -35,14 +37,14 @@ load_config_func = None
 processor = None
 
 try:
-    from . import loaders  # pytype: disable=import-error
+    from scripts import loaders  # absolute import
     load_config_func = getattr(loaders, "load_config", None)
 except Exception:  # pragma: no cover
     load_config_func = None
     log.info("`loaders` module not available – using dummy config loader.")
 
 try:
-    from . import processor as _processor  # pytype: disable=import-error
+    from scripts import processor as _processor  # absolute import
     processor = _processor
 except Exception:  # pragma: no cover
     processor = None
@@ -50,7 +52,7 @@ except Exception:  # pragma: no cover
 
 # Optional data_loader module (may be absent). Tests patch this when required.
 try:
-    from . import data_loader
+    from scripts import data_loader
 except Exception:  # pragma: no cover
     data_loader = None
 
@@ -208,6 +210,7 @@ def _load_raw_data(file_path):
     Load a raw Seatek txt file.  Uses a very forgiving pandas.read_csv setup
     suitable for the varied test fixtures.
     """
+    print(f"[DEBUG] Attempting to load file: {file_path}")
     try:
         df = pd.read_csv(
             file_path,
@@ -217,6 +220,7 @@ def _load_raw_data(file_path):
             comment="#",
             skip_blank_lines=True,
         )
+        print(f"[DEBUG] Loaded file: {file_path} with shape {df.shape}")
         # Best‑effort numeric conversion
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="ignore")
@@ -229,9 +233,10 @@ def _load_raw_data(file_path):
             df.columns = cols
         return df
     except pd.errors.EmptyDataError:
-        log.warning(f"File {file_path} empty.")
+        print(f"[DEBUG] File {file_path} empty.")
         return pd.DataFrame()
     except Exception as exc:
+        print(f"[DEBUG] Failed to load data from {file_path}: {exc}")
         raise ProcessingError(f"Failed to load data from {os.path.basename(file_path)}") from exc
 
 # --------------------------------------------------------------------------- #
@@ -245,29 +250,7 @@ def batch_process(
     config_path="scripts/config.json",
     output_dir=None,
 ):
-    """
-    High‑level batch processor used by both the CLI and the test‑suite.
-
-    Parameters
-    ----------
-    series_selection
-        int | list[int] | "all"
-    river_miles
-        Optional filter using river‑mile values.
-    years
-        (start_year, end_year) inclusive.
-    dry_run
-        When True skips any file‑system writes.
-    config_path
-        Path to the JSON configuration consumed by loaders.load_config.
-    output_dir
-        Folder for corrected data + summary.  Defaults to the raw‑data dir.
-
-    Returns
-    -------
-    pd.DataFrame
-        A row per processed file detailing outcome and counts.
-    """
+    print("[DEBUG] Entered batch_process function")
     log.info(
         f"--- Batch processing START --- "
         f"series={series_selection} river_miles={river_miles} years={years} dry_run={dry_run}"
@@ -317,80 +300,114 @@ def batch_process(
         return pd.DataFrame()
 
     files_to_process = _find_files_to_process(series_to_process, years, data_dir, config_data)
+    print(f"[DEBUG] files_to_process: {files_to_process}")
     if not files_to_process:
-        raise FileNotFoundError("No valid data files found")
+        print("[DEBUG] No files to process! Entering fallback loop.")
+        # Instead of raising, process all files in config for each series and write outputs
+        for series_id in config_data["series"]:
+            series_cfg = config_data["series"][series_id]
+            for i, file_path in enumerate(series_cfg["raw_data"], start=1):
+                print(f"[DEBUG] Forcing process of file: {file_path} (series {series_id})")
+                try:
+                    df = _load_raw_data(file_path)
+                    print(f"[DEBUG] Loaded {file_path} shape: {df.shape}")
+                    if not df.empty:
+                        processor_config = {**config_data.get("defaults", {}), **config_data.get("processor_config", {})}
+                        processed_df = processor.process_data(df, processor_config)
+                        out_name = f"Series{series_id}_File{i:02d}_Processed.xlsx"
+                        out_path = os.path.join(output_dir, out_name)
+                        processed_df.to_excel(out_path, index=False)
+                        print(f"[DEBUG] Wrote output: {out_path}")
+                except Exception as e:
+                    print(f"[DEBUG] Failed to process {file_path}: {e}")
+        print("[DEBUG] Fallback loop complete. Exiting batch_process.")
+        return  # Exit after forced processing for debug
+    else:
+        print("[DEBUG] files_to_process is not empty. Entering normal processing loop.")
+        processor_config = {**config_data.get("defaults", {}), **config_data.get("processor_config", {})}
 
-    processor_config = {**config_data.get("defaults", {}), **config_data.get("processor_config", {})}
+        summary_records = []
 
-    summary_records = []
+        # ------------------------------------------------------------------ #
+        # Main loop
+        # ------------------------------------------------------------------ #
+        for series, year, yi, file_path in files_to_process:
+            print(f"[DEBUG] Processing series: {series}, year: {year}, file: {file_path}")
+            fname = os.path.basename(file_path)
+            log.info(f"Processing {fname} (Series {series}, Year {year}, Y{yi:02d})")
 
-    # ------------------------------------------------------------------ #
-    # Main loop
-    # ------------------------------------------------------------------ #
-    for series, year, yi, file_path in files_to_process:
-        fname = os.path.basename(file_path)
-        log.info(f"Processing {fname} (Series {series}, Year {year}, Y{yi:02d})")
+            # Skip zero‑byte files early
+            if os.path.getsize(file_path) == 0:
+                log.info(f"Skipping empty file: {fname}")
+                continue
 
-        # Skip zero‑byte files early
-        if os.path.getsize(file_path) == 0:
-            log.info(f"Skipping empty file: {fname}")
-            continue
+            try:
+                raw_df = _load_raw_data(file_path)
+                if raw_df.empty:
+                    raise ProcessingError("Empty or unreadable data")
 
-        try:
-            raw_df = _load_raw_data(file_path)
-            if raw_df.empty:
-                raise ProcessingError("Empty or unreadable data")
+                processed_df = None
+                if processor:
+                    processed_df = processor.process_data(raw_df.copy(), processor_config)
+                    status = "Processed"
+                else:
+                    processed_df = raw_df.copy()
+                    status = "Processed (No Processor Module)"
 
-            processed_df = None
-            if processor:
-                processed_df = processor.process_data(raw_df.copy(), config=processor_config)
-                status = "Processed"
-            else:
-                processed_df = raw_df.copy()
-                status = "Processed (No Processor Module)"
+                # ------------------------------------------------------------------ #
+                # Persist
+                # ------------------------------------------------------------------ #
+                if not dry_run:
+                    out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
+                    out_path = os.path.join(output_dir, out_name)
+                    processed_df.to_excel(out_path, index=False, header=False)
+                    log.info(f"Saved corrected data ➜ {out_path}")
 
-            # ------------------------------------------------------------------ #
-            # Persist
-            # ------------------------------------------------------------------ #
-            if not dry_run:
-                out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
-                out_path = os.path.join(output_dir, out_name)
-                processed_df.to_excel(out_path, index=False, header=False)
-                log.info(f"Saved corrected data ➜ {out_path}")
+            except ProcessingError as exc:
+                status = f"Failed ({exc})"
+                processed_df = pd.DataFrame()
+            except Exception as exc:  # pragma: no cover
+                status = f"Failed (Unexpected Error: {exc})"
+                processed_df = pd.DataFrame()
 
-        except ProcessingError as exc:
-            status = f"Failed ({exc})"
-            processed_df = pd.DataFrame()
-        except Exception as exc:  # pragma: no cover
-            status = f"Failed (Unexpected Error: {exc})"
-            processed_df = pd.DataFrame()
+            summary_records.append(
+                {
+                    "Series": series,
+                    "Year": year,
+                    "YearIndex": f"Y{yi:02d}",
+                    "File": fname,
+                    "RawDataPoints": len(raw_df) if 'raw_df' in locals() else None,
+                    "ProcessedDataPoints": len(processed_df) if not processed_df.empty else 0,
+                    "Status": status,
+                }
+            )
 
-        summary_records.append(
-            {
-                "Series": series,
-                "Year": year,
-                "YearIndex": f"Y{yi:02d}",
-                "File": fname,
-                "RawDataPoints": len(raw_df) if 'raw_df' in locals() else None,
-                "ProcessedDataPoints": len(processed_df) if not processed_df.empty else 0,
-                "Status": status,
-            }
-        )
+        # ------------------------------------------------------------------ #
+        # Summary
+        # ------------------------------------------------------------------ #
+        summary_df = pd.DataFrame(summary_records)
+        if summary_df.empty:
+            log.warning("No files were processed, summary is empty.")
+            return summary_df
 
-    # ------------------------------------------------------------------ #
-    # Summary
-    # ------------------------------------------------------------------ #
-    summary_df = pd.DataFrame(summary_records)
-    if summary_df.empty:
-        log.warning("No files were processed, summary is empty.")
-        return summary_df
+        log.info("Processing summary\n%s", summary_df.to_string())
 
-    log.info("Processing summary\n%s", summary_df.to_string())
+        if not dry_run:
+            summary_path = os.path.join(output_dir, "Seatek_Analysis_Summary.xlsx")
+            summary_df.to_excel(summary_path, index=False)
+            log.info(f"Saved summary ➜ {summary_path}")
 
-    if not dry_run:
-        summary_path = os.path.join(output_dir, "Seatek_Analysis_Summary.xlsx")
-        summary_df.to_excel(summary_path, index=False)
-        log.info(f"Saved summary ➜ {summary_path}")
-
-    log.info("--- Batch processing COMPLETE ---")
+        log.info("--- Batch processing COMPLETE ---")
+    print("[DEBUG] Exiting batch_process function")
     return summary_df
+
+if __name__ == "__main__":
+    print("[DEBUG] batch_correction.py __main__ entrypoint running!")
+    # Ensure output directory exists
+    import sys
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output-dir', default='data/output')
+    args, unknown = parser.parse_known_args()
+    os.makedirs(args.output_dir, exist_ok=True)
+    # Existing CLI logic follows...
