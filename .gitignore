@@ -8,7 +8,6 @@ logs/
 # Ignore Python bytecode files
 *.pyc
 *.pyo
-__pycache__/
 
 # Ignore virtual environment directories
 venv/
@@ -33,8 +32,6 @@ htmlcov/
 *.swo
 
 # Ignore logs and data files
-*.log
-logs/
 data/processed/
 #*.xlsx
 
