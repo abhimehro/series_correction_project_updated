@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: seatek-series-correction
-Version: 0.1.0
+Version: 0.1.1
 Summary: Tools to detect and correct discontinuities in Seatek sensor data series.
 Home-page: https://github.com/yourusername/series-correction-project
 Author: Abhi Mehrotra
@@ -9,7 +9,6 @@ License: MIT
 Keywords: seatek sensor timeseries data correction environmental science
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Science/Research
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Natural Language :: English
 Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Python :: 3
@@ -35,8 +34,6 @@ Requires-Dist: black<23.0,>=22.0
 Requires-Dist: flake8<5.0,>=4.0
 Requires-Dist: pylint<3.0,>=2.10
 Requires-Dist: psutil<7.0,>=6.0
-Requires-Dist: google-generativeai<0.9.0,>=0.8.3
-Requires-Dist: google-ai-generativelanguage<0.7.0,>=0.6.10
 Dynamic: author
 Dynamic: author-email
 Dynamic: classifier
@@ -74,6 +71,7 @@ This project provides tools to automatically detect and correct discontinuities 
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
 - [Future Improvements](#future-improvements)
+- [Workflow for Efficient Batch Processing, QA, and Visualization Updates (2025)](#workflow-for-efficient-batch-processing-qa-and-visualization-updates-2025)
 
 ## Problem Statement
 
@@ -342,3 +340,71 @@ Based on the audit report and potential enhancements:
 - **Performance**: Profile and optimize processing for very large datasets if needed.
 - **Packaging**: Consider using pyproject.toml for modern packaging standards.
 - **Dependency Pinning**: Provide a pinned requirements.txt for reproducible environments.
+
+## Workflow for Efficient Batch Processing, QA, and Visualization Updates (2025)
+
+### 1. Add New Data Files
+- Place new raw `.txt` files in the `data/` directory.
+- Update `scripts/config.json` to include new series and files (e.g., for Series 28, 29, etc.).
+
+### 2. Run Batch Processing
+- From the project root, run:
+  ```bash
+  python scripts/manual_batch_run.py
+  ```
+- This processes all files listed in the config, corrects outliers/gaps/jumps, and writes output `.xlsx` files to `data/output/`.
+
+### 3. Export Comparison Sheets (for QA and Transparency)
+- To generate Excel files comparing raw and processed data (with outlier flags), run:
+  ```bash
+  python scripts/export_comparison_sheets.py
+  ```
+- This creates a `comparisons/` subfolder in `data/output/`, with one comparison Excel file per processed dataset.
+- Each file contains columns for raw value(s), processed value(s), and an `Outlier_Flag`.
+
+### 4. Update Excel Visualizations
+- **Recommended:** Point your Excel charts/tables directly to the processed `.xlsx` files in `data/output/`.
+  - This ensures your visualizations always reflect the latest, cleaned data.
+- **To compare raw and adjusted data visually:**
+  - Use the comparison Excel files in `data/output/comparisons/`.
+  - Add both raw and processed columns to your chart for before/after views.
+- **To update existing charts:**
+  - Overwrite the data range in your workbook with processed data, or use Excel's "Select Data" to re-link charts.
+
+### 5. For New Series or Years
+- Add new entries to `config.json`.
+- Repeat steps 2–4. No code changes needed.
+
+### 6. Troubleshooting & QA
+- Check logs and summary files for errors or warnings.
+- Use the comparison sheets to spot-check corrections and outlier handling.
+
+---
+
+## Additional Resources & Tips for Visualization Updates
+
+- **Excel Shortcuts:**
+  - Use "Data > Get Data > From File" to import processed `.xlsx` files.
+  - Use "Select Data" on a chart to quickly change its data source.
+  - Use filters or conditional formatting to highlight outliers using the `Outlier_Flag` column.
+- **Best Practices:**
+  - Always keep a backup of your original workbook.
+  - Document any manual changes for reproducibility.
+- **For LSU Center for River Studies:**
+  - Bring both the processed `.xlsx` files and the comparison files for transparency.
+  - If asked about corrections, show the `Outlier_Flag` and before/after columns.
+- **Further Automation:**
+  - If you need to automate chart updates or reporting, consider using Python libraries like `openpyxl` or `xlwings`.
+  - For advanced analytics or custom plots, Jupyter notebooks with `pandas` and `matplotlib` are recommended.
+
+---
+
+## Quick Reference
+
+- **Process all data:** `python scripts/manual_batch_run.py`
+- **Export comparison sheets:** `python scripts/export_comparison_sheets.py`
+- **Processed files:** `data/output/`
+- **Comparison files:** `data/output/comparisons/`
+- **Add new series:** Edit `scripts/config.json`
+
+If you have any questions or need further scripts for automation or visualization, please reach out to the project maintainer.
