@@ -15,7 +15,7 @@ pytest-cov>=2.10,<3.0  # Coverage reporting for pytest
 pytest-mock>=3.0,<4.0  # Fixture for mocking objects in tests
 
 # Linters and Formatters (Optional but recommended)
-black>=22.0,<23.0  # Uncompromising code formatter
+black>=22.0,<26.0  # Uncompromising code formatter
 flake8>=4.0,<5.0  # Linter for style guide enforcement (PEP 8)
 pylint>=2.10,<3.0  # Another powerful linter
 psutil>=6.0,<7.0  # For process and system utilities
