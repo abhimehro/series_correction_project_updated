@@ -1,6 +1,6 @@
 # Series Correction Project (Seatek Sensor Data)
 
-[![Python Tests](https://github.com/yourusername/series-correction-project/actions/workflows/python-tests.yml/badge.svg)](https://github.com/yourusername/series-correction-project/actions/workflows/python-tests.yml) [![Code Coverage](https://codecov.io/gh/yourusername/series-correction-project/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/series-correction-project) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Code Coverage](https://codecov.io/gh/yourusername/series-correction-project/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/series-correction-project) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 This project provides tools to automatically detect and correct discontinuities (such as jumps, gaps, or outliers) commonly found in time-series data from Seatek sensors. The goal is to produce cleaner, more reliable datasets for further analysis, suitable for integration with systems like NESST II.
 
