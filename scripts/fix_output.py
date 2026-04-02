@@ -1,7 +1,8 @@
+import glob
 import os
 import sys
+
 import pandas as pd
-import glob
 
 # Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -28,9 +29,9 @@ print(f"Found {len(raw_files)} raw data files")
 for i, file_path in enumerate(raw_files):
     # Extract series and year index from filename
     filename = os.path.basename(file_path)
-    parts = filename.split('_')
+    parts = filename.split("_")
     series = parts[0][1:]  # Remove the 'S'
-    year_idx = parts[1].split('.')[0]  # Get Y01, Y02, etc.
+    year_idx = parts[1].split(".")[0]  # Get Y01, Y02, etc.
 
     try:
         # Load raw data
@@ -59,16 +60,20 @@ for i, file_path in enumerate(raw_files):
             "outlier_method": "median",
             "jump_method": "offset",
             "time_col": "Time (Seconds)",
-            "value_col": None
+            "value_col": None,
         }
 
         processed_df = process_data(df, processor_config)
 
         # Save with clear, unambiguous filename
-        output_path = os.path.join(NEW_OUTPUT_DIR, f"Series{series}_Year{year_idx}_Processed.xlsx")
+        output_path = os.path.join(
+            NEW_OUTPUT_DIR, f"Series{series}_Year{year_idx}_Processed.xlsx"
+        )
         processed_df.to_excel(output_path, index=False)
 
-        print(f"Processed {i + 1}/{len(raw_files)}: {filename} → {os.path.basename(output_path)}")
+        print(
+            f"Processed {i + 1}/{len(raw_files)}: {filename} → {os.path.basename(output_path)}"
+        )
 
     except Exception as e:
         print(f"Error processing {filename}: {e}")

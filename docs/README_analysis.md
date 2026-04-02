@@ -5,6 +5,7 @@ This guide explains how to use the analysis notebook to evaluate the results of 
 ## Setup
 
 1. Ensure you have the correct directory structure:
+
    ```
    series_correction_project/
    ├── data/
@@ -17,12 +18,14 @@ This guide explains how to use the analysis notebook to evaluate the results of 
    ```
 
 2. Make sure you've run the batch correction process first:
+
    ```
    # Run from the project root directory
    python batch_correction.py
    ```
 
    Alternatively, specify the full path:
+
    ```
    python /path/to/series_correction_project/batch_correction.py
    ```

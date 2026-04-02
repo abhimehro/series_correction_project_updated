@@ -15,7 +15,7 @@ import sys
 import warnings
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 
 # --------------------------------------------------------------------------- #
@@ -48,12 +48,15 @@ def read_long_description(filename: str = "README.md") -> str:
         return ""
     return readme_path.read_text(encoding="utf-8")
 
+
 # --------------------------------------------------------------------------- #
 # Project metadata
 # --------------------------------------------------------------------------- #
 NAME = "seatek-series-correction"
 VERSION = "0.1.1"  # Bumped from 0.1.0
-DESCRIPTION = "Tools to detect and correct discontinuities in Seatek sensor data series."
+DESCRIPTION = (
+    "Tools to detect and correct discontinuities in Seatek sensor data series."
+)
 LONG_DESCRIPTION = read_long_description()
 LONG_DESCRIPTION_CONTENT_TYPE = "text/markdown"
 AUTHOR = "Abhi Mehrotra"
@@ -79,6 +82,7 @@ if missing_core:
         f"Core dependencies {', '.join(sorted(missing_core))} are missing from "
         "requirements.txt"
     )
+
 
 # --------------------------------------------------------------------------- #
 # Setup invocation
@@ -133,7 +137,6 @@ def main() -> None:
         ],
         keywords="seatek sensor timeseries data correction environmental science",
     )
-
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
-import os
 import glob
+import os
 
 # Directories to check
 directories = [
@@ -7,7 +7,7 @@ directories = [
     "fixed_output",
     "output",
     "data",
-    "."  # Current directory
+    ".",  # Current directory
 ]
 
 for directory in directories:

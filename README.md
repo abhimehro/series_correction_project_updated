@@ -295,10 +295,12 @@ Based on the audit report and potential enhancements:
 ## Workflow for Efficient Batch Processing, QA, and Visualization Updates (2025)
 
 ### 1. Add New Data Files
+
 - Place new raw `.txt` files in the `data/` directory.
 - Update `scripts/config.json` to include new series and files (e.g., for Series 28, 29, etc.).
 
 ### 2. Run Batch Processing
+
 - From the project root, run:
   ```bash
   python scripts/manual_batch_run.py
@@ -306,6 +308,7 @@ Based on the audit report and potential enhancements:
 - This processes all files listed in the config, corrects outliers/gaps/jumps, and writes output `.xlsx` files to `data/output/`.
 
 ### 3. Export Comparison Sheets (for QA and Transparency)
+
 - To generate Excel files comparing raw and processed data (with outlier flags), run:
   ```bash
   python scripts/export_comparison_sheets.py
@@ -314,6 +317,7 @@ Based on the audit report and potential enhancements:
 - Each file contains columns for raw value(s), processed value(s), and an `Outlier_Flag`.
 
 ### 4. Update Excel Visualizations
+
 - **Recommended:** Point your Excel charts/tables directly to the processed `.xlsx` files in `data/output/`.
   - This ensures your visualizations always reflect the latest, cleaned data.
 - **To compare raw and adjusted data visually:**
@@ -323,10 +327,12 @@ Based on the audit report and potential enhancements:
   - Overwrite the data range in your workbook with processed data, or use Excel's "Select Data" to re-link charts.
 
 ### 5. For New Series or Years
+
 - Add new entries to `config.json`.
 - Repeat steps 2–4. No code changes needed.
 
 ### 6. Troubleshooting & QA
+
 - Check logs and summary files for errors or warnings.
 - Use the comparison sheets to spot-check corrections and outlier handling.
 

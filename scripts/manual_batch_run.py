@@ -1,6 +1,7 @@
-import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from scripts.batch_correction import batch_process
 
 if __name__ == "__main__":
@@ -11,6 +12,6 @@ if __name__ == "__main__":
         years=(1995, 1996),
         dry_run=False,
         config_path="scripts/config.json",
-        output_dir="data/output"
+        output_dir="data/output",
     )
     print("[DEBUG] manual_batch_run.py completed.")

@@ -138,12 +138,17 @@ def detect_jumps(
         if abs(cusum) > threshold:
             jumps.append(i)
             cusum = 0.0
-            log.debug("Jump detected at index %d (CUSUM exceeded threshold %s)", i, threshold)
+            log.debug(
+                "Jump detected at index %d (CUSUM exceeded threshold %s)", i, threshold
+            )
 
     if jumps:
         log.info(
             "Detected %d potential jump(s) with window %d, threshold %s. Indices: %s",
-            len(jumps), window_size, threshold, jumps,
+            len(jumps),
+            window_size,
+            threshold,
+            jumps,
         )
     else:
         log.debug(
@@ -219,13 +224,21 @@ def detect_outliers(
             outliers.append(i)
             log.debug(
                 "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
-                i, current_value, median_i, scaled_mad_i, z_score, threshold
+                i,
+                current_value,
+                median_i,
+                scaled_mad_i,
+                z_score,
+                threshold,
             )
 
     if outliers:
         log.info(
             "Detected %d potential outlier(s) with window %d, threshold %s. Indices: %s",
-            len(outliers), window_size, threshold, outliers,
+            len(outliers),
+            window_size,
+            threshold,
+            outliers,
         )
     else:
         log.debug(
@@ -298,29 +311,43 @@ def correct_gaps(
             time_next = result_df[time_col].iloc[idx_after + 1]
             normal_step = time_next - time_after
         else:
-            log.warning("Cannot determine normal time step for gap at index %d. Skipping.", gap_idx)
+            log.warning(
+                "Cannot determine normal time step for gap at index %d. Skipping.",
+                gap_idx,
+            )
             continue
 
         if normal_step <= 0:
-            log.warning("Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.", normal_step, gap_idx)
+            log.warning(
+                "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
+                normal_step,
+                gap_idx,
+            )
             continue
 
         num_missing_points = round((time_after - time_before) / normal_step) - 1
 
         if num_missing_points <= 0:
-            log.debug("Calculated 0 or negative missing points for gap at index %d. Skipping.", gap_idx)
+            log.debug(
+                "Calculated 0 or negative missing points for gap at index %d. Skipping.",
+                gap_idx,
+            )
             continue
 
         log.info(
             "Filling gap at index %d: %d points missing between %s and %s (step: %s).",
-            gap_idx, num_missing_points, time_before, time_after, normal_step
+            gap_idx,
+            num_missing_points,
+            time_before,
+            time_after,
+            normal_step,
         )
 
         new_times = np.linspace(
             time_before + normal_step,
             time_after - normal_step,
             num=num_missing_points,
-            dtype=type(time_before)
+            dtype=type(time_before),
         )
 
         new_rows_list = []
@@ -336,26 +363,38 @@ def correct_gaps(
 
         new_rows_df = pd.DataFrame(new_rows_list)
 
-        result_df = pd.concat([
-            result_df.iloc[:gap_idx],
-            new_rows_df,
-            result_df.iloc[gap_idx:]
-        ]).reset_index(drop=True)
+        result_df = pd.concat(
+            [result_df.iloc[:gap_idx], new_rows_df, result_df.iloc[gap_idx:]]
+        ).reset_index(drop=True)
 
         processed_gap_indices.add(gap_idx)
 
-    log.info("Interpolating values for columns %s using method '%s'.", value_cols, method)
-    if method == 'time' and isinstance(result_df.index, pd.DatetimeIndex):
+    log.info(
+        "Interpolating values for columns %s using method '%s'.", value_cols, method
+    )
+    if method == "time" and isinstance(result_df.index, pd.DatetimeIndex):
         result_df_indexed = result_df.set_index(time_col)
-        result_df_indexed[value_cols] = result_df_indexed[value_cols].interpolate(method=method, limit_direction='both')
+        result_df_indexed[value_cols] = result_df_indexed[value_cols].interpolate(
+            method=method, limit_direction="both"
+        )
         result_df = result_df_indexed.reset_index()
-    elif method == 'time':
-        log.warning("Cannot use 'time' interpolation without a valid time column index. Falling back to 'linear'.")
-        result_df[value_cols] = result_df[value_cols].interpolate(method='linear', limit_direction='both')
+    elif method == "time":
+        log.warning(
+            "Cannot use 'time' interpolation without a valid time column index. Falling back to 'linear'."
+        )
+        result_df[value_cols] = result_df[value_cols].interpolate(
+            method="linear", limit_direction="both"
+        )
     else:
-        result_df[value_cols] = result_df[value_cols].interpolate(method=method, limit_direction='both')
+        result_df[value_cols] = result_df[value_cols].interpolate(
+            method=method, limit_direction="both"
+        )
 
-    log.info("Gap correction complete. DataFrame size changed from %d to %d.", len(data), len(result_df))
+    log.info(
+        "Gap correction complete. DataFrame size changed from %d to %d.",
+        len(data),
+        len(result_df),
+    )
     return result_df
 
 
@@ -391,7 +430,8 @@ def correct_jumps(
         if jump_idx < window_size or jump_idx >= n - window_size:
             log.warning(
                 "Skipping jump correction at index %d: insufficient data for window size %d.",
-                jump_idx, window_size
+                jump_idx,
+                window_size,
             )
             continue
 
@@ -402,18 +442,25 @@ def correct_jumps(
         median_after = pd.Series(window_after).median()
 
         if pd.isna(median_before) or pd.isna(median_after):
-            log.warning("Skipping jump correction at index %d: NaN median in window.", jump_idx)
+            log.warning(
+                "Skipping jump correction at index %d: NaN median in window.", jump_idx
+            )
             continue
 
         local_offset = median_before - median_after
 
         log.info(
             "Correcting jump at index %d: Median before=%s, Median after=%s, Offset=%s",
-            jump_idx, median_before, median_after, local_offset
+            jump_idx,
+            median_before,
+            median_after,
+            local_offset,
         )
 
         result_df.loc[result_df.index >= jump_idx, value_col] += local_offset
-        log.info("Applied offset %s to data from index %d onwards.", local_offset, jump_idx)
+        log.info(
+            "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
+        )
 
     log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
@@ -447,11 +494,18 @@ def correct_outliers(
     n = len(result_df)
     outlier_indices_set = set(outlier_indices)
 
-    log.info("Correcting %d outliers in column '%s' using method '%s'.", len(outlier_indices), value_col, method)
+    log.info(
+        "Correcting %d outliers in column '%s' using method '%s'.",
+        len(outlier_indices),
+        value_col,
+        method,
+    )
 
     if method == "interpolate":
         result_df.loc[outlier_indices, value_col] = np.nan
-        result_df[value_col] = result_df[value_col].interpolate(method='linear', limit_direction='both')
+        result_df[value_col] = result_df[value_col].interpolate(
+            method="linear", limit_direction="both"
+        )
         log.info("Outliers replaced via linear interpolation.")
 
     elif method == "remove":
@@ -463,9 +517,16 @@ def correct_outliers(
             start_idx = max(0, outlier_idx - window_size // 2)
             end_idx = min(n, outlier_idx + window_size // 2 + 1)
             window_indices = range(start_idx, end_idx)
-            valid_indices_in_window = [idx for idx in window_indices if idx != outlier_idx and idx not in outlier_indices_set]
+            valid_indices_in_window = [
+                idx
+                for idx in window_indices
+                if idx != outlier_idx and idx not in outlier_indices_set
+            ]
             if not valid_indices_in_window:
-                log.warning("Cannot calculate replacement for outlier at index %d: no valid surrounding points.", outlier_idx)
+                log.warning(
+                    "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
+                    outlier_idx,
+                )
                 continue
             surrounding_values = result_df[value_col].loc[valid_indices_in_window]
             if method == "median":
@@ -475,11 +536,24 @@ def correct_outliers(
             if pd.notna(replacement_value):
                 original_value = result_df.loc[outlier_idx, value_col]
                 result_df.loc[outlier_idx, value_col] = replacement_value
-                log.debug("Replaced outlier at index %d (Original: %s) with %s value: %s", outlier_idx, original_value, method, replacement_value)
+                log.debug(
+                    "Replaced outlier at index %d (Original: %s) with %s value: %s",
+                    outlier_idx,
+                    original_value,
+                    method,
+                    replacement_value,
+                )
             else:
-                log.warning("Could not compute valid %s replacement for outlier at index %d.", method, outlier_idx)
+                log.warning(
+                    "Could not compute valid %s replacement for outlier at index %d.",
+                    method,
+                    outlier_idx,
+                )
     else:
-        log.error("Invalid outlier correction method specified: '%s'. No correction applied.", method)
+        log.error(
+            "Invalid outlier correction method specified: '%s'. No correction applied.",
+            method,
+        )
         return result_df
 
     log.info("Outlier correction complete for column '%s'.", value_col)
@@ -518,16 +592,26 @@ def process_data(
 
     time_col = merged_config["time_col"]
     if time_col not in processed_data.columns:
-        log.warning("Time column '{time_col}' not found in data columns: {list(processed_data.columns)}")
-        raise ValueError("Time column '{time_col}' not found in data columns: {list(processed_data.columns)}")
+        log.warning(
+            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
+        )
+        raise ValueError(
+            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
+        )
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
         try:
             processed_data[time_col] = pd.to_datetime(processed_data[time_col])
-            processed_data[time_col] = (processed_data[time_col] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
-            log.info("Converted time column '%s' to numeric (Unix timestamp).", time_col)
+            processed_data[time_col] = (
+                processed_data[time_col] - pd.Timestamp("1970-01-01")
+            ) // pd.Timedelta("1s")
+            log.info(
+                "Converted time column '%s' to numeric (Unix timestamp).", time_col
+            )
         except Exception as e:
-            raise ValueError('Time column \'{time_col}\' is not numeric and could not be converted: {e}')
+            raise ValueError(
+                "Time column '{time_col}' is not numeric and could not be converted: {e}"
+            )
     value_col = merged_config["value_col"]
     if value_col is None:
         numeric_cols = processed_data.select_dtypes(include=np.number).columns
@@ -535,7 +619,7 @@ def process_data(
         if not potential_value_cols:
             log.warning(
                 "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
-                time_col
+                time_col,
             )
             raise ValueError(
                 f"No numeric value columns found in the data (excluding time column '{time_col}')."
@@ -545,7 +629,8 @@ def process_data(
         log.info("Auto-detected value column: '%s'", value_col)
     elif value_col not in processed_data.columns:
         raise ValueError(
-            "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}")
+            "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
+        )
     elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
         raise ValueError("Specified value column '{value_col}' is not numeric.")
 

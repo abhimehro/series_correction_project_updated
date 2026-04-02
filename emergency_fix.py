@@ -1,6 +1,7 @@
-import os
 import glob
+import os
 import sys
+
 import pandas as pd
 
 # Add project to path
@@ -14,7 +15,7 @@ print("\n===== SEARCHING FOR ANY EXCEL FILES =====")
 all_excel_files = []
 for root, dirs, files in os.walk(PROJECT_ROOT):
     for file in files:
-        if file.endswith(('.xlsx', '.xls')):
+        if file.endswith((".xlsx", ".xls")):
             full_path = os.path.join(root, file)
             all_excel_files.append(full_path)
             print(f"Found: {full_path}")
@@ -70,22 +71,24 @@ if raw_files:
             "outlier_method": "median",
             "jump_method": "offset",
             "time_col": "Time (Seconds)",
-            "value_col": None
+            "value_col": None,
         }
 
         processed_df = process_data(df, config)
 
         # Extract series and year info from filename
         filename = os.path.basename(test_file)
-        parts = filename.split('_')
+        parts = filename.split("_")
         series = parts[0][1:]  # Remove the 'S'
-        year_idx = parts[1].split('.')[0]  # Get Y01, Y02, etc.
+        year_idx = parts[1].split(".")[0]  # Get Y01, Y02, etc.
 
         # Create a very clear filename
-        output_path = os.path.join(output_dir, f"TEST_Series{series}_Year{year_idx}.xlsx")
+        output_path = os.path.join(
+            output_dir, f"TEST_Series{series}_Year{year_idx}.xlsx"
+        )
 
         # Save with explicit writer
-        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
             processed_df.to_excel(writer, index=False)
 
         print(f"Explicitly saved file to: {output_path}")

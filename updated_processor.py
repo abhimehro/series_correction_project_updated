@@ -1,7 +1,8 @@
-import os
 import glob
-import pandas as pd
+import os
+
 import numpy as np
+import pandas as pd
 
 # Paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -53,22 +54,24 @@ for i, file_path in enumerate(all_files):
     filename = os.path.basename(file_path)
 
     # Extract series and year info
-    parts = filename.split('_')
+    parts = filename.split("_")
     series = parts[0][1:]  # Remove the 'S'
-    year_idx = parts[1].split('.')[0]  # Get Y01, Y02, etc.
+    year_idx = parts[1].split(".")[0]  # Get Y01, Y02, etc.
 
     # Calculate year (assuming Y01 = 1995)
     year = 1994 + int(year_idx[1:])
 
-    print(f"Processing {i + 1}/{len(all_files)}: {filename} (Series {series}, Year {year})")
+    print(
+        f"Processing {i + 1}/{len(all_files)}: {filename} (Series {series}, Year {year})"
+    )
 
     try:
         # Read the file as plain text first to examine it
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             lines = f.readlines()
 
         # Skip comment lines and parse manually
-        data_lines = [line.strip() for line in lines if not line.startswith('#')]
+        data_lines = [line.strip() for line in lines if not line.startswith("#")]
 
         # Parse the data manually to avoid pandas issues
         raw_data = []
@@ -81,10 +84,12 @@ for i, file_path in enumerate(all_files):
                     raw_data.append((time_val, sensor_val))
 
         # Convert to simple DataFrame
-        df = pd.DataFrame(raw_data, columns=['Time', 'Value'])
+        df = pd.DataFrame(raw_data, columns=["Time", "Value"])
 
         # Apply outlier detection
-        df['Processed_Value'], df['Is_Outlier'] = detect_outliers(df['Value'], threshold=3.0)
+        df["Processed_Value"], df["Is_Outlier"] = detect_outliers(
+            df["Value"], threshold=3.0
+        )
 
         # Save to Excel
         out_filename = f"Series{series}_Year{year}_Processed.xlsx"

@@ -17,13 +17,13 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Load and update config with correct threshold
 try:
-    with open(CONFIG_PATH, 'r') as f:
+    with open(CONFIG_PATH, "r") as f:
         config = json.load(f)
 
     # Set threshold to 3.0 for better outlier detection
-    config['defaults']['threshold'] = 3.0
+    config["defaults"]["threshold"] = 3.0
 
-    with open(CONFIG_PATH, 'w') as f:
+    with open(CONFIG_PATH, "w") as f:
         json.dump(config, f, indent=2)
 
     print("Updated threshold to 3.0 for better outlier detection")
@@ -40,7 +40,7 @@ try:
         years=(1995, 2014),
         dry_run=False,
         config_path=CONFIG_PATH,
-        output_dir=OUTPUT_DIR
+        output_dir=OUTPUT_DIR,
     )
     print(f"Successfully processed {len(summary)} files")
 except Exception as e:

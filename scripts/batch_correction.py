@@ -18,13 +18,13 @@ import glob
 import logging
 import os
 import re
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
 # Import optional dependencies from the helper module if possible
 try:
-    from batch_correction import load_config_func, processor, data_loader
+    from batch_correction import data_loader, load_config_func, processor
 except ImportError:
     # We'll define these later in the file if the import fails
     load_config_func, processor, data_loader = None, None, None
@@ -50,16 +50,16 @@ data_loader = None
 
 def _optional_import(path: str, fallback_msg: str):
     """Import a module with graceful fallback if not found.
-    
+
     Args:
         path: The module path to import
         fallback_msg: Message to log if module is not found
-        
+
     Returns:
         The imported module or None if not found
     """
     try:
-        return __import__(path, fromlist=[''])
+        return __import__(path, fromlist=[""])
     except ModuleNotFoundError:
         log.info(fallback_msg)
         return None
@@ -70,39 +70,52 @@ def _optional_import(path: str, fallback_msg: str):
         log.exception("Syntax or type error in %s: %s", path, err)
         raise
 
+
 # `loaders` (for config) and `processor` (for data correction) live inside the
 # project. They may legitimately be absent in a test environment.  Import them
 # lazily and fall back to stubs instead of raising – the tests monkey‑patch the
 # attributes after import.
-loaders = _optional_import("scripts.loaders", "`loaders` module not available – using dummy config loader.")
+loaders = _optional_import(
+    "scripts.loaders", "`loaders` module not available – using dummy config loader."
+)
 if loaders is not None:
     load_config_func = getattr(loaders, "load_config", None)
 
-processor = _optional_import("scripts.processor", "`processor` module not available – raw data will be passed through.")
-data_loader = _optional_import("scripts.data_loader", "`data_loader` module not available – using built-in loader.")
+processor = _optional_import(
+    "scripts.processor",
+    "`processor` module not available – raw data will be passed through.",
+)
+data_loader = _optional_import(
+    "scripts.data_loader", "`data_loader` module not available – using built-in loader."
+)
 
 # --------------------------------------------------------------------------- #
 # Exceptions
 # --------------------------------------------------------------------------- #
 
+
 class ProcessingError(Exception):
     """Custom exception for errors during batch processing."""
+
     pass
+
 
 # --------------------------------------------------------------------------- #
 # Helper functions
 # --------------------------------------------------------------------------- #
-def _get_data_directory(config_data: Dict[str, Any], create_if_missing: bool = False) -> str:
+def _get_data_directory(
+    config_data: Dict[str, Any], create_if_missing: bool = False
+) -> str:
     """
     Determine the raw‑data directory from configuration.
-    
+
     Args:
         config_data: Configuration dictionary
         create_if_missing: If True, create the directory if it doesn't exist
-        
+
     Returns:
         Path to the data directory
-        
+
     Raises:
         FileNotFoundError: If directory doesn't exist and create_if_missing is False
     """
@@ -216,10 +229,10 @@ def _determine_series_to_process(
 
 
 def _find_files_to_process(
-        series_list: List[int],
-        years: Tuple[int, int],
-        data_dir: str,
-        config_data: Dict[str, Any] = None,
+    series_list: List[int],
+    years: Tuple[int, int],
+    data_dir: str,
+    config_data: Dict[str, Any] = None,
 ) -> List[Tuple[int, int, int, str]]:
     """
     Discover S{series}_Y{index:02d}.txt files that correspond to the requested
@@ -247,8 +260,8 @@ def _find_files_to_process(
 
     # Get year-to-index mapping from config if available
     year_index_map = {}
-    if config_data and 'year_index_map' in config_data:
-        year_index_map = config_data['year_index_map']
+    if config_data and "year_index_map" in config_data:
+        year_index_map = config_data["year_index_map"]
 
     for series in series_list:
         series_pattern = f"S{series}_Y*.txt"
@@ -258,7 +271,7 @@ def _find_files_to_process(
             file_name = os.path.basename(file_path)
 
             # Extract Y-index from filename (e.g., Y01, Y02)
-            match = re.search(r'Y(\d+)\.txt$', file_name)
+            match = re.search(r"Y(\d+)\.txt$", file_name)
             if not match:
                 continue
 
@@ -283,7 +296,9 @@ def _find_files_to_process(
                 files_to_process.append((series, year, y_index, file_path))
 
     if not files_to_process:
-        log.warning(f"No matching files found for series {series_list} and years {years}")
+        log.warning(
+            f"No matching files found for series {series_list} and years {years}"
+        )
     else:
         log.info(f"Found {len(files_to_process)} files to process")
 
@@ -322,7 +337,10 @@ def _load_raw_data(file_path):
         return pd.DataFrame()
     except Exception as exc:
         log.error(f"Failed to load data from {file_path}: {exc}")
-        raise ProcessingError(f"Failed to load data from {os.path.basename(file_path)}") from exc
+        raise ProcessingError(
+            f"Failed to load data from {os.path.basename(file_path)}"
+        ) from exc
+
 
 # --------------------------------------------------------------------------- #
 # Public API
@@ -337,7 +355,7 @@ def batch_process(
 ):
     """
     Process multiple sensor data files based on series, river miles, and years.
-    
+
     Args:
         series_selection: Series IDs to process (int, list, or "all")
         river_miles: Optional list of river miles to filter series by
@@ -345,7 +363,7 @@ def batch_process(
         dry_run: If True, don't write output files
         config_path: Path to configuration file
         output_dir: Directory for output files (defaults to data directory)
-        
+
     Returns:
         DataFrame with summary of processed files
     """
@@ -362,7 +380,9 @@ def batch_process(
         try:
             config_data = load_config_func(config_path)
         except FileNotFoundError:
-            log.warning(f"Config file {config_path} not found – continuing with empty config.")
+            log.warning(
+                f"Config file {config_path} not found – continuing with empty config."
+            )
         except Exception as exc:  # pragma: no cover
             raise ProcessingError(f"Failed to load configuration: {exc}") from exc
 
@@ -370,7 +390,9 @@ def batch_process(
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
     if os.path.isfile(rm_map_path):
         rm_df = pd.read_csv(rm_map_path)
-        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")["RIVER_MILE"].to_dict()
+        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
+            "RIVER_MILE"
+        ].to_dict()
         config_data["RIVER_TO_SENSORS"] = (
             rm_df.groupby("RIVER_MILE")["SENSOR_ID"].apply(list).to_dict()
         )
@@ -397,7 +419,9 @@ def batch_process(
     if not series_to_process:
         return pd.DataFrame()
 
-    files_to_process = _find_files_to_process(series_to_process, years, data_dir, config_data)
+    files_to_process = _find_files_to_process(
+        series_to_process, years, data_dir, config_data
+    )
     log.debug(f"Files to process: {files_to_process}")
 
     if not files_to_process:
@@ -410,49 +434,66 @@ def batch_process(
                 str_series_id = str(series_id)
                 if str_series_id in config_data.get("series", {}):
                     series_cfg = config_data["series"][str_series_id]
-                    for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
-                        log.info(f"Fallback processing file: {file_path} (series {series_id})")
+                    for i, file_path in enumerate(
+                        series_cfg.get("raw_data", []), start=1
+                    ):
+                        log.info(
+                            f"Fallback processing file: {file_path} (series {series_id})"
+                        )
                         try:
                             df = _load_raw_data(file_path)
                             if not df.empty:
                                 processor_config = {
                                     **config_data.get("defaults", {}),
-                                    **config_data.get("processor_config", {})
+                                    **config_data.get("processor_config", {}),
                                 }
-                                processed_df = processor.process_data(df, processor_config)
+                                processed_df = processor.process_data(
+                                    df, processor_config
+                                )
 
                                 if not dry_run:
-                                    out_name = f"Series{series_id}_File{i:02d}_Processed.xlsx"
+                                    out_name = (
+                                        f"Series{series_id}_File{i:02d}_Processed.xlsx"
+                                    )
                                     out_path = os.path.join(output_dir, out_name)
                                     processed_df.to_excel(out_path, index=False)
                                     log.info(f"Wrote output: {out_path}")
 
-                                summary_records.append({
+                                summary_records.append(
+                                    {
+                                        "Series": series_id,
+                                        "Year": None,
+                                        "Y-Index": i,
+                                        "Filename": os.path.basename(file_path),
+                                        "Status": "Fallback Processed",
+                                        "Records": len(processed_df),
+                                    }
+                                )
+                        except Exception as e:
+                            log.error(f"Failed to process {file_path}: {e}")
+                            summary_records.append(
+                                {
                                     "Series": series_id,
                                     "Year": None,
                                     "Y-Index": i,
                                     "Filename": os.path.basename(file_path),
-                                    "Status": "Fallback Processed",
-                                    "Records": len(processed_df)
-                                })
-                        except Exception as e:
-                            log.error(f"Failed to process {file_path}: {e}")
-                            summary_records.append({
-                                "Series": series_id,
-                                "Year": None,
-                                "Y-Index": i,
-                                "Filename": os.path.basename(file_path),
-                                "Status": f"Failed ({e})",
-                                "Records": 0
-                            })
+                                    "Status": f"Failed ({e})",
+                                    "Records": 0,
+                                }
+                            )
 
             if summary_records:
                 return pd.DataFrame(summary_records)
 
-        log.warning("Fallback processing found no viable files. Returning empty DataFrame.")
+        log.warning(
+            "Fallback processing found no viable files. Returning empty DataFrame."
+        )
         return pd.DataFrame()
 
-    processor_config = {**config_data.get("defaults", {}), **config_data.get("processor_config", {})}
+    processor_config = {
+        **config_data.get("defaults", {}),
+        **config_data.get("processor_config", {}),
+    }
     summary_records = []
 
     # ------------------------------------------------------------------ #
@@ -497,17 +538,23 @@ def batch_process(
             status = f"Failed (Unexpected Error: {exc})"
             processed_df = pd.DataFrame()
 
-        summary_records.append({
-            "Series": series,
-            "Year": year,
-            "Y-Index": yi,
-            "Filename": fname,
-            "Status": status,
-            "Records": len(processed_df) if not processed_df.empty else 0
-        })
+        summary_records.append(
+            {
+                "Series": series,
+                "Year": year,
+                "Y-Index": yi,
+                "Filename": fname,
+                "Status": status,
+                "Records": len(processed_df) if not processed_df.empty else 0,
+            }
+        )
 
     # Create a summary DataFrame and return it
     summary_df = pd.DataFrame(summary_records)
-    log.info(f"--- Batch processing COMPLETE --- Processed {len(summary_records)} files")
+    log.info(
+        f"--- Batch processing COMPLETE --- Processed {len(summary_records)} files"
+    )
     return summary_df
+
+
 # ----------------------------------------------------------------------
