@@ -179,8 +179,6 @@ if not identified_outliers_df.empty:
             )
             continue  # Skip this outlier
 
-        # print(f"\nAnalyzing Outlier: {outlier_year_pair_str}, {outlier_sensor}") # Uncomment for detailed processing output
-
         try:
             # Read raw data for previous and next year
             df_prev_raw = pd.read_csv(
@@ -213,11 +211,6 @@ if not identified_outliers_df.empty:
                 calculated_level_shift = (
                     prev_tail_5_avg_non_zero - next_head_5_avg_non_zero
                 )
-
-                # print(f"  Prev Year ({prev_year_full}) Last 5 Non-Zero Avg ({os.path.basename(prev_year_raw_file)}): {prev_tail_5_avg_non_zero:.3f}") # Uncomment for detailed processing output
-                # print(f"  Next Year ({next_year_full}) First 5 Non-Zero Avg ({os.path.basename(next_year_raw_file)}): {next_head_5_avg_non_zero:.3f}") # Uncomment for detailed processing output
-                # print(f"  Calculated Level Shift Needed: {calculated_level_shift:.3f}") # Uncomment for detailed processing output
-                # print(f"  Original Difference (from summary file): {original_difference:.3f}") # Uncomment for detailed processing output
 
                 # Read the next year's raw data file again to apply correction and save
                 # (Reading again to avoid modifying df_next_raw if it's needed elsewhere, though not in this script)
@@ -252,7 +245,6 @@ if not identified_outliers_df.empty:
                         "Rationale": f"Aligned first 5 non-zero avg of Y{next_year_yy_pair:02d} with last 5 non-zero avg of Y{prev_year_yy_pair:02d}.",
                     }
                 )
-                # print(f"  Applied Level Shift of {calculated_level_shift:.3f} to {outlier_sensor} in {os.path.basename(next_year_raw_file)}") # Uncomment for detailed processing output
 
                 # Save the corrected next year's DataFrame
                 # Construct the output filename (e.g., S26_Y01_refined_corrected.csv)
@@ -263,8 +255,6 @@ if not identified_outliers_df.empty:
 
                 # Save as standard comma-separated CSV with no header
                 df_next_corrected.to_csv(output_file_path, index=False, header=False)
-
-                # print(f"  Saved refined corrected data to: {output_file_path}") # Uncomment for detailed processing output
 
             else:
                 print(
