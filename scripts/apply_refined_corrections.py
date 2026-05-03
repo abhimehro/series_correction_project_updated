@@ -57,11 +57,9 @@ def load_identified_outliers(csv_path):
             value_name="Difference",
         )
 
-        outliers_df = (
-            df_melted[df_melted["Difference"].abs() >= 0.1]
-            .dropna(subset=["Difference"])
-            .copy()
-        )
+        # NaN.abs() is NaN and NaN >= 0.1 is False, so NaN rows are already
+        # excluded by the abs() filter; no separate dropna is needed.
+        outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
 
         if outliers_df.empty:
             print("No outliers (|Difference| >= 0.1) found.")
@@ -207,8 +205,13 @@ def apply_level_shift_correction(outlier_row, raw_file_map, raw_dataframes):
 
 
 def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, output_dir):
+    """Writes each corrected dataframe whose output filename appears in
+    ``applied_corrections``. ``None`` entries (e.g. from skipped outliers) are
+    ignored so callers can pass unfiltered results safely."""
     corrected_names = {
-        correction["File_Corrected"] for correction in applied_corrections
+        correction["File_Corrected"]
+        for correction in applied_corrections
+        if correction is not None
     }
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
