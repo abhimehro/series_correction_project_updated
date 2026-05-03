@@ -30,22 +30,22 @@ def main(correction_log_path, updated_averages_csv_path):
 
         # Dictionary for quick lookup of averages by (Series, Year_Num_YY)
         avg_lookup = {
-            (row["Series"], row["Year_Num_YY"]): {
-                "Beginning_Average": row["Beginning_Average"],
-                "End_Average": row["End_Average"],
+            (row.Series, row.Year_Num_YY): {
+                "Beginning_Average": row.Beginning_Average,
+                "End_Average": row.End_Average,
             }
-            for _, row in df_averages.iterrows()
+            for row in df_averages.itertuples(index=False)
         }
 
         # Sort the log for deterministic output
         df_log = df_log.sort_values(by=["Series", "Year_Pair_Outlier", "Sensor"])
 
-        for _, row in df_log.iterrows():
-            series = row["Series"]
-            year_pair_outlier_str = row["Year_Pair_Outlier"]
-            sensor = row["Sensor"]
-            original_difference = row["Original_Difference_Summary"]
-            calculated_level_shift = row["Calculated_Level_Shift"]
+        for row in df_log.itertuples(index=False):
+            series = row.Series
+            year_pair_outlier_str = row.Year_Pair_Outlier
+            sensor = row.Sensor
+            original_difference = row.Original_Difference_Summary
+            calculated_level_shift = row.Calculated_Level_Shift
 
             # Parse year pair string
             pair_match = re.match(
