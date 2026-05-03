@@ -23,8 +23,16 @@ def calculate_non_zero_average(series):
     non_zero_values = numeric_series[numeric_series != 0]
     if not non_zero_values.empty:
         return non_zero_values.mean()
-    else:
-        return 0.0  # Return 0 if all non-NaN values are zero or series is empty
+
+    return 0.0  # Return 0 if all non-NaN values are zero or series is empty
+
+
+def find_sensor_columns(columns):
+    return [
+        col
+        for col in columns
+        if col.startswith("Sensor ") and col[len("Sensor ") :].isdigit()
+    ]
 
 
 def load_identified_outliers(csv_path):
@@ -32,22 +40,14 @@ def load_identified_outliers(csv_path):
     try:
         df_yty_diff = pd.read_csv(csv_path)
         actual_cols = df_yty_diff.columns.tolist()
-        sensor_cols = [
-            col
-            for col in actual_cols
-            if col.startswith("Sensor ") and col[len("Sensor ") :].isdigit()
-        ]
+        sensor_cols = find_sensor_columns(actual_cols)
 
         if not sensor_cols:
-            print(
-                f"Error: No sensor columns found in {csv_path}."
-            )
+            print(f"Error: No sensor columns found in {csv_path}.")
             return pd.DataFrame()
 
         if "Year_Pair" not in actual_cols:
-            print(
-                f"Error: 'Year_Pair' column not found in {csv_path}."
-            )
+            print(f"Error: 'Year_Pair' column not found in {csv_path}.")
             return pd.DataFrame()
 
         df_melted = df_yty_diff.melt(
@@ -94,31 +94,67 @@ def build_raw_file_map(data_dir):
     return raw_file_map
 
 
+def load_raw_dataframes(raw_file_map):
+    """Loads each raw file once so corrections to the same file are preserved."""
+    dataframes = {}
+    for year_files in raw_file_map.values():
+        for file_path in year_files.values():
+            if file_path not in dataframes:
+                dataframes[file_path] = pd.read_csv(
+                    file_path, header=None, sep=r"\s+", engine="python"
+                )
+    return dataframes
+
+
 def parse_year_pair(year_pair_str):
-    """Parses the Year_Pair string into year numbers and full years."""
-    pair_match = re.match(
-        r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", year_pair_str
-    )
+    """Parses the Year_Pair string into previous and next year numbers."""
+    pair_match = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", year_pair_str)
     if not pair_match:
         return None
 
     y1_full, y1_yy, y2_full, y2_yy = map(int, pair_match.groups())
 
     if y1_full < y2_full:
-        return {
-            "prev_yy": y1_yy, "next_yy": y2_yy,
-            "prev_full": y1_full, "next_full": y2_full
-        }
-    else:
-        return {
-            "prev_yy": y2_yy, "next_yy": y1_yy,
-            "prev_full": y2_full, "next_full": y1_full
-        }
+        return y1_yy, y2_yy
+
+    return y2_yy, y1_yy
 
 
-def apply_level_shift_correction(
-    outlier_row, raw_file_map, output_dir
-):
+def parse_sensor_index(sensor_name):
+    try:
+        sensor_idx = int(sensor_name.replace("Sensor ", "")) - 1
+    except ValueError:
+        return None
+
+    if not 0 <= sensor_idx < 32:
+        return None
+
+    return sensor_idx
+
+
+def find_year_files(raw_file_map, prev_yy, next_yy):
+    for series_id in ["S26", "S27"]:
+        year_files = raw_file_map.get(series_id, {})
+        if prev_yy in year_files and next_yy in year_files:
+            return series_id, year_files[prev_yy], year_files[next_yy]
+
+    return None, None, None
+
+
+def has_sensor_window(df_prev, df_next, sensor_idx):
+    return (
+        len(df_prev) >= 5
+        and len(df_next) >= 5
+        and df_prev.shape[1] > sensor_idx
+        and df_next.shape[1] > sensor_idx
+    )
+
+
+def output_file_name(input_file):
+    return os.path.basename(input_file).replace(".txt", "_refined_corrected.csv")
+
+
+def apply_level_shift_correction(outlier_row, raw_file_map, raw_dataframes):
     """Calculates and applies level shift correction for a single outlier."""
     year_pair_str = outlier_row["Year_Pair"]
     sensor_name = outlier_row["Sensor"]
@@ -128,56 +164,34 @@ def apply_level_shift_correction(
     if not parsed_years:
         return None
 
-    try:
-        sensor_idx = int(sensor_name.replace("Sensor ", "")) - 1
-        if not 0 <= sensor_idx < 32:
-            return None
-    except ValueError:
+    sensor_idx = parse_sensor_index(sensor_name)
+    if sensor_idx is None:
         return None
 
-    prev_yy = parsed_years["prev_yy"]
-    next_yy = parsed_years["next_yy"]
+    prev_yy, next_yy = parsed_years
+    series_id, prev_file, next_file = find_year_files(raw_file_map, prev_yy, next_yy)
 
-    outlier_series_id = None
-    prev_file, next_file = None, None
-
-    for s_id in ["S26", "S27"]:
-        if (
-            s_id in raw_file_map
-            and prev_yy in raw_file_map[s_id]
-            and next_yy in raw_file_map[s_id]
-        ):
-            outlier_series_id = s_id
-            prev_file = raw_file_map[s_id][prev_yy]
-            next_file = raw_file_map[s_id][next_yy]
-            break
-
-    if not outlier_series_id:
+    if not series_id:
         return None
 
     try:
-        df_prev = pd.read_csv(prev_file, header=None, sep=r"\s+", engine="python")
-        df_next = pd.read_csv(next_file, header=None, sep=r"\s+", engine="python")
+        df_prev = raw_dataframes[prev_file]
+        df_next = raw_dataframes[next_file]
 
-        if (
-            len(df_prev) < 5 or len(df_next) < 5 or
-            df_prev.shape[1] <= sensor_idx or df_next.shape[1] <= sensor_idx
-        ):
+        if not has_sensor_window(df_prev, df_next, sensor_idx):
             return None
 
         prev_avg = calculate_non_zero_average(df_prev.iloc[-5:, sensor_idx])
         next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
         shift = prev_avg - next_avg
 
-        df_corrected = pd.read_csv(next_file, header=None, sep=r"\s+", engine="python")
-        df_corrected[sensor_idx] = pd.to_numeric(df_corrected[sensor_idx], errors="coerce") + shift
-
-        output_name = os.path.basename(next_file).replace(".txt", "_refined_corrected.csv")
-        output_path = os.path.join(output_dir, output_name)
-        df_corrected.to_csv(output_path, index=False, header=False)
+        df_next[sensor_idx] = (
+            pd.to_numeric(df_next[sensor_idx], errors="coerce") + shift
+        )
+        output_name = output_file_name(next_file)
 
         return {
-            "Series": outlier_series_id,
+            "Series": series_id,
             "Year_Pair_Outlier": year_pair_str,
             "Sensor": sensor_name,
             "Original_Difference_Summary": orig_diff,
@@ -192,6 +206,18 @@ def apply_level_shift_correction(
         return None
 
 
+def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, output_dir):
+    corrected_names = {
+        correction["File_Corrected"] for correction in applied_corrections
+    }
+    for year_files in raw_file_map.values():
+        for file_path in year_files.values():
+            name = output_file_name(file_path)
+            if name in corrected_names:
+                output_path = os.path.join(output_dir, name)
+                raw_dataframes[file_path].to_csv(output_path, index=False, header=False)
+
+
 def main():
     outliers_df = load_identified_outliers(YTY_DIFF_CSV_PATH)
     if outliers_df.empty:
@@ -201,14 +227,18 @@ def main():
     print("\n--- Applying Refined Level Shift Corrections ---")
 
     raw_file_map = build_raw_file_map(DATA_DIR)
+    raw_dataframes = load_raw_dataframes(raw_file_map)
     applied_corrections = []
 
     for _, row in outliers_df.iterrows():
-        result = apply_level_shift_correction(row, raw_file_map, CORRECTED_OUTPUT_DIR)
+        result = apply_level_shift_correction(row, raw_file_map, raw_dataframes)
         if result:
             applied_corrections.append(result)
 
     if applied_corrections:
+        save_corrected_files(
+            applied_corrections, raw_file_map, raw_dataframes, CORRECTED_OUTPUT_DIR
+        )
         pd.DataFrame(applied_corrections).to_csv(CORRECTION_LOG_PATH, index=False)
         print(f"\nCorrection log saved to: {CORRECTION_LOG_PATH}")
     else:
