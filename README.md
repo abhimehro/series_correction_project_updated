@@ -1,6 +1,6 @@
 # Series Correction Project (Seatek Sensor Data)
 
-[![Code Coverage](https://codecov.io/gh/yourusername/series-correction-project/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/series-correction-project) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Code Coverage](https://codecov.io/gh/abhimehro/series_correction_project_updated/branch/main/graph/badge.svg)](https://codecov.io/gh/abhimehro/series_correction_project_updated) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 This project provides tools to automatically detect and correct discontinuities (such as jumps, gaps, or outliers) commonly found in time-series data from Seatek sensors. The goal is to produce cleaner, more reliable datasets for further analysis, suitable for integration with systems like NESST II.
 
@@ -62,9 +62,8 @@ Manually identifying and correcting these discontinuities is time-consuming, sub
 1. **Clone the repository:**
 
    ```bash
-   # TODO: Replace with your actual repository URL
-   git clone [https://github.com/yourusername/series-correction-project.git](https://github.com/yourusername/series-correction-project.git)
-   cd series-correction-project
+   git clone https://github.com/abhimehro/series_correction_project_updated.git
+   cd series_correction_project_updated
    ```
 
 2. **Create and activate a virtual environment (Recommended):**
@@ -190,7 +189,7 @@ The correction process involves sequentially detecting and correcting gaps, outl
 ## Project Structure
 
 ```
-series-correction-project/
+series_correction_project_updated/
 │
 ├── data/                     # Input data directory (MUST ADD SAMPLE S<series>_Y<index>.txt FILES HERE)
 │   └── S26_Y01.txt           # Example required input file format
@@ -266,7 +265,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 For questions or support, please open an issue on the GitHub repository:
 
-<https://github.com/yourusername/series-correction-project/issues>
+<https://github.com/abhimehro/series_correction_project_updated/issues>
 
 Alternatively, contact Abhi Mehrotra <AbhiMhrtr@pm.me>
 
