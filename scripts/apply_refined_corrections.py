@@ -116,10 +116,10 @@ if not identified_outliers_df.empty:
             raw_file_map[series_id][year_num] = raw_file_path
 
     # Iterate through the identified outliers
-    for idx, outlier_row in identified_outliers_df.iterrows():
-        outlier_year_pair_str = outlier_row["Year_Pair"]
-        outlier_sensor = outlier_row["Sensor"]
-        original_difference = outlier_row["Difference"]  # Difference from summary file
+    for outlier_row in identified_outliers_df.itertuples(index=False):
+        outlier_year_pair_str = outlier_row.Year_Pair
+        outlier_sensor = outlier_row.Sensor
+        original_difference = outlier_row.Difference  # Difference from summary file
 
         # Parse the Year_Pair string (e.g., "1996 (Y02) to 1995 (Y01)")
         pair_match = re.match(
