@@ -61,7 +61,7 @@ LONG_DESCRIPTION = read_long_description()
 LONG_DESCRIPTION_CONTENT_TYPE = "text/markdown"
 AUTHOR = "Abhi Mehrotra"
 AUTHOR_EMAIL = "AbhiMhrtr@pm.me"
-URL = "https://github.com/yourusername/series-correction-project"
+URL = "https://github.com/abhimehro/series_correction_project_updated"
 LICENSE = "MIT"
 
 # --------------------------------------------------------------------------- #
