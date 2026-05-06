@@ -4,124 +4,116 @@ import re
 import pandas as pd
 
 
-def main(correction_log_path, updated_averages_csv_path):
-    """
-    Generates a refined overview table summarizing level shift strategies applied
-    based on provided correction log and updated averages CSV files.
-
-    Parameters:
-    - correction_log_path (str): Path to the correction log CSV file.
-    - updated_averages_csv_path (str): Path to the updated averages CSV file.
-    """
-
-    print("--- Script to Generate Refined Overview Table Data ---")
-
+def load_data(correction_log_path, updated_averages_csv_path):
     try:
-        # --- Load the necessary data ---
         df_log = pd.read_csv(correction_log_path)
         df_averages = pd.read_csv(updated_averages_csv_path)
-
         print(f"Successfully loaded correction log from: {correction_log_path}")
         print(f"Successfully loaded updated averages from: {updated_averages_csv_path}")
+        return df_log, df_averages
+    except FileNotFoundError as e:
+        print(f"\nError: Required file not found: {e}.")
+        print("Please ensure the required input files are present, or update the file paths.")
+        return None, None
+    except Exception as e:
+        print(f"\nAn error occurred while loading data: {e}")
+        return None, None
 
-        # --- Process data to create the Overview table content ---
+
+def build_avg_lookup(df_averages):
+    return {
+        (row.Series, row.Year_Num_YY): {
+            "Beginning_Average": row.Beginning_Average,
+            "End_Average": row.End_Average,
+        }
+        for row in df_averages.itertuples(index=False)
+    }
+
+
+def parse_year_pair(year_pair_outlier_str):
+    pair_match = re.match(
+        r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", str(year_pair_outlier_str)
+    )
+    if not pair_match:
+        return None, None
+
+    year1_full, year1_yy, year2_full, year2_yy = map(int, pair_match.groups())
+    if year1_full < year2_full:
+        return year1_yy, year2_yy
+    return year2_yy, year1_yy
+
+
+def process_log_row(row, avg_lookup):
+    series = row.Series
+    sensor = row.Sensor
+
+    prev_year_yy, next_year_yy = parse_year_pair(row.Year_Pair_Outlier)
+    if prev_year_yy is None:
+        return None, row.Year_Pair_Outlier
+
+    end_avg_prev_year_corrected = avg_lookup.get(
+        (series, prev_year_yy), {}
+    ).get("End_Average", "N/A")
+
+    begin_avg_next_year_corrected = avg_lookup.get(
+        (series, next_year_yy), {}
+    ).get("Beginning_Average", "N/A")
+
+    try:
+        orig_diff_val = round(row.Original_Difference_Summary, 3)
+    except Exception:
+        orig_diff_val = row.Original_Difference_Summary
+
+    try:
+        calc_level_shift_val = round(row.Calculated_Level_Shift, 3)
+    except Exception:
+        calc_level_shift_val = row.Calculated_Level_Shift
+
+    return {
+        "Series": series,
+        "Year_Pair_YY": f"Y{prev_year_yy:02d} to Y{next_year_yy:02d}",
+        "Sensor": sensor,
+        "Original_Diff_Summary": orig_diff_val,
+        "Calculated_Level_Shift_Applied": calc_level_shift_val,
+        "End_Avg_Prev_Year_Corrected": end_avg_prev_year_corrected,
+        "Begin_Avg_Next_Year_Corrected": begin_avg_next_year_corrected,
+    }, None
+
+
+def main(correction_log_path, updated_averages_csv_path):
+    print("--- Script to Generate Refined Overview Table Data ---")
+
+    df_log, df_averages = load_data(correction_log_path, updated_averages_csv_path)
+    if df_log is None or df_averages is None:
+        return
+
+    try:
         overview_data = []
         unmatched_year_pairs = []
+        avg_lookup = build_avg_lookup(df_averages)
 
-        # Dictionary for quick lookup of averages by (Series, Year_Num_YY)
-        avg_lookup = {
-            (row.Series, row.Year_Num_YY): {
-                "Beginning_Average": row.Beginning_Average,
-                "End_Average": row.End_Average,
-            }
-            for row in df_averages.itertuples(index=False)
-        }
-
-        # Sort the log for deterministic output
         df_log = df_log.sort_values(by=["Series", "Year_Pair_Outlier", "Sensor"])
 
         for row in df_log.itertuples(index=False):
-            series = row.Series
-            year_pair_outlier_str = row.Year_Pair_Outlier
-            sensor = row.Sensor
-            original_difference = row.Original_Difference_Summary
-            calculated_level_shift = row.Calculated_Level_Shift
+            processed_row, unmatched = process_log_row(row, avg_lookup)
+            if processed_row:
+                overview_data.append(processed_row)
+            if unmatched:
+                unmatched_year_pairs.append(unmatched)
 
-            # Parse year pair string
-            pair_match = re.match(
-                r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", str(year_pair_outlier_str)
-            )
-            if pair_match:
-                year1_full, year1_yy, year2_full, year2_yy = map(
-                    int, pair_match.groups()
-                )
-                if year1_full < year2_full:
-                    prev_year_yy_pair = year1_yy
-                    next_year_yy_pair = year2_yy
-                else:
-                    prev_year_yy_pair = year2_yy
-                    next_year_yy_pair = year1_yy
-
-                # Retrieve corrected averages or default to 'N/A'
-                end_avg_prev_year_corrected = avg_lookup.get(
-                    (series, prev_year_yy_pair), {}
-                ).get("End_Average", "N/A")
-                begin_avg_next_year_corrected = avg_lookup.get(
-                    (series, next_year_yy_pair), {}
-                ).get("Beginning_Average", "N/A")
-
-                # Defensive rounding for numeric values
-                try:
-                    orig_diff_val = round(original_difference, 3)
-                except Exception:
-                    orig_diff_val = original_difference
-                try:
-                    calc_level_shift_val = round(calculated_level_shift, 3)
-                except Exception:
-                    calc_level_shift_val = calculated_level_shift
-
-                overview_data.append(
-                    {
-                        "Series": series,
-                        "Year_Pair_YY": f"Y{prev_year_yy_pair:02d} to Y{next_year_yy_pair:02d}",
-                        "Sensor": sensor,
-                        "Original_Diff_Summary": orig_diff_val,
-                        "Calculated_Level_Shift_Applied": calc_level_shift_val,
-                        "End_Avg_Prev_Year_Corrected": end_avg_prev_year_corrected,
-                        "Begin_Avg_Next_Year_Corrected": begin_avg_next_year_corrected,
-                    }
-                )
-            else:
-                unmatched_year_pairs.append(year_pair_outlier_str)
-
-        # Warn if any year pairs could not be parsed
         if unmatched_year_pairs:
-            print(
-                f"\nWARNING: The following Year_Pair_Outlier strings could not be parsed and were skipped:"
-            )
+            print(f"\nWARNING: The following Year_Pair_Outlier strings could not be parsed and were skipped:")
             for s in unmatched_year_pairs:
                 print(f"  - {s}")
 
-        # Create DataFrame for overview data
         df_overview = pd.DataFrame(overview_data)
 
-        # Print the overview table content
-        print(
-            "\n--- Content for Refined Overview of Level Shift Strategies Table (CSV Format) ---"
-        )
+        print("\n--- Content for Refined Overview of Level Shift Strategies Table (CSV Format) ---")
         print(df_overview.to_csv(index=False))
         print("--- End Content for Refined Overview Table ---")
 
-    except FileNotFoundError as e:
-        print(f"\nError: Required file not found: {e}.")
-        print(
-            "Please ensure the required input files are present, or update the file paths."
-        )
     except Exception as e:
         print(f"\nAn error occurred while generating Overview table content: {e}")
-        import traceback
-
-        traceback.print_exc()
 
     print("\n--- Script Finished ---")
 
