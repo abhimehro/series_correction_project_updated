@@ -62,7 +62,7 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
     return outliers
 
 
-def export_comparisons():
+def main():
     processed_files = glob(os.path.join(OUTPUT_DIR, "*.xlsx"))
     for proc_file in processed_files:
         fname = os.path.basename(proc_file)
@@ -145,4 +145,4 @@ raw_df = None
 processed_df = None
 
 if __name__ == "__main__":
-    export_comparisons()
+    main()
