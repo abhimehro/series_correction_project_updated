@@ -131,7 +131,7 @@ def parse_sensor_index(sensor_name):
 
 
 def find_year_files(raw_file_map, prev_yy, next_yy):
-    for series_id in ["S26", "S27"]:
+    for series_id in raw_file_map:
         year_files = raw_file_map.get(series_id, {})
         if prev_yy in year_files and next_yy in year_files:
             return series_id, year_files[prev_yy], year_files[next_yy]
