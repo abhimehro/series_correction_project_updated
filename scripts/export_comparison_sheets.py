@@ -1,7 +1,8 @@
 import os
 from glob import glob
+import numpy as np
 
-from pandas import Series, concat, isna, merge, read_csv, read_excel
+from pandas import Series, concat, merge, read_csv, read_excel
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
@@ -37,20 +38,19 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
     )
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
-    outliers = []
-    for i in range(len(values)):
-        median_i = rolling_median.iloc[i]
-        scaled_mad_i = rolling_scaled_mad.iloc[i]
-        current_value = values.iloc[i]
-        if isna(median_i) or isna(scaled_mad_i):
-            continue
-        if scaled_mad_i < 1e-6:
-            z_score = float(abs(current_value - median_i) > 1e-6) * float("inf")
-        else:
-            z_score = abs(current_value - median_i) / scaled_mad_i
-        if z_score > threshold:
-            outliers.append(i)
-    return outliers
+
+    diff = (values - rolling_median).abs()
+
+    z_score = np.where(
+        rolling_scaled_mad < 1e-6,
+        np.where(diff > 1e-6, np.inf, 0),
+        diff / rolling_scaled_mad
+    )
+
+    valid_mask = values.notna() & rolling_median.notna() & rolling_scaled_mad.notna()
+    outlier_mask = valid_mask & (z_score > threshold)
+
+    return np.where(outlier_mask)[0].tolist()
 
 
 def load_raw_data(raw_file):
@@ -93,9 +93,12 @@ def align_and_detect(raw_df, processed_df):
         vcol = value_cols[1] if len(value_cols) > 1 else value_cols[0]
         outlier_indices = detect_outliers_series(raw_df[vcol])
         merged["Outlier_Flag"] = False
-        for idx in outlier_indices:
-            if idx < len(merged):
-                merged.at[idx, "Outlier_Flag"] = True
+
+        if outlier_indices:
+            valid_indices = [idx for idx in outlier_indices if idx < len(merged)]
+            if valid_indices:
+                merged.loc[valid_indices, "Outlier_Flag"] = True
+
     return merged
 
 
