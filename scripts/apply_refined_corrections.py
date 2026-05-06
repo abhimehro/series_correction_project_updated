@@ -131,7 +131,9 @@ def parse_sensor_index(sensor_name):
 
 
 def find_year_files(raw_file_map, prev_yy, next_yy):
-    for series_id in raw_file_map:
+    # Preserve deterministic series preference (S26 before S27) regardless of
+    # filesystem/glob ordering.
+    for series_id in sorted(raw_file_map):
         year_files = raw_file_map.get(series_id, {})
         if prev_yy in year_files and next_yy in year_files:
             return series_id, year_files[prev_yy], year_files[next_yy]
