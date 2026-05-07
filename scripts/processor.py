@@ -194,8 +194,11 @@ def detect_outliers(
     rolling_median = values.rolling(window=window_size, center=True).median()
 
     # Calculate rolling MAD
+    # ⚡ Bolt: Replaced pd.Series instantiation inside lambda with pure NumPy operations
+    # Using np.nanmedian directly on the raw numpy array avoids significant Pandas object
+    # creation overhead inside the rolling apply loop, vastly improving performance.
     rolling_mad = values.rolling(window=window_size, center=True).apply(
-        lambda x: pd.Series(x).sub(pd.Series(x).median()).abs().median(), raw=True
+        lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True
     )
 
     mad_scale_factor = 1.4826
