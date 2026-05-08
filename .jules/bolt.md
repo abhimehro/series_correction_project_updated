@@ -1,3 +1,4 @@
-## 2024-05-18 - Pandas iteration optimization
-**Learning:** Iterating over Pandas DataFrames with `iterrows()` is a performance bottleneck due to Series creation overhead.
-**Action:** Replace `iterrows()` with `itertuples(index=False)` and use attribute access for significant speedup without loss of readability.
+## 2024-05-24 - Pandas Series Instantiation Overhead in Rolling Apply
+
+**Learning:** Creating `pandas.Series` objects inside `rolling.apply` lambda functions causes significant performance overhead in tight loops.
+**Action:** Use `raw=True` in the `apply()` method to pass numpy arrays instead, and replace the inner pandas operations with pure `numpy` equivalents (like `np.nanmedian`) for faster computation.

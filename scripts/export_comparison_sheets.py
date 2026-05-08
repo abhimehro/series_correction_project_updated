@@ -1,6 +1,7 @@
 import os
 from glob import glob
 
+import numpy as np
 from pandas import Series, concat, isna, merge, read_csv, read_excel
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
@@ -41,8 +42,9 @@ def find_matching_raw_file(processed_filename):
 def detect_outliers_series(values, window_size=5, threshold=3.0):
     # Simple rolling MAD outlier detection for a pandas Series
     rolling_median = values.rolling(window=window_size, center=True).median()
+    # ⚡ Bolt optimization: Use np.nanmedian on raw array instead of pd.Series for performance
     rolling_mad = values.rolling(window=window_size, center=True).apply(
-        lambda x: Series(x).sub(Series(x).median()).abs().median(), raw=True
+        lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True
     )
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
