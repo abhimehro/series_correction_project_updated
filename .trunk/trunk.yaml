@@ -31,9 +31,9 @@ lint:
     - yamllint@1.38.0
 actions:
   disabled:
+    - trufflehog-pre-commit
     - trunk-check-pre-push
   enabled:
-    - trufflehog-pre-commit
     - trunk-announce
     - trunk-check-pre-commit
     - trunk-fmt-pre-commit
