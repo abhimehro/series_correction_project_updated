@@ -4,4 +4,4 @@
 
 ## 2024-05-18 - Pandas Object Creation in rolling.apply
 **Learning:** Creating pandas objects (like `pd.Series`) inside tightly grouped or rolling loops (e.g. `rolling.apply(lambda x: pd.Series(x)...)`) causes massive overhead due to repeated object instantiations.
-**Action:** Replace pandas operations inside `apply` or `rolling.apply` with pure NumPy equivalents (like `np.nanmedian`) over the provided array `x` to eliminate object creation overhead while preserving logic.
+**Action:** Pass `raw=True` to `apply`/`rolling.apply` and replace pandas operations with pure NumPy equivalents (like `np.nanmedian`) operating directly on the provided array `x` to eliminate object creation overhead while preserving logic.
