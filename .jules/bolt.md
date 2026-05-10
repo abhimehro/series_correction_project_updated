@@ -1,7 +1,3 @@
-## 2024-05-18 - Pandas iteration optimization
-**Learning:** Iterating over Pandas DataFrames with `iterrows()` is a performance bottleneck due to Series creation overhead.
-**Action:** Replace `iterrows()` with `itertuples(index=False)` and use attribute access for significant speedup without loss of readability.
-
-## 2024-05-18 - Pandas Object Creation in rolling.apply
-**Learning:** Creating pandas objects (like `pd.Series`) inside tightly grouped or rolling loops (e.g. `rolling.apply(lambda x: pd.Series(x)...)`) causes massive overhead due to repeated object instantiations.
-**Action:** Pass `raw=True` to `apply`/`rolling.apply` and replace pandas operations with pure NumPy equivalents (like `np.nanmedian`) operating directly on the provided array `x` to eliminate object creation overhead while preserving logic.
+## 2024-05-24 - Redundant Pandas Series Wrapping
+**Learning:** Found an anti-pattern in `scripts/processor.py` where pandas operations (like `.iloc`, `.loc`) return Series, but are then needlessly wrapped in `pd.Series()` (sometimes even via `list()`) before calling `.median()` or `.mean()`. This causes unnecessary object creation and memory allocation.
+**Action:** Always call aggregate methods directly on pandas Series slices without re-wrapping or converting to native Python types like lists.
