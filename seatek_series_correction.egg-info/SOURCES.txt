@@ -2,11 +2,16 @@ LICENSE
 README.md
 setup.py
 scripts/__init__.py
+scripts/apply_refined_corrections.py
 scripts/batch_correction.py
 scripts/export_comparison_sheets.py
+scripts/find_files.py
+scripts/fix_output.py
+scripts/generate_overview_table.py
 scripts/loaders.py
 scripts/manual_batch_run.py
 scripts/processor.py
+scripts/run_analysis.py
 scripts/series_correction_cli.py
 seatek_series_correction.egg-info/PKG-INFO
 seatek_series_correction.egg-info/SOURCES.txt
