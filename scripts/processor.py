@@ -5,6 +5,8 @@ Implements algorithms for detecting and correcting discontinuities
 in Seatek sensor time-series data based on the audit report suggestions.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -50,7 +52,7 @@ def _compute_z_scores_vectorized(
 
 def detect_gaps(
     data: pd.DataFrame, time_col: str = "Time (Seconds)", threshold_factor: float = 3.0
-) -> List[int]:
+) -> list[int]:
     """
     Detect gaps in time-series data based on the median time difference.
 
@@ -78,7 +80,6 @@ def detect_gaps(
         return []
 
     # Calculate the median time difference
-    # ⚡ Bolt: Removed redundant pd.Series wrap
     median_diff = time_diffs_valid.median()
 
     if median_diff <= 0:
@@ -115,7 +116,7 @@ def detect_gaps(
 
 def detect_jumps(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
-) -> List[int]:
+) -> list[int]:
     """
     Detect jumps/shifts in sensor values using a simplified CUSUM-like method
     based on rolling statistics.
@@ -198,7 +199,7 @@ def detect_jumps(
 
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
-) -> List[int]:
+) -> list[int]:
     """
     Detect outliers using modified Z-scores based on the median absolute
     deviation (MAD) within rolling windows.
@@ -279,9 +280,9 @@ def detect_outliers(
 
 def correct_gaps(
     data: pd.DataFrame,
-    gap_indices: List[int],
+    gap_indices: list[int],
     time_col: str = "Time (Seconds)",
-    value_cols: Optional[List[str]] = None,
+    value_cols: list[str] | None = None,
     method: str = "time",
 ) -> pd.DataFrame:
     """
@@ -422,7 +423,7 @@ def correct_gaps(
 
 
 def correct_jumps(
-    data: pd.DataFrame, jump_indices: List[int], value_col: str, window_size: int = 5
+    data: pd.DataFrame, jump_indices: list[int], value_col: str, window_size: int = 5
 ) -> pd.DataFrame:
     """
     Correct identified jumps by applying a local median-based offset.
@@ -459,7 +460,6 @@ def correct_jumps(
         window_before = result_df[value_col].iloc[jump_idx - window_size : jump_idx]
         window_after = result_df[value_col].iloc[jump_idx : jump_idx + window_size]
 
-        # ⚡ Bolt: Removed redundant pd.Series wraps
         median_before = window_before.median()
         median_after = window_after.median()
 
@@ -486,7 +486,7 @@ def correct_jumps(
 
 def correct_outliers(
     data: pd.DataFrame,
-    outlier_indices: List[int],
+    outlier_indices: list[int],
     value_col: str,
     window_size: int = 5,
     method: str = "median",
@@ -580,7 +580,7 @@ def correct_outliers(
 
 
 def process_data(
-    data: pd.DataFrame, config: Optional[Dict[str, Any]] = None
+    data: pd.DataFrame, config: dict[str, Any] | None = None
 ) -> pd.DataFrame:
     """
     Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
