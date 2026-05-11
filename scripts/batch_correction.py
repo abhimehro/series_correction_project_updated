@@ -14,8 +14,6 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 # Imports
 # ---------------------------------------------------------------------------
-from __future__ import annotations
-
 import glob
 import logging
 import os
