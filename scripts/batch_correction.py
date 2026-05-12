@@ -535,7 +535,8 @@ def batch_process(
             status = f"Failed ({exc})"
             processed_df = pd.DataFrame()
         except Exception as exc:  # pragma: no cover
-            status = f"Failed (Unexpected Error: {exc})"
+            log.error(f"Unexpected error processing {fname}: {exc}")
+            status = "Failed (Unexpected Error)"
             processed_df = pd.DataFrame()
 
         summary_records.append(

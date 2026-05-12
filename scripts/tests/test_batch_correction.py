@@ -580,7 +580,7 @@ def test_batch_process_load_error(mock_dependencies, mock_data_loader_mod, caplo
     # Check summary status
     assert len(summary_df) == 1
     status = summary_df.iloc[0]["Status"]
-    assert status == "Load Failed" or status.startswith("Failed (Unexpected Error:")
+    assert status == "Load Failed" or status == "Failed (Unexpected Error)"
 
     # Accept both possible column names for data points
     if "DataPoints" in summary_df.columns:
@@ -620,7 +620,7 @@ def test_batch_process_process_error(
     mock_processor_mod.process_data.assert_called_once()
     assert len(summary_df) == 1
     status = summary_df.iloc[0]["Status"]
-    assert status == "Process Failed" or status.startswith("Failed (Unexpected Error:")
+    assert status == "Process Failed" or status == "Failed (Unexpected Error)"
     # Accept both possible column names for data points
     if "DataPoints" in summary_df.columns:
         assert summary_df.iloc[0]["DataPoints"] == 5
