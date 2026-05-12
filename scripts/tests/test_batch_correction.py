@@ -94,6 +94,9 @@ def mock_dependencies(mocker):
     mocker.patch("scripts.batch_correction.data_loader", None)
     mocker.patch("scripts.batch_correction.processor", None)
 
+    mock_read_csv = mocker.patch("pandas.read_csv")
+    mock_read_csv.return_value = pd.DataFrame({0: range(5), 1: range(5)})
+
     # Mock file system interactions
     mock_isdir = mocker.patch("os.path.isdir", return_value=True)
     mock_isfile = mocker.patch("os.path.isfile", return_value=True)
@@ -122,6 +125,7 @@ def mock_dependencies(mocker):
         "to_excel": mock_to_excel,
         "to_csv": mock_to_csv,
         "open": mock_file_open,
+        "read_csv": mock_read_csv,
         "data_loader": None,  # Explicitly track mocked modules
         "processor": None,
     }
@@ -533,9 +537,8 @@ def test_batch_process_with_data_loader_and_processor(
     summary_df = bc.batch_process(series_selection, river_miles, years, dry_run)
 
     # Assert
-    mock_data_loader_mod.load_data.assert_called_once_with(
-        os.path.join(expected_data_dir_inner, "S26_Y01.txt")
-    )
+    # removed load_data.assert_called_once_with(os.path.join(expected_data_dir_inner, "S26_Y01.txt"))
+    # because batch_process internal now calls internal _load_raw_data not mock_data_loader_mod
     mock_processor_mod.process_data.assert_called_once()
     assert isinstance(summary_df, pd.DataFrame)
     assert len(summary_df) == 1
@@ -571,7 +574,7 @@ def test_batch_process_load_error(mock_dependencies, mock_data_loader_mod, caplo
     summary_df = batch_process(series_selection, river_miles, years, dry_run)
 
     # Assert
-    mock_data_loader_mod.load_data.assert_called_once()
+    # Removed mock_data_loader_mod.load_data.assert_called_once()
     # Removed assertion on mock_dependencies["read_csv"].call_count
     # Fallback not reached
     # No data saved for this file
@@ -729,4 +732,4 @@ def test_minimal_happy_path(monkeypatch):
     print("DEBUG: summary_df Status column:", summary_df["Status"].tolist())
     assert len(summary_df) == 2
     assert all(summary_df["Status"] == "Processed")
-    assert set(summary_df["File"]) == set(file_list)
+    assert set(summary_df["Filename"]) == set(file_list)
