@@ -209,41 +209,41 @@ def detect_outliers(
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
 
-    # ⚡ Bolt: Convert Series to NumPy arrays to eliminate huge .iloc overhead in loops
+    # ⚡ Bolt: Vectorized operations to eliminate the slow Python for-loop
     median_arr = rolling_median.to_numpy()
     scaled_mad_arr = rolling_scaled_mad.to_numpy()
     values_arr = values.to_numpy()
 
-    for i in range(n):
-        median_i = median_arr[i]
-        scaled_mad_i = scaled_mad_arr[i]
-        current_value = values_arr[i]
+    # Create masks for valid and specific edge cases
+    valid_mask = ~(pd.isna(median_arr) | pd.isna(scaled_mad_arr))
+    diff = np.abs(values_arr - median_arr)
 
-        if pd.isna(median_i) or pd.isna(scaled_mad_i):
-            continue
+    # Initialize z_scores
+    z_scores = np.zeros(n)
 
-        if scaled_mad_i < 1e-6:
-            if abs(current_value - median_i) > 1e-6:
-                if abs(current_value - median_i) > threshold * 1e-6:
-                    z_score = np.inf
-                else:
-                    z_score = 0.0
-            else:
-                z_score = 0.0
-        else:
-            z_score = abs(current_value - median_i) / scaled_mad_i
+    # Normal mad case
+    normal_mad_mask = valid_mask & (scaled_mad_arr >= 1e-6)
+    z_scores[normal_mad_mask] = diff[normal_mad_mask] / scaled_mad_arr[normal_mad_mask]
 
-        if z_score > threshold:
-            outliers.append(i)
-            log.debug(
-                "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
-                i,
-                current_value,
-                median_i,
-                scaled_mad_i,
-                z_score,
-                threshold,
-            )
+    # Small mad case (scaled_mad < 1e-6)
+    small_mad_mask = valid_mask & (scaled_mad_arr < 1e-6)
+    inf_mask = small_mad_mask & (diff > 1e-6) & (diff > threshold * 1e-6)
+    z_scores[inf_mask] = np.inf
+
+    # Find outliers
+    outlier_indices = np.where(valid_mask & (z_scores > threshold))[0]
+    outliers = outlier_indices.tolist()
+
+    for i in outliers:
+        log.debug(
+            "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
+            i,
+            values_arr[i],
+            median_arr[i],
+            scaled_mad_arr[i],
+            z_scores[i],
+            threshold,
+        )
 
     if outliers:
         log.info(
