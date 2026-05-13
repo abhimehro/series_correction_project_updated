@@ -120,12 +120,17 @@ def detect_jumps(
     start_idx = window_size
 
     # Process each point from the end of the first window
+    # ⚡ Bolt: Convert Series to NumPy arrays to eliminate huge .iloc overhead in loops
+    mean_arr = rolling_mean.to_numpy()
+    std_arr = rolling_std.to_numpy()
+    values_arr = data[value_col].to_numpy()
+
     for i in range(start_idx, n):
-        mean_prev_window = rolling_mean.iloc[i - 1]
-        std_prev_window = rolling_std.iloc[i - 1]
+        mean_prev_window = mean_arr[i - 1]
+        std_prev_window = std_arr[i - 1]
 
         # Current deviation from the previous window's mean
-        deviation = data[value_col].iloc[i] - mean_prev_window
+        deviation = values_arr[i] - mean_prev_window
 
         # Normalize by previous window's standard deviation
         if pd.notna(std_prev_window) and std_prev_window > 1e-6:
@@ -204,36 +209,41 @@ def detect_outliers(
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
 
-    for i in range(n):
-        median_i = rolling_median.iloc[i]
-        scaled_mad_i = rolling_scaled_mad.iloc[i]
-        current_value = values.iloc[i]
+    # ⚡ Bolt: Vectorized operations to eliminate the slow Python for-loop
+    median_arr = rolling_median.to_numpy()
+    scaled_mad_arr = rolling_scaled_mad.to_numpy()
+    values_arr = values.to_numpy()
 
-        if pd.isna(median_i) or pd.isna(scaled_mad_i):
-            continue
+    # Create masks for valid and specific edge cases
+    valid_mask = ~(pd.isna(median_arr) | pd.isna(scaled_mad_arr))
+    diff = np.abs(values_arr - median_arr)
 
-        if scaled_mad_i < 1e-6:
-            if abs(current_value - median_i) > 1e-6:
-                if abs(current_value - median_i) > threshold * 1e-6:
-                    z_score = np.inf
-                else:
-                    z_score = 0.0
-            else:
-                z_score = 0.0
-        else:
-            z_score = abs(current_value - median_i) / scaled_mad_i
+    # Initialize z_scores
+    z_scores = np.zeros(n)
 
-        if z_score > threshold:
-            outliers.append(i)
-            log.debug(
-                "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
-                i,
-                current_value,
-                median_i,
-                scaled_mad_i,
-                z_score,
-                threshold,
-            )
+    # Normal mad case
+    normal_mad_mask = valid_mask & (scaled_mad_arr >= 1e-6)
+    z_scores[normal_mad_mask] = diff[normal_mad_mask] / scaled_mad_arr[normal_mad_mask]
+
+    # Small mad case (scaled_mad < 1e-6)
+    small_mad_mask = valid_mask & (scaled_mad_arr < 1e-6)
+    inf_mask = small_mad_mask & (diff > 1e-6) & (diff > threshold * 1e-6)
+    z_scores[inf_mask] = np.inf
+
+    # Find outliers
+    outlier_indices = np.where(valid_mask & (z_scores > threshold))[0]
+    outliers = outlier_indices.tolist()
+
+    for i in outliers:
+        log.debug(
+            "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
+            i,
+            values_arr[i],
+            median_arr[i],
+            scaled_mad_arr[i],
+            z_scores[i],
+            threshold,
+        )
 
     if outliers:
         log.info(
