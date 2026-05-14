@@ -4,7 +4,7 @@ Unit tests for the batch_correction module.
 """
 
 import os
-from typing import Dict, Tuple
+from typing import Dict
 
 import mock
 import pandas as pd  # type: ignore
@@ -601,7 +601,7 @@ def test_batch_process_process_error(
     """Test handling of error during data processing."""
     # Arrange
     series = 26  # type: int
-    years = (1995, 1995)  # type: Tuple[int, int]
+    years = (1995, 1995)  # type: tuple[int, int]
 
     mock_dependencies.update(
         {
