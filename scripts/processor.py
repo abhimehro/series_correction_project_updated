@@ -596,10 +596,12 @@ def process_data(
     time_col = merged_config["time_col"]
     if time_col not in processed_data.columns:
         log.warning(
-            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
+            "Time column '%s' not found in data columns: %s",
+            time_col,
+            list(processed_data.columns),
         )
         raise ValueError(
-            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
+            f"Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
         )
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
@@ -611,10 +613,10 @@ def process_data(
             log.info(
                 "Converted time column '%s' to numeric (Unix timestamp).", time_col
             )
-        except Exception as e:
+        except Exception as exc:
             raise ValueError(
-                "Time column '{time_col}' is not numeric and could not be converted: {e}"
-            )
+                f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
+            ) from exc
     value_col = merged_config["value_col"]
     if value_col is None:
         numeric_cols = processed_data.select_dtypes(include=np.number).columns
@@ -632,10 +634,10 @@ def process_data(
         log.info("Auto-detected value column: '%s'", value_col)
     elif value_col not in processed_data.columns:
         raise ValueError(
-            "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
+            f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
         )
     elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
-        raise ValueError("Specified value column '{value_col}' is not numeric.")
+        raise ValueError(f"Specified value column '{value_col}' is not numeric.")
 
     window_size = merged_config["window_size"]
     threshold = merged_config["threshold"]
