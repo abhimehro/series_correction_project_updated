@@ -50,7 +50,7 @@ def detect_gaps(
         return []
 
     # Calculate the median time difference
-    median_diff = pd.Series(time_diffs_valid).median()
+    median_diff = time_diffs_valid.median()
 
     if median_diff <= 0:
         log.warning(
@@ -440,8 +440,8 @@ def correct_jumps(
         window_before = result_df[value_col].iloc[jump_idx - window_size : jump_idx]
         window_after = result_df[value_col].iloc[jump_idx : jump_idx + window_size]
 
-        median_before = pd.Series(window_before).median()
-        median_after = pd.Series(window_after).median()
+        median_before = window_before.median()
+        median_after = window_after.median()
 
         if pd.isna(median_before) or pd.isna(median_after):
             log.warning(
@@ -532,9 +532,9 @@ def correct_outliers(
                 continue
             surrounding_values = result_df[value_col].loc[valid_indices_in_window]
             if method == "median":
-                replacement_value = pd.Series(list(surrounding_values)).median()
+                replacement_value = surrounding_values.median()
             else:
-                replacement_value = pd.Series(list(surrounding_values)).mean()
+                replacement_value = surrounding_values.mean()
             if pd.notna(replacement_value):
                 original_value = result_df.loc[outlier_idx, value_col]
                 result_df.loc[outlier_idx, value_col] = replacement_value

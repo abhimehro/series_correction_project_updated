@@ -5,3 +5,7 @@
 ## 2024-05-18 - Pandas Object Creation in rolling.apply
 **Learning:** Creating pandas objects (like `pd.Series`) inside tightly grouped or rolling loops (e.g. `rolling.apply(lambda x: pd.Series(x)...)`) causes massive overhead due to repeated object instantiations.
 **Action:** Replace pandas operations inside `apply` or `rolling.apply` with pure NumPy equivalents (like `np.nanmedian`) over the provided array `x` to eliminate object creation overhead while preserving logic.
+
+## 2024-05-18 - Redundant Series Wrapping
+**Learning:** Wrapping objects that are already Pandas Series in `pd.Series()` adds unnecessary overhead from extra allocations and potential data copies.
+**Action:** Call aggregate methods (like `.median()` or `.mean()`) directly on the existing Series or slice rather than re-wrapping it.
