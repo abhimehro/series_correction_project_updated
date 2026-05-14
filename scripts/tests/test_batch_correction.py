@@ -90,7 +90,10 @@ def patch_load_config(monkeypatch):
 @pytest.fixture
 def mock_dependencies(mocker):
     """Mocks optional dependencies and file system calls."""
-    # Mock optional imports (assume they are NOT found by default)
+    # Mock optional imports (assume they are NOT found by default).
+    # NOTE: tests that also use the `mock_data_loader_mod` / `mock_processor_mod`
+    # fixtures will override these patches, so the None defaults below only
+    # apply to tests that don't request those fixtures.
     mocker.patch("scripts.batch_correction.data_loader", None)
     mocker.patch("scripts.batch_correction.processor", None)
 
@@ -635,7 +638,9 @@ def test_batch_process_process_error(
     else:
         assert summary_df.iloc[0]["RawDataPoints"] == 5
         assert summary_df.iloc[0]["ProcessedDataPoints"] == 5
-    assert "Failed to process data for S26_Y01.txt: Processing failed" in caplog.text
+    # Detailed exception text is logged internally (via log.exception),
+    # while the user-facing Status is sanitized.
+    assert "Unexpected error processing S26_Y01.txt" in caplog.text
     assert mock_dependencies["to_excel"].call_count == 3
     pd.testing.assert_frame_equal(
         mock_dependencies["to_excel"].call_args_list[0].args[0],
