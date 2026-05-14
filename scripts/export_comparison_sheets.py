@@ -2,7 +2,9 @@ import os
 from glob import glob
 
 import numpy as np
-from pandas import Series, concat, isna, merge, read_csv, read_excel
+from pandas import concat, isna, merge, read_csv, read_excel
+
+from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
@@ -28,9 +30,6 @@ def find_matching_raw_file(processed_filename):
             return raw_path
     m2 = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
     if m2:
-        # Store year value explicitly to show it's inspected but not needed
-        # in current implementation (could be used for validation later)
-        year_value = int(m2.group(1))  # Explicit assignment to show intent
         yidx = int(m2.group(2))
         # Try to find S??_Y{yidx:02d}.txt
         for f in os.listdir(RAW_DATA_DIR):
@@ -138,7 +137,7 @@ def export_comparisons():
         out_path = os.path.join(
             COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx")
         )
-        merged.to_excel(out_path, index=False)
+        sanitize_dataframe_for_spreadsheet(merged).to_excel(out_path, index=False)
         print(f"[INFO] Exported comparison: {out_path}")
 
 

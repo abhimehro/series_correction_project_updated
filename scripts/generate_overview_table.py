@@ -3,6 +3,8 @@ import re
 
 import pandas as pd
 
+from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet
+
 
 def main(correction_log_path, updated_averages_csv_path):
     """
@@ -97,7 +99,7 @@ def main(correction_log_path, updated_averages_csv_path):
         # Warn if any year pairs could not be parsed
         if unmatched_year_pairs:
             print(
-                f"\nWARNING: The following Year_Pair_Outlier strings could not be parsed and were skipped:"
+                "\nWARNING: The following Year_Pair_Outlier strings could not be parsed and were skipped:"
             )
             for s in unmatched_year_pairs:
                 print(f"  - {s}")
@@ -109,7 +111,7 @@ def main(correction_log_path, updated_averages_csv_path):
         print(
             "\n--- Content for Refined Overview of Level Shift Strategies Table (CSV Format) ---"
         )
-        print(df_overview.to_csv(index=False))
+        print(sanitize_dataframe_for_spreadsheet(df_overview).to_csv(index=False))
         print("--- End Content for Refined Overview Table ---")
 
     except FileNotFoundError as e:
