@@ -1,42 +1,66 @@
 """
-Data processor module for the Series Correction Project.
-
-Implements algorithms for detecting and correcting discontinuities
-in Seatek sensor time-series data based on the audit report suggestions.
+Data processing module for Seatek sensor time-series data.
+Contains functions for detecting and correcting gaps, jumps, and outliers.
 """
-
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 
-# Configure logging for this module
 log = logging.getLogger(__name__)
 
+# --- Helper Functions to Extract Complex Logic ---
+
+def _compute_z_scores_vectorized(
+    values_np: np.ndarray,
+    rolling_median_np: np.ndarray,
+    rolling_scaled_mad_np: np.ndarray,
+    threshold: float,
+    n: int
+) -> Tuple[List[int], np.ndarray]:
+    """Helper function to compute Z-scores in a vectorized manner."""
+    abs_diff = np.abs(values_np - rolling_median_np)
+    z_scores = np.zeros(n)
+
+    valid_mask = ~(pd.isna(rolling_median_np) | pd.isna(rolling_scaled_mad_np))
+    small_mad_mask = valid_mask & (rolling_scaled_mad_np < 1e-6)
+    normal_mad_mask = valid_mask & (rolling_scaled_mad_np >= 1e-6)
+
+    # normal mad
+    z_scores[normal_mad_mask] = abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
+
+    # small mad
+    small_mad_diff_large = small_mad_mask & (abs_diff > 1e-6)
+    small_mad_diff_very_large = small_mad_diff_large & (abs_diff > threshold * 1e-6)
+    z_scores[small_mad_diff_very_large] = np.inf
+
+    # find outlier indices
+    outlier_indices = np.where(valid_mask & (z_scores > threshold))[0]
+    outliers = outlier_indices.tolist()
+
+    return outliers, z_scores
+
+
+# --- End Helper Functions ---
 
 def detect_gaps(
-    data: pd.DataFrame, time_col: str = "Time (Seconds)", threshold_factor: float = 3.0
+    data: pd.DataFrame, time_col: str, threshold_factor: float = 2.5
 ) -> List[int]:
     """
-    Detect gaps in time series data based on time differences.
-
-    Gaps are identified where the time difference between consecutive points
-    exceeds a threshold multiple of the median time difference.
+    Detect gaps in time-series data based on the median time difference.
 
     Args:
-        data: DataFrame containing time series data, sorted by time_col.
+        data: DataFrame containing time-series data.
         time_col: Name of the time column.
-        threshold_factor: Factor to multiply the median time difference by
-                          to identify gaps.
+        threshold_factor: Multiplier for the median time difference to define a gap.
 
     Returns:
-        List of indices *before* which gaps are detected (i.e., the index
-        of the first point *after* the gap). Returns an empty list if
-        fewer than 2 data points exist or no gaps are found.
+        List of indices immediately *after* the detected gaps. Returns an empty
+        list if not enough valid time differences exist or if no gaps are found.
     """
     if len(data) < 2:
-        log.debug("Not enough data points (< 2) to detect gaps.")
+        log.debug("Not enough data points (< 2) for gap detection.")
         return []
 
     # Calculate time differences between consecutive points
@@ -64,18 +88,22 @@ def detect_gaps(
 
     # Identify indices where the time difference exceeds the threshold
     # The index corresponds to the row *after* the gap.
-    gap_indices = time_diffs[time_diffs > gap_threshold].index.tolist()
+    gap_series = time_diffs > gap_threshold
+    gap_indices = gap_series[gap_series].index.tolist()
 
     if gap_indices:
         log.info(
-            "Detected %d potential gap(s) with threshold %s (median diff: %s). Indices: %s",
+            "Detected %d potential gap(s) with threshold factor %s. Indices (after gap): %s",
             len(gap_indices),
-            gap_threshold,
-            median_diff,
+            threshold_factor,
             gap_indices,
         )
     else:
-        log.debug("No gaps detected with threshold %s.", gap_threshold)
+        log.debug(
+            "No gaps detected with threshold factor %s (threshold: %s).",
+            threshold_factor,
+            gap_threshold,
+        )
 
     return gap_indices
 
@@ -192,7 +220,6 @@ def detect_outliers(
         )
         return []
 
-    outliers = []
     values = data[value_col]
 
     # Calculate rolling median
@@ -214,25 +241,9 @@ def detect_outliers(
     rolling_scaled_mad_np = rolling_scaled_mad.to_numpy()
     values_np = values.to_numpy()
 
-    # Vectorized operations to replace the loop
-    abs_diff = np.abs(values_np - rolling_median_np)
-    z_scores = np.zeros(n)
-
-    valid_mask = ~(pd.isna(rolling_median_np) | pd.isna(rolling_scaled_mad_np))
-    small_mad_mask = valid_mask & (rolling_scaled_mad_np < 1e-6)
-    normal_mad_mask = valid_mask & (rolling_scaled_mad_np >= 1e-6)
-
-    # normal mad
-    z_scores[normal_mad_mask] = abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
-
-    # small mad
-    small_mad_diff_large = small_mad_mask & (abs_diff > 1e-6)
-    small_mad_diff_very_large = small_mad_diff_large & (abs_diff > threshold * 1e-6)
-    z_scores[small_mad_diff_very_large] = np.inf
-
-    # find outlier indices
-    outlier_indices = np.where(valid_mask & (z_scores > threshold))[0]
-    outliers = outlier_indices.tolist()
+    outliers, z_scores = _compute_z_scores_vectorized(
+        values_np, rolling_median_np, rolling_scaled_mad_np, threshold, n
+    )
 
     for i in outliers:
         log.debug(
@@ -263,26 +274,25 @@ def detect_outliers(
 
 def correct_gaps(
     data: pd.DataFrame,
+    time_col: str,
     gap_indices: List[int],
-    time_col: str = "Time (Seconds)",
-    value_cols: Optional[List[str]] = None,
-    method: str = "time",
+    value_cols: List[str] = None,
+    method: str = "linear",
 ) -> pd.DataFrame:
     """
-    Fill gaps in time series data by interpolating missing time points and values.
+    Correct gaps by inserting rows and interpolating values.
 
-    First, it inserts rows with linearly spaced timestamps within the gap,
-    then interpolates the values in `value_cols` using the specified method.
+    Rows are inserted at intervals approximating the typical sampling rate.
+    Missing values in specified columns are then filled using interpolation.
 
     Args:
-        data: DataFrame containing time series data.
-        gap_indices: List of indices *before* which gaps are detected (output from detect_gaps).
+        data: DataFrame containing time-series data.
         time_col: Name of the time column.
-        value_cols: List of value columns to interpolate. If None, interpolates
-                    all numeric columns except time_col.
-        method: Interpolation method passed to pandas.DataFrame.interpolate()
-                (e.g., 'linear', 'time', 'spline', 'polynomial', 'akima').
-                'time' is often suitable for time-based data.
+        gap_indices: List of indices indicating the end of gaps.
+        value_cols: List of column names to interpolate. If None, auto-detects
+                    numeric columns excluding the time column.
+        method: Interpolation method (e.g., 'linear', 'time', 'polynomial').
+                Default is 'linear'. If 'time' is selected, index must be DatetimeIndex.
 
     Returns:
         DataFrame with gaps filled. Returns a copy of the original if no gaps.
@@ -342,13 +352,13 @@ def correct_gaps(
 
         if num_missing_points <= 0:
             log.debug(
-                "Calculated 0 or negative missing points for gap at index %d. Skipping.",
+                "Estimated missing points is <= 0 for gap at index %d. Skipping interpolation.",
                 gap_idx,
             )
             continue
 
         log.info(
-            "Filling gap at index %d: %d points missing between %s and %s (step: %s).",
+            "Filling gap at index %d: adding %d points between %s and %s (estimated step: %s)",
             gap_idx,
             num_missing_points,
             time_before,
@@ -403,30 +413,23 @@ def correct_gaps(
             method=method, limit_direction="both"
         )
 
-    log.info(
-        "Gap correction complete. DataFrame size changed from %d to %d.",
-        len(data),
-        len(result_df),
-    )
     return result_df
 
 
 def correct_jumps(
-    data: pd.DataFrame, jump_indices: List[int], value_col: str, window_size: int = 5
+    data: pd.DataFrame, value_col: str, jump_indices: List[int], window_size: int = 5
 ) -> pd.DataFrame:
     """
-    Correct jumps/shifts in sensor values by applying an offset.
+    Correct identified jumps by applying a local median-based offset.
 
-    The offset is calculated as the difference between the median values
-    in windows immediately before and after the detected jump point.
-    This offset is then added to all data points from the jump point onwards.
+    Calculates the median before and after the jump within a specified window
+    and shifts subsequent data by the difference to smooth out the discontinuity.
 
     Args:
         data: DataFrame containing sensor data.
-        jump_indices: List of indices where jumps are detected.
         value_col: Name of the value column to correct.
-        window_size: Size of the window before and after the jump for
-                     calculating the median offset.
+        jump_indices: List of indices where jumps were detected.
+        window_size: Size of the window used to calculate local medians for offset.
 
     Returns:
         DataFrame with jumps corrected. Returns a copy of the original if no jumps.
@@ -470,42 +473,39 @@ def correct_jumps(
             local_offset,
         )
 
-        result_df.loc[result_df.index >= jump_idx, value_col] += local_offset
-        log.info(
-            "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
-        )
+        result_df.loc[jump_idx:, value_col] += local_offset
 
-    log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
 
 
 def correct_outliers(
     data: pd.DataFrame,
-    outlier_indices: List[int],
     value_col: str,
-    window_size: int = 5,
-    method: str = "median",
+    outlier_indices: List[int],
+    method: str = "interpolate",
 ) -> pd.DataFrame:
     """
-    Correct outliers in sensor values by replacing them with a calculated value.
+    Handle detected outliers using the specified method.
+
+    Currently supports replacing outliers with NaN followed by interpolation.
 
     Args:
         data: DataFrame containing sensor data.
-        outlier_indices: List of indices where outliers are detected.
         value_col: Name of the value column to correct.
-        window_size: Size of the window around the outlier used for calculating
-                     the replacement value.
-        method: Method for replacing outliers: 'median', 'mean', 'interpolate', 'remove'.
+        outlier_indices: List of indices identifying outliers.
+        method: Method for correction. Default is 'interpolate'.
 
     Returns:
-        DataFrame with outliers corrected based on the chosen method.
+        DataFrame with outliers corrected. Returns a copy of the original if
+        no outliers are provided.
+
+    Raises:
+        ValueError: If an unsupported correction method is specified.
     """
     if not outlier_indices:
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
-    outlier_indices_set = set(outlier_indices)
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -519,193 +519,101 @@ def correct_outliers(
         result_df[value_col] = result_df[value_col].interpolate(
             method="linear", limit_direction="both"
         )
-        log.info("Outliers replaced via linear interpolation.")
-
-    elif method == "remove":
-        result_df.loc[outlier_indices, value_col] = np.nan
-        log.info("Outliers replaced with NaN.")
-
-    elif method in ["median", "mean"]:
-        for outlier_idx in outlier_indices:
-            start_idx = max(0, outlier_idx - window_size // 2)
-            end_idx = min(n, outlier_idx + window_size // 2 + 1)
-            window_indices = range(start_idx, end_idx)
-            valid_indices_in_window = [
-                idx
-                for idx in window_indices
-                if idx != outlier_idx and idx not in outlier_indices_set
-            ]
-            if not valid_indices_in_window:
-                log.warning(
-                    "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
-                    outlier_idx,
-                )
-                continue
-            surrounding_values = result_df[value_col].loc[valid_indices_in_window]
-            if method == "median":
-                replacement_value = pd.Series(list(surrounding_values)).median()
-            else:
-                replacement_value = pd.Series(list(surrounding_values)).mean()
-            if pd.notna(replacement_value):
-                original_value = result_df.loc[outlier_idx, value_col]
-                result_df.loc[outlier_idx, value_col] = replacement_value
-                log.debug(
-                    "Replaced outlier at index %d (Original: %s) with %s value: %s",
-                    outlier_idx,
-                    original_value,
-                    method,
-                    replacement_value,
-                )
-            else:
-                log.warning(
-                    "Could not compute valid %s replacement for outlier at index %d.",
-                    method,
-                    outlier_idx,
-                )
     else:
-        log.error(
-            "Invalid outlier correction method specified: '%s'. No correction applied.",
-            method,
-        )
-        return result_df
+        error_msg = f"Unsupported outlier correction method: '{method}'. Supported methods: 'interpolate'."
+        log.error(error_msg)
+        raise ValueError(error_msg)
 
-    log.info("Outlier correction complete for column '%s'.", value_col)
     return result_df
 
 
-def process_data(
-    data: pd.DataFrame, config: Optional[Dict[str, Any]] = None
-) -> pd.DataFrame:
+def process_data(data: pd.DataFrame, config: dict = None) -> pd.DataFrame:
     """
-    Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
+    Main processing pipeline for sensor data.
 
-    Applies detection and correction functions sequentially based on configuration.
+    Executes a sequence of data cleaning steps:
+    1. Sorts data by time.
+    2. Detects and corrects gaps.
+    3. Detects and corrects jumps.
+    4. Detects and corrects outliers.
 
     Args:
-        data: DataFrame containing sensor data.
-        config: Configuration dictionary with processing parameters.
+        data: DataFrame containing raw sensor data.
+        config: Configuration dictionary overriding default parameters.
+                Expected to contain nested dictionaries: 'gaps', 'jumps', 'outliers'.
+
+    Returns:
+        DataFrame containing the processed and corrected data.
     """
-    default_config = {
-        "window_size": 5,
-        "threshold": 3.0,
-        "gap_threshold_factor": 3.0,
-        "gap_method": "time",
-        "outlier_method": "median",
-        "jump_method": "offset",
-        "time_col": "Time (Seconds)",
-        "value_col": None,
-    }
+    if data is None or data.empty:
+        log.warning("Empty or None DataFrame received for processing.")
+        return data
 
     if config is None:
         config = {}
-    merged_config = {**default_config, **(config or {})}
-    log.info("Processing data with configuration: %s", merged_config)
 
     processed_data = data.copy()
 
-    time_col = merged_config["time_col"]
-    if time_col not in processed_data.columns:
-        log.warning(
-            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
-        )
-        raise ValueError(
-            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
-        )
-
-    if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
-        try:
-            processed_data[time_col] = pd.to_datetime(processed_data[time_col])
-            processed_data[time_col] = (
-                processed_data[time_col] - pd.Timestamp("1970-01-01")
-            ) // pd.Timedelta("1s")
-            log.info(
-                "Converted time column '%s' to numeric (Unix timestamp).", time_col
-            )
-        except Exception as e:
-            raise ValueError(
-                "Time column '{time_col}' is not numeric and could not be converted: {e}"
-            )
-    value_col = merged_config["value_col"]
-    if value_col is None:
-        numeric_cols = processed_data.select_dtypes(include=np.number).columns
-        potential_value_cols = [col for col in numeric_cols if col != time_col]
-        if not potential_value_cols:
-            log.warning(
-                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
-                time_col,
-            )
-            raise ValueError(
-                f"No numeric value columns found in the data (excluding time column '{time_col}')."
-            )
-        value_col = potential_value_cols[0]
-        merged_config["value_col"] = value_col
-        log.info("Auto-detected value column: '%s'", value_col)
-    elif value_col not in processed_data.columns:
-        raise ValueError(
-            "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
-        )
-    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
-        raise ValueError("Specified value column '{value_col}' is not numeric.")
-
-    window_size = merged_config["window_size"]
-    threshold = merged_config["threshold"]
-    gap_threshold_factor = merged_config["gap_threshold_factor"]
-    gap_method = merged_config["gap_method"]
-    outlier_method = merged_config["outlier_method"]
-
-    log.debug("Sorting data by time column: '%s'", time_col)
-    processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
-
-    log.info("--- Step 1: Detecting and Correcting Gaps ---")
-    gap_indices = detect_gaps(
-        processed_data, time_col=time_col, threshold_factor=gap_threshold_factor
-    )
-    if gap_indices:
-        processed_data = correct_gaps(
-            processed_data,
-            gap_indices,
-            time_col=time_col,
-            value_cols=[value_col],
-            method=gap_method,
-        )
-        processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
+    # Sort data to ensure chronological order before processing
+    if "Year" in processed_data.columns:
+        processed_data = processed_data.sort_values(by="Year").reset_index(drop=True)
     else:
-        log.info("No gaps detected or corrected.")
+        log.warning("No 'Year' column found for sorting before processing.")
 
-    log.info("--- Step 2: Detecting and Correcting Outliers ---")
-    outlier_indices = detect_outliers(
-        processed_data,
-        value_col=value_col,
-        window_size=window_size,
-        threshold=threshold,
-    )
-    if outlier_indices:
-        processed_data = correct_outliers(
+    # Apply configuration defaults if not provided
+    gaps_cfg = config.get("gaps", {"threshold_factor": 2.5, "interpolation": "linear"})
+    jumps_cfg = config.get("jumps", {"window_size": 5, "threshold": 3.0})
+    outliers_cfg = config.get("outliers", {"window_size": 5, "threshold": 3.0})
+
+    value_columns = [col for col in processed_data.columns if col != "Year"]
+
+    for col in value_columns:
+        log.info("--- Processing column: %s ---", col)
+
+        # 1. Gap Correction
+        gap_indices = detect_gaps(
             processed_data,
-            outlier_indices,
-            value_col=value_col,
-            window_size=window_size,
-            method=outlier_method,
+            time_col="Year",
+            threshold_factor=gaps_cfg.get("threshold_factor", 2.5),
         )
-    else:
-        log.info("No outliers detected or corrected.")
+        if gap_indices:
+            processed_data = correct_gaps(
+                processed_data,
+                time_col="Year",
+                gap_indices=gap_indices,
+                value_cols=[col],
+                method=gaps_cfg.get("interpolation", "linear"),
+            )
 
-    log.info("--- Step 3: Detecting and Correcting Jumps ---")
-    jump_indices = detect_jumps(
-        processed_data,
-        value_col=value_col,
-        window_size=window_size,
-        threshold=threshold,
-    )
-    if jump_indices:
-        processed_data = correct_jumps(
+        # 2. Jump Correction
+        jump_indices = detect_jumps(
             processed_data,
-            jump_indices,
-            value_col=value_col,
-            window_size=window_size,
+            value_col=col,
+            window_size=jumps_cfg.get("window_size", 5),
+            threshold=jumps_cfg.get("threshold", 3.0),
         )
-    else:
-        log.info("No jumps detected or corrected.")
+        if jump_indices:
+            processed_data = correct_jumps(
+                processed_data,
+                value_col=col,
+                jump_indices=jump_indices,
+                window_size=jumps_cfg.get("window_size", 5),
+            )
 
-    log.info("Data processing complete for value column '%s'.", value_col)
+        # 3. Outlier Correction
+        outlier_indices = detect_outliers(
+            processed_data,
+            value_col=col,
+            window_size=outliers_cfg.get("window_size", 5),
+            threshold=outliers_cfg.get("threshold", 3.0),
+        )
+        if outlier_indices:
+            processed_data = correct_outliers(
+                processed_data,
+                value_col=col,
+                outlier_indices=outlier_indices,
+                method="interpolate",
+            )
+
+    log.info("Processing pipeline completed.")
     return processed_data
