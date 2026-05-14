@@ -9,7 +9,7 @@ from openpyxl.utils import get_column_letter
 from scripts.spreadsheet_safety import write_excel_safely
 
 # Set OUTPUT_DIR to the project root's output directory
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output")
 SUMMARY_FILE = os.path.join(OUTPUT_DIR, "Summary_Report.xlsx")
 

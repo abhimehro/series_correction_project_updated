@@ -1,3 +1,5 @@
+import json
+
 from openpyxl import load_workbook
 
 from scripts import batch_correction
@@ -53,13 +55,19 @@ def test_batch_process_escapes_formula_like_raw_cells(tmp_path):
     )
     config_path = tmp_path / "config.json"
     config_path.write_text(
-        (
-            '{"RAW_DATA_DIR":"%s","SENSOR_TO_RIVER":{"26":54.0},'
-            '"defaults":{"window_size":5,"threshold":100,'
-            '"gap_threshold_factor":100,"gap_method":"linear",'
-            '"outlier_method":"median"}}'
-        )
-        % data_dir,
+        json.dumps(
+            {
+                "RAW_DATA_DIR": str(data_dir),
+                "SENSOR_TO_RIVER": {"26": 54.0},
+                "defaults": {
+                    "window_size": 5,
+                    "threshold": 100,
+                    "gap_threshold_factor": 100,
+                    "gap_method": "linear",
+                    "outlier_method": "median",
+                },
+            }
+        ),
         encoding="utf-8",
     )
 
