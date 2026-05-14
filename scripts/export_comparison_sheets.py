@@ -4,6 +4,8 @@ from glob import glob
 import numpy as np
 from pandas import Series, concat, isna, merge, read_csv, read_excel
 
+from scripts.spreadsheet_export import safe_to_excel
+
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "data", "output")
@@ -138,7 +140,7 @@ def export_comparisons():
         out_path = os.path.join(
             COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx")
         )
-        merged.to_excel(out_path, index=False)
+        safe_to_excel(merged, out_path, index=False)
         print(f"[INFO] Exported comparison: {out_path}")
 
 
