@@ -214,36 +214,36 @@ def detect_outliers(
     rolling_scaled_mad_np = rolling_scaled_mad.to_numpy()
     values_np = values.to_numpy()
 
-    for i in range(n):
-        median_i = rolling_median_np[i]
-        scaled_mad_i = rolling_scaled_mad_np[i]
-        current_value = values_np[i]
+    # Vectorized operations to replace the loop
+    abs_diff = np.abs(values_np - rolling_median_np)
+    z_scores = np.zeros(n)
 
-        if pd.isna(median_i) or pd.isna(scaled_mad_i):
-            continue
+    valid_mask = ~(pd.isna(rolling_median_np) | pd.isna(rolling_scaled_mad_np))
+    small_mad_mask = valid_mask & (rolling_scaled_mad_np < 1e-6)
+    normal_mad_mask = valid_mask & (rolling_scaled_mad_np >= 1e-6)
 
-        if scaled_mad_i < 1e-6:
-            if abs(current_value - median_i) > 1e-6:
-                if abs(current_value - median_i) > threshold * 1e-6:
-                    z_score = np.inf
-                else:
-                    z_score = 0.0
-            else:
-                z_score = 0.0
-        else:
-            z_score = abs(current_value - median_i) / scaled_mad_i
+    # normal mad
+    z_scores[normal_mad_mask] = abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
 
-        if z_score > threshold:
-            outliers.append(i)
-            log.debug(
-                "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
-                i,
-                current_value,
-                median_i,
-                scaled_mad_i,
-                z_score,
-                threshold,
-            )
+    # small mad
+    small_mad_diff_large = small_mad_mask & (abs_diff > 1e-6)
+    small_mad_diff_very_large = small_mad_diff_large & (abs_diff > threshold * 1e-6)
+    z_scores[small_mad_diff_very_large] = np.inf
+
+    # find outlier indices
+    outlier_indices = np.where(valid_mask & (z_scores > threshold))[0]
+    outliers = outlier_indices.tolist()
+
+    for i in outliers:
+        log.debug(
+            "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
+            i,
+            values_np[i],
+            rolling_median_np[i],
+            rolling_scaled_mad_np[i],
+            z_scores[i],
+            threshold,
+        )
 
     if outliers:
         log.info(
