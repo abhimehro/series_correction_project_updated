@@ -6,9 +6,7 @@ from scripts.spreadsheet_export import neutralize_formula_text, safe_to_excel
 
 
 def test_neutralize_formula_text_prefixes_formula_triggers():
-    assert neutralize_formula_text("=HYPERLINK(\"http://example.test\")").startswith(
-        "'="
-    )
+    assert neutralize_formula_text('=HYPERLINK("http://example.test")').startswith("'=")
     assert neutralize_formula_text("+SUM(1,2)").startswith("'+")
     assert neutralize_formula_text("-10+cmd").startswith("'-")
     assert neutralize_formula_text("@SUM(1,2)").startswith("'@")

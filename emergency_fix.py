@@ -4,6 +4,9 @@ import sys
 
 import pandas as pd
 
+from scripts.processor import process_data
+from scripts.spreadsheet_export import safe_to_excel
+
 # Add project to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
@@ -30,8 +33,6 @@ print(f"\nCreated output directory: {output_dir}")
 
 # 3. Process a single file manually to see where it goes
 print("\n===== PROCESSING A SINGLE FILE =====")
-from scripts.processor import process_data
-from scripts.spreadsheet_export import safe_to_excel
 
 # Find a raw data file
 raw_files = []
