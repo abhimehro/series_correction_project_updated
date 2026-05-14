@@ -3,13 +3,11 @@ import os
 import sys
 
 import pandas as pd
+from scripts.processor import process_data
 
 # Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
-
-# Import your processing functions
-from scripts.processor import process_data
 
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")

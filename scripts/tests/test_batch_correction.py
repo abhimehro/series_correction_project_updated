@@ -4,7 +4,7 @@ Unit tests for the batch_correction module.
 """
 
 import os
-from typing import Dict, Tuple
+from typing import Dict
 
 import mock
 import pandas as pd  # type: ignore
