@@ -601,7 +601,7 @@ def test_batch_process_process_error(
     """Test handling of error during data processing."""
     # Arrange
     series = 26  # type: int
-    years = (1995, 1995)  # type: Tuple[int, int]
+    years = (1995, 1995)
 
     mock_dependencies.update(
         {
