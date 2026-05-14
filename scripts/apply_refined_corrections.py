@@ -4,8 +4,6 @@ import re
 
 import pandas as pd
 
-from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet
-
 # Define directories (adjust paths if your local structure is different)
 DATA_DIR = "../data"  # Updated path
 # The script will generate corrected files in a new directory
@@ -222,7 +220,7 @@ def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, outp
             name = output_file_name(file_path)
             if name in corrected_names:
                 output_path = os.path.join(output_dir, name)
-                sanitize_dataframe_for_spreadsheet(raw_dataframes[file_path]).to_csv(
+                raw_dataframes[file_path].to_csv(
                     output_path, index=False, header=False
                 )
 
@@ -248,7 +246,7 @@ def main():
         save_corrected_files(
             applied_corrections, raw_file_map, raw_dataframes, CORRECTED_OUTPUT_DIR
         )
-        sanitize_dataframe_for_spreadsheet(pd.DataFrame(applied_corrections)).to_csv(
+        pd.DataFrame(applied_corrections).to_csv(
             CORRECTION_LOG_PATH, index=False
         )
         print(f"\nCorrection log saved to: {CORRECTION_LOG_PATH}")

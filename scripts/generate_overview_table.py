@@ -3,8 +3,6 @@ import re
 
 import pandas as pd
 
-from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet
-
 
 def main(correction_log_path, updated_averages_csv_path):
     """
@@ -111,7 +109,7 @@ def main(correction_log_path, updated_averages_csv_path):
         print(
             "\n--- Content for Refined Overview of Level Shift Strategies Table (CSV Format) ---"
         )
-        print(sanitize_dataframe_for_spreadsheet(df_overview).to_csv(index=False))
+        print(df_overview.to_csv(index=False))
         print("--- End Content for Refined Overview Table ---")
 
     except FileNotFoundError as e:
