@@ -22,3 +22,7 @@ def sanitize_dataframe_for_spreadsheet(dataframe: pd.DataFrame) -> pd.DataFrame:
     for column in object_columns:
         sanitized[column] = sanitized[column].map(escape_spreadsheet_formula)
     return sanitized
+
+
+def write_excel_safely(dataframe: pd.DataFrame, *args, **kwargs) -> None:
+    sanitize_dataframe_for_spreadsheet(dataframe).to_excel(*args, **kwargs)

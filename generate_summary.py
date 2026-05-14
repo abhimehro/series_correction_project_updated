@@ -6,7 +6,7 @@ from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 
-from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet
+from scripts.spreadsheet_safety import write_excel_safely
 
 # Set OUTPUT_DIR to the project root's output directory
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -43,7 +43,7 @@ def main():
             print(f"Error processing {file}: {e}")
 
     summary_df = pd.DataFrame(summary_data)
-    sanitize_dataframe_for_spreadsheet(summary_df).to_excel(SUMMARY_FILE, index=False)
+    write_excel_safely(summary_df, SUMMARY_FILE, index=False)
 
     # Format the summary Excel file
     wb = load_workbook(SUMMARY_FILE)

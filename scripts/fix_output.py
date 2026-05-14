@@ -10,7 +10,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 # Import your processing functions
 from scripts.processor import process_data  # noqa: E402
-from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet  # noqa: E402
+from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
 
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
@@ -70,9 +70,7 @@ for i, file_path in enumerate(raw_files):
         output_path = os.path.join(
             NEW_OUTPUT_DIR, f"Series{series}_Year{year_idx}_Processed.xlsx"
         )
-        sanitize_dataframe_for_spreadsheet(processed_df).to_excel(
-            output_path, index=False
-        )
+        write_excel_safely(processed_df, output_path, index=False)
 
         print(
             f"Processed {i + 1}/{len(raw_files)}: {filename} → {os.path.basename(output_path)}"

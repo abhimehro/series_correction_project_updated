@@ -4,7 +4,7 @@ from glob import glob
 import numpy as np
 from pandas import concat, isna, merge, read_csv, read_excel
 
-from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet
+from scripts.spreadsheet_safety import write_excel_safely
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
@@ -137,7 +137,7 @@ def export_comparisons():
         out_path = os.path.join(
             COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx")
         )
-        sanitize_dataframe_for_spreadsheet(merged).to_excel(out_path, index=False)
+        write_excel_safely(merged, out_path, index=False)
         print(f"[INFO] Exported comparison: {out_path}")
 
 

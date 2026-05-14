@@ -21,8 +21,7 @@ import re
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
-
-from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet
+from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet as safe
 
 # Import optional dependencies from the helper module if possible
 try:
@@ -40,11 +39,6 @@ if not logging.getLogger().handlers and not log.handlers:
     logging.basicConfig(level=logging.INFO)
 
 log.debug("batch_correction module loaded")
-
-
-def _write_spreadsheet(dataframe: pd.DataFrame, path: str, **kwargs) -> None:
-    sanitize_dataframe_for_spreadsheet(dataframe).to_excel(path, **kwargs)
-
 
 # --------------------------------------------------------------------------- #
 # Optional/project‑local dependencies
@@ -463,9 +457,7 @@ def batch_process(
                                         f"Series{series_id}_File{i:02d}_Processed.xlsx"
                                     )
                                     out_path = os.path.join(output_dir, out_name)
-                                    _write_spreadsheet(
-                                        processed_df, out_path, index=False
-                                    )
+                                    safe(processed_df).to_excel(out_path, index=False)
                                     log.info(f"Wrote output: {out_path}")
 
                                 summary_records.append(
@@ -537,7 +529,7 @@ def batch_process(
             if not dry_run:
                 out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
                 out_path = os.path.join(output_dir, out_name)
-                _write_spreadsheet(processed_df, out_path, index=False, header=False)
+                safe(processed_df).to_excel(out_path, index=False, header=False)
                 log.info(f"Saved corrected data to {out_path}")
 
         except ProcessingError as exc:
