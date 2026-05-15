@@ -305,12 +305,38 @@ def _find_files_to_process(
     return sorted(files_to_process)
 
 
+def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply consistent column naming when columns are bare integer indices."""
+    if not df.empty and all(isinstance(c, int) for c in df.columns):
+        cols = [f"Value{i + 1}" for i in range(len(df.columns))]
+        if cols:
+            cols[0] = "Time (Seconds)"
+        df.columns = cols
+    return df
+
+
+def _load_via_data_loader(file_path: str) -> pd.DataFrame:
+    """Load via the optional `data_loader` module and normalize columns."""
+    try:
+        df = data_loader.load_data(file_path)
+    except Exception as exc:
+        log.exception(f"Failed to load data from {file_path}")
+        raise ProcessingError(
+            f"Failed to load data from {os.path.basename(file_path)}"
+        ) from exc
+    return _normalize_columns(df)
+
+
 def _load_raw_data(file_path):
     """
     Load a raw Seatek txt file.  Uses a very forgiving pandas.read_csv setup
     suitable for the varied test fixtures.
     """
     log.debug(f"Attempting to load file: {file_path}")
+
+    if data_loader is not None:
+        return _load_via_data_loader(file_path)
+
     try:
         df = pd.read_csv(
             file_path,
@@ -325,21 +351,96 @@ def _load_raw_data(file_path):
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="ignore")
 
-        # Nice column names: first col is time, rest ValueX
-        if all(isinstance(c, int) for c in df.columns):
-            cols = [f"Value{i + 1}" for i in range(len(df.columns))]
-            if cols:
-                cols[0] = "Time (Seconds)"
-            df.columns = cols
-        return df
+        return _normalize_columns(df)
     except pd.errors.EmptyDataError:
         log.debug(f"File {file_path} empty.")
         return pd.DataFrame()
     except Exception as exc:
-        log.error(f"Failed to load data from {file_path}: {exc}")
+        log.exception(f"Failed to load data from {file_path}")
         raise ProcessingError(
             f"Failed to load data from {os.path.basename(file_path)}"
         ) from exc
+
+
+def _run_fallback_processing(
+    series_to_process: List[int],
+    config_data: Dict[str, Any],
+    output_dir: str,
+    dry_run: bool,
+):
+    """Try to process any files referenced by `config_data["series"]`.
+
+    Returns a summary DataFrame if any records were produced, otherwise None.
+    """
+    if "series" not in config_data or processor is None:
+        return None
+
+    summary_records = []
+    series_config_map = config_data.get("series", {})
+    processor_config = {
+        **config_data.get("defaults", {}),
+        **config_data.get("processor_config", {}),
+    }
+
+    for series_id in series_to_process:
+        series_cfg = series_config_map.get(str(series_id))
+        if not series_cfg:
+            continue
+        for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
+            log.info(
+                f"Fallback processing file: {file_path} (series {series_id})"
+            )
+            record = _fallback_process_file(
+                series_id, i, file_path, processor_config, output_dir, dry_run
+            )
+            if record is not None:
+                summary_records.append(record)
+
+    if summary_records:
+        return pd.DataFrame(summary_records)
+    return None
+
+
+def _fallback_process_file(
+    series_id: int,
+    index: int,
+    file_path: str,
+    processor_config: Dict[str, Any],
+    output_dir: str,
+    dry_run: bool,
+):
+    """Process a single fallback file. Returns a summary record dict or None."""
+    fname = os.path.basename(file_path)
+    base_record = {
+        "Series": series_id,
+        "Year": None,
+        "Y-Index": index,
+        "Filename": fname,
+    }
+    try:
+        df = _load_raw_data(file_path)
+        if df.empty:
+            return None
+
+        processed_df = processor.process_data(df, processor_config)
+        if processed_df is None:
+            log.error(f"processor.process_data returned None for {fname}")
+            return {**base_record, "Status": "Failed (No Output)", "Records": 0}
+
+        if not dry_run:
+            out_name = f"Series{series_id}_File{index:02d}_Processed.xlsx"
+            out_path = os.path.join(output_dir, out_name)
+            processed_df.to_excel(out_path, index=False)
+            log.info(f"Wrote output: {out_path}")
+
+        return {
+            **base_record,
+            "Status": "Fallback Processed",
+            "Records": len(processed_df),
+        }
+    except Exception:
+        log.exception(f"Failed to process {file_path}")
+        return {**base_record, "Status": "Failed (Unexpected Error)", "Records": 0}
 
 
 # --------------------------------------------------------------------------- #
@@ -426,65 +527,11 @@ def batch_process(
 
     if not files_to_process:
         log.warning("No matching files found! Entering fallback processing mode.")
-        summary_records = []
-
-        # Fallback: try to process any available files for the selected series
-        if "series" in config_data and processor is not None:
-            for series_id in series_to_process:
-                str_series_id = str(series_id)
-                if str_series_id in config_data.get("series", {}):
-                    series_cfg = config_data["series"][str_series_id]
-                    for i, file_path in enumerate(
-                        series_cfg.get("raw_data", []), start=1
-                    ):
-                        log.info(
-                            f"Fallback processing file: {file_path} (series {series_id})"
-                        )
-                        try:
-                            df = _load_raw_data(file_path)
-                            if not df.empty:
-                                processor_config = {
-                                    **config_data.get("defaults", {}),
-                                    **config_data.get("processor_config", {}),
-                                }
-                                processed_df = processor.process_data(
-                                    df, processor_config
-                                )
-
-                                if not dry_run:
-                                    out_name = (
-                                        f"Series{series_id}_File{i:02d}_Processed.xlsx"
-                                    )
-                                    out_path = os.path.join(output_dir, out_name)
-                                    processed_df.to_excel(out_path, index=False)
-                                    log.info(f"Wrote output: {out_path}")
-
-                                summary_records.append(
-                                    {
-                                        "Series": series_id,
-                                        "Year": None,
-                                        "Y-Index": i,
-                                        "Filename": os.path.basename(file_path),
-                                        "Status": "Fallback Processed",
-                                        "Records": len(processed_df),
-                                    }
-                                )
-                        except Exception as e:
-                            log.error(f"Failed to process {file_path}: {e}")
-                            summary_records.append(
-                                {
-                                    "Series": series_id,
-                                    "Year": None,
-                                    "Y-Index": i,
-                                    "Filename": os.path.basename(file_path),
-                                    "Status": f"Failed ({e})",
-                                    "Records": 0,
-                                }
-                            )
-
-            if summary_records:
-                return pd.DataFrame(summary_records)
-
+        fallback_df = _run_fallback_processing(
+            series_to_process, config_data, output_dir, dry_run
+        )
+        if fallback_df is not None:
+            return fallback_df
         log.warning(
             "Fallback processing found no viable files. Returning empty DataFrame."
         )
@@ -517,6 +564,8 @@ def batch_process(
             processed_df = None
             if processor:
                 processed_df = processor.process_data(raw_df.copy(), processor_config)
+                if processed_df is None:
+                    raise ProcessingError("Processor returned no output")
                 status = "Processed"
             else:
                 processed_df = raw_df.copy()
@@ -534,8 +583,9 @@ def batch_process(
         except ProcessingError as exc:
             status = f"Failed ({exc})"
             processed_df = pd.DataFrame()
-        except Exception as exc:  # pragma: no cover
-            status = f"Failed (Unexpected Error: {exc})"
+        except Exception:  # pragma: no cover
+            log.exception(f"Unexpected error processing {fname}")
+            status = "Failed (Unexpected Error)"
             processed_df = pd.DataFrame()
 
         summary_records.append(
