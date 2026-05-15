@@ -4,12 +4,12 @@ import sys
 
 import pandas as pd
 
+from scripts.processor import process_data
+from scripts.spreadsheet_export import safe_to_excel
+
 # Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
-
-# Import your processing functions
-from scripts.processor import process_data
 
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
@@ -69,7 +69,7 @@ for i, file_path in enumerate(raw_files):
         output_path = os.path.join(
             NEW_OUTPUT_DIR, f"Series{series}_Year{year_idx}_Processed.xlsx"
         )
-        processed_df.to_excel(output_path, index=False)
+        safe_to_excel(processed_df, output_path, index=False)
 
         print(
             f"Processed {i + 1}/{len(raw_files)}: {filename} → {os.path.basename(output_path)}"
