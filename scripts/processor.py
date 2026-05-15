@@ -447,6 +447,9 @@ def correct_jumps(
 
     sorted_jump_indices = sorted(jump_indices)
 
+    # ⚡ Bolt: Convert to NumPy array before the loop to eliminate Pandas object creation and validation overhead inside the loop
+    values_np = result_df[value_col].to_numpy(copy=True)
+
     for jump_idx in sorted_jump_indices:
         if jump_idx < window_size or jump_idx >= n - window_size:
             log.warning(
@@ -456,14 +459,14 @@ def correct_jumps(
             )
             continue
 
-        window_before = result_df[value_col].iloc[jump_idx - window_size : jump_idx]
-        window_after = result_df[value_col].iloc[jump_idx : jump_idx + window_size]
+        # ⚡ Bolt: Use pure NumPy slicing instead of .iloc
+        window_before = values_np[jump_idx - window_size : jump_idx]
+        window_after = values_np[jump_idx : jump_idx + window_size]
 
-        # ⚡ Bolt: Removed redundant pd.Series wraps
-        median_before = window_before.median()
-        median_after = window_after.median()
+        median_before = np.nanmedian(window_before)
+        median_after = np.nanmedian(window_after)
 
-        if pd.isna(median_before) or pd.isna(median_after):
+        if np.isnan(median_before) or np.isnan(median_after):
             log.warning(
                 "Skipping jump correction at index %d: NaN median in window.", jump_idx
             )
@@ -479,7 +482,11 @@ def correct_jumps(
             local_offset,
         )
 
-        result_df.loc[jump_idx:, value_col] += local_offset
+        # ⚡ Bolt: Update NumPy array in place
+        values_np[jump_idx:] += local_offset
+
+    # ⚡ Bolt: Write back the updated values to the DataFrame
+    result_df[value_col] = values_np
 
     return result_df
 
