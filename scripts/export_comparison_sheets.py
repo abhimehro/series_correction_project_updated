@@ -49,11 +49,16 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
     )
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
+    # Convert to NumPy arrays for faster access
+    rolling_median_np = rolling_median.to_numpy()
+    rolling_scaled_mad_np = rolling_scaled_mad.to_numpy()
+    values_np = values.to_numpy()
+
     outliers = []
     for i in range(len(values)):
-        median_i = rolling_median.iloc[i]
-        scaled_mad_i = rolling_scaled_mad.iloc[i]
-        current_value = values.iloc[i]
+        median_i = rolling_median_np[i]
+        scaled_mad_i = rolling_scaled_mad_np[i]
+        current_value = values_np[i]
         if isna(median_i) or isna(scaled_mad_i):
             continue
         if scaled_mad_i < 1e-6:

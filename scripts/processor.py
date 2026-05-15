@@ -6,7 +6,7 @@ in Seatek sensor time-series data based on the audit report suggestions.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -14,29 +14,57 @@ import pandas as pd
 # Configure logging for this module
 log = logging.getLogger(__name__)
 
+# --- Helper Functions to Extract Complex Logic ---
+
+def _compute_z_scores_vectorized(
+    values_np: np.ndarray,
+    rolling_median_np: np.ndarray,
+    rolling_scaled_mad_np: np.ndarray,
+    threshold: float,
+    n: int
+) -> Tuple[List[int], np.ndarray]:
+    """Helper function to compute Z-scores in a vectorized manner."""
+    abs_diff = np.abs(values_np - rolling_median_np)
+    z_scores = np.zeros(n)
+
+    valid_mask = ~(pd.isna(rolling_median_np) | pd.isna(rolling_scaled_mad_np))
+    small_mad_mask = valid_mask & (rolling_scaled_mad_np < 1e-6)
+    normal_mad_mask = valid_mask & (rolling_scaled_mad_np >= 1e-6)
+
+    # normal mad
+    z_scores[normal_mad_mask] = abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
+
+    # small mad
+    small_mad_diff_large = small_mad_mask & (abs_diff > 1e-6)
+    small_mad_diff_very_large = small_mad_diff_large & (abs_diff > threshold * 1e-6)
+    z_scores[small_mad_diff_very_large] = np.inf
+
+    # find outlier indices
+    outlier_indices = np.where(valid_mask & (z_scores > threshold))[0]
+    outliers = outlier_indices.tolist()
+
+    return outliers, z_scores
+
+
+# --- End Helper Functions ---
 
 def detect_gaps(
     data: pd.DataFrame, time_col: str = "Time (Seconds)", threshold_factor: float = 3.0
 ) -> List[int]:
     """
-    Detect gaps in time series data based on time differences.
-
-    Gaps are identified where the time difference between consecutive points
-    exceeds a threshold multiple of the median time difference.
+    Detect gaps in time-series data based on the median time difference.
 
     Args:
-        data: DataFrame containing time series data, sorted by time_col.
+        data: DataFrame containing time-series data.
         time_col: Name of the time column.
-        threshold_factor: Factor to multiply the median time difference by
-                          to identify gaps.
+        threshold_factor: Multiplier for the median time difference to define a gap.
 
     Returns:
-        List of indices *before* which gaps are detected (i.e., the index
-        of the first point *after* the gap). Returns an empty list if
-        fewer than 2 data points exist or no gaps are found.
+        List of indices immediately *after* the detected gaps. Returns an empty
+        list if not enough valid time differences exist or if no gaps are found.
     """
     if len(data) < 2:
-        log.debug("Not enough data points (< 2) to detect gaps.")
+        log.debug("Not enough data points (< 2) for gap detection.")
         return []
 
     # Calculate time differences between consecutive points
@@ -64,18 +92,22 @@ def detect_gaps(
 
     # Identify indices where the time difference exceeds the threshold
     # The index corresponds to the row *after* the gap.
-    gap_indices = time_diffs[time_diffs > gap_threshold].index.tolist()
+    gap_series = time_diffs > gap_threshold
+    gap_indices = gap_series[gap_series].index.tolist()
 
     if gap_indices:
         log.info(
-            "Detected %d potential gap(s) with threshold %s (median diff: %s). Indices: %s",
+            "Detected %d potential gap(s) with threshold factor %s. Indices (after gap): %s",
             len(gap_indices),
-            gap_threshold,
-            median_diff,
+            threshold_factor,
             gap_indices,
         )
     else:
-        log.debug("No gaps detected with threshold %s.", gap_threshold)
+        log.debug(
+            "No gaps detected with threshold factor %s (threshold: %s).",
+            threshold_factor,
+            gap_threshold,
+        )
 
     return gap_indices
 
@@ -113,6 +145,11 @@ def detect_jumps(
     rolling_mean = data[value_col].rolling(window=window_size).mean()
     rolling_std = data[value_col].rolling(window=window_size).std()
 
+    # Convert Pandas Series to raw NumPy arrays for faster access
+    rolling_mean_np = rolling_mean.to_numpy()
+    rolling_std_np = rolling_std.to_numpy()
+    values_np = data[value_col].to_numpy()
+
     # Initialize CUSUM variables and list for jump indices
     jumps = []
     cusum = 0.0
@@ -121,11 +158,11 @@ def detect_jumps(
 
     # Process each point from the end of the first window
     for i in range(start_idx, n):
-        mean_prev_window = rolling_mean.iloc[i - 1]
-        std_prev_window = rolling_std.iloc[i - 1]
+        mean_prev_window = rolling_mean_np[i - 1]
+        std_prev_window = rolling_std_np[i - 1]
 
         # Current deviation from the previous window's mean
-        deviation = data[value_col].iloc[i] - mean_prev_window
+        deviation = values_np[i] - mean_prev_window
 
         # Normalize by previous window's standard deviation
         if pd.notna(std_prev_window) and std_prev_window > 1e-6:
@@ -187,7 +224,6 @@ def detect_outliers(
         )
         return []
 
-    outliers = []
     values = data[value_col]
 
     # Calculate rolling median
@@ -204,36 +240,25 @@ def detect_outliers(
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
 
-    for i in range(n):
-        median_i = rolling_median.iloc[i]
-        scaled_mad_i = rolling_scaled_mad.iloc[i]
-        current_value = values.iloc[i]
+    # Convert to NumPy arrays for faster access
+    rolling_median_np = rolling_median.to_numpy()
+    rolling_scaled_mad_np = rolling_scaled_mad.to_numpy()
+    values_np = values.to_numpy()
 
-        if pd.isna(median_i) or pd.isna(scaled_mad_i):
-            continue
+    outliers, z_scores = _compute_z_scores_vectorized(
+        values_np, rolling_median_np, rolling_scaled_mad_np, threshold, n
+    )
 
-        if scaled_mad_i < 1e-6:
-            if abs(current_value - median_i) > 1e-6:
-                if abs(current_value - median_i) > threshold * 1e-6:
-                    z_score = np.inf
-                else:
-                    z_score = 0.0
-            else:
-                z_score = 0.0
-        else:
-            z_score = abs(current_value - median_i) / scaled_mad_i
-
-        if z_score > threshold:
-            outliers.append(i)
-            log.debug(
-                "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
-                i,
-                current_value,
-                median_i,
-                scaled_mad_i,
-                z_score,
-                threshold,
-            )
+    for i in outliers:
+        log.debug(
+            "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
+            i,
+            values_np[i],
+            rolling_median_np[i],
+            rolling_scaled_mad_np[i],
+            z_scores[i],
+            threshold,
+        )
 
     if outliers:
         log.info(
@@ -259,20 +284,19 @@ def correct_gaps(
     method: str = "time",
 ) -> pd.DataFrame:
     """
-    Fill gaps in time series data by interpolating missing time points and values.
+    Correct gaps by inserting rows and interpolating values.
 
-    First, it inserts rows with linearly spaced timestamps within the gap,
-    then interpolates the values in `value_cols` using the specified method.
+    Rows are inserted at intervals approximating the typical sampling rate.
+    Missing values in specified columns are then filled using interpolation.
 
     Args:
-        data: DataFrame containing time series data.
-        gap_indices: List of indices *before* which gaps are detected (output from detect_gaps).
+        data: DataFrame containing time-series data.
         time_col: Name of the time column.
-        value_cols: List of value columns to interpolate. If None, interpolates
-                    all numeric columns except time_col.
-        method: Interpolation method passed to pandas.DataFrame.interpolate()
-                (e.g., 'linear', 'time', 'spline', 'polynomial', 'akima').
-                'time' is often suitable for time-based data.
+        gap_indices: List of indices indicating the end of gaps.
+        value_cols: List of column names to interpolate. If None, auto-detects
+                    numeric columns excluding the time column.
+        method: Interpolation method (e.g., 'linear', 'time', 'polynomial').
+                Default is 'linear'. If 'time' is selected, index must be DatetimeIndex.
 
     Returns:
         DataFrame with gaps filled. Returns a copy of the original if no gaps.
@@ -332,13 +356,13 @@ def correct_gaps(
 
         if num_missing_points <= 0:
             log.debug(
-                "Calculated 0 or negative missing points for gap at index %d. Skipping.",
+                "Estimated missing points is <= 0 for gap at index %d. Skipping interpolation.",
                 gap_idx,
             )
             continue
 
         log.info(
-            "Filling gap at index %d: %d points missing between %s and %s (step: %s).",
+            "Filling gap at index %d: adding %d points between %s and %s (estimated step: %s)",
             gap_idx,
             num_missing_points,
             time_before,
@@ -393,11 +417,6 @@ def correct_gaps(
             method=method, limit_direction="both"
         )
 
-    log.info(
-        "Gap correction complete. DataFrame size changed from %d to %d.",
-        len(data),
-        len(result_df),
-    )
     return result_df
 
 
@@ -405,18 +424,16 @@ def correct_jumps(
     data: pd.DataFrame, jump_indices: List[int], value_col: str, window_size: int = 5
 ) -> pd.DataFrame:
     """
-    Correct jumps/shifts in sensor values by applying an offset.
+    Correct identified jumps by applying a local median-based offset.
 
-    The offset is calculated as the difference between the median values
-    in windows immediately before and after the detected jump point.
-    This offset is then added to all data points from the jump point onwards.
+    Calculates the median before and after the jump within a specified window
+    and shifts subsequent data by the difference to smooth out the discontinuity.
 
     Args:
         data: DataFrame containing sensor data.
-        jump_indices: List of indices where jumps are detected.
         value_col: Name of the value column to correct.
-        window_size: Size of the window before and after the jump for
-                     calculating the median offset.
+        jump_indices: List of indices where jumps were detected.
+        window_size: Size of the window used to calculate local medians for offset.
 
     Returns:
         DataFrame with jumps corrected. Returns a copy of the original if no jumps.
@@ -460,12 +477,8 @@ def correct_jumps(
             local_offset,
         )
 
-        result_df.loc[result_df.index >= jump_idx, value_col] += local_offset
-        log.info(
-            "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
-        )
+        result_df.loc[jump_idx:, value_col] += local_offset
 
-    log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
 
 
