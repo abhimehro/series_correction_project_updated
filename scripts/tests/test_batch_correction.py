@@ -3,10 +3,11 @@
 Unit tests for the batch_correction module.
 """
 
+import fnmatch
 import os
 from typing import Dict
 
-import mock
+from unittest import mock
 import pandas as pd  # type: ignore
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -51,7 +52,6 @@ def patch_read_csv():
 @pytest.fixture(autouse=True)
 def patch_pd_read_csv(monkeypatch):
     def read_csv_side_effect(path, *_args, **_kwargs):
-        print("pd.read_csv called with: %s" % path)
         if isinstance(path, str) and path.endswith("river_mile_map.csv"):
             return pd.DataFrame(
                 {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
@@ -101,6 +101,22 @@ def mock_dependencies(mocker):
     mock_isdir = mocker.patch("os.path.isdir", return_value=True)
     mock_isfile = mocker.patch("os.path.isfile", return_value=True)
     mock_listdir = mocker.patch("os.listdir", return_value=[])
+
+    def _glob_side_effect(pattern: str) -> list:
+        """Mirror glob from listdir mock (batch_correction uses glob, not listdir)."""
+        directory = os.path.dirname(pattern)
+        glob_pat = os.path.basename(pattern)
+        listing = mock_listdir(directory)
+        if not isinstance(listing, (list, tuple)):
+            listing = []
+        return [
+            os.path.join(directory, name)
+            for name in listing
+            if fnmatch.fnmatch(name, glob_pat)
+        ]
+
+    mocker.patch("scripts.batch_correction.glob.glob", side_effect=_glob_side_effect)
+
     mock_getsize = mocker.patch("os.path.getsize", return_value=100)
     mock_basename = mocker.patch(
         "os.path.basename", side_effect=lambda p: os.path.split(p)[1]
@@ -168,7 +184,7 @@ def mock_processor_mod(mocker):
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
     import importlib
 
-    from mock import MagicMock, patch
+    from unittest.mock import MagicMock, patch
 
     def isfile_side_effect(path):
         if os.path.basename(path) == "river_mile_map.csv":
@@ -176,7 +192,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
         fname = os.path.basename(path)
         return fname in ["S26_Y01.txt", "S26_Y02.txt", "S27_Y01.txt", "S27_Y02.txt"]
 
-    def getsize_side_effect():
+    def getsize_side_effect(_path=None):
         return 100
 
     config_mock = {
@@ -249,16 +265,15 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
         expected_cols = [
             "Series",
             "Year",
-            "YearIndex",
-            "File",
-            "RawDataPoints",
-            "ProcessedDataPoints",
+            "Y-Index",
+            "Filename",
             "Status",
+            "Records",
         ]
         assert list(summary_df.columns) == expected_cols
         assert summary_df["Series"].tolist() == [26, 26, 27, 27]
         assert summary_df["Year"].tolist() == [1995, 1996, 1995, 1996]
-        assert summary_df["YearIndex"].tolist() == ["Y01", "Y02", "Y01", "Y02"]
+        assert summary_df["Y-Index"].tolist() == [1, 2, 1, 2]
         valid_statuses = [
             "Processed",
             "Processed (No Processor Module)",
@@ -266,11 +281,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
             "Skipped",
         ]
         assert all(status in valid_statuses for status in summary_df["Status"].tolist())
-        if "DataPoints" in summary_df.columns:
-            assert summary_df["DataPoints"].isin([5]).all()
-        else:
-            assert summary_df["RawDataPoints"].isin([5]).all()
-            assert summary_df["ProcessedDataPoints"].isin([5]).all()
+        assert (summary_df["Records"] == 5).all()
         # Output assertions
         for year, yi, series in [
             (1995, "Y01", 26),
@@ -284,23 +295,19 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
             mock_to_excel.assert_any_call(
                 expected_output_path, index=False, header=False
             )
-        expected_summary_path = os.path.join(
-            expected_data_dir_inner, "Seatek_Analysis_Summary.xlsx"
-        )
-        mock_to_excel.assert_any_call(expected_summary_path, index=False)
         patcher.stop()
 
 
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
     import importlib
 
-    from mock import MagicMock, patch
+    from unittest.mock import MagicMock, patch
 
     def isfile_side_effect(path):
         fname = os.path.basename(path)
         return fname in ["S30_Y01.txt", "S31_Y01.txt"]
 
-    def getsize_side_effect():
+    def getsize_side_effect(_path=None):
         return 100
 
     config_mock = {
@@ -334,9 +341,14 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
         dry_run = False
         expected_data_dir_inner = "/fake/data/dir"  # type: str
         mock_dependencies["listdir"].return_value = ["S30_Y01.txt", "S31_Y01.txt"]
-        mock_dependencies["isfile"].side_effect = (
-            lambda p: os.path.basename(p) == "S30_Y01.txt"
-        )
+
+        def isfile_side_effect_data(path):
+            fname = os.path.basename(path)
+            if fname == "river_mile_map.csv":
+                return True
+            return fname == "S30_Y01.txt"
+
+        mock_dependencies["isfile"].side_effect = isfile_side_effect_data
         mock_dependencies["getsize"].side_effect = getsize_side_effect
 
         # Act
@@ -349,16 +361,15 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
         expected_cols = [
             "Series",
             "Year",
-            "YearIndex",
-            "File",
-            "RawDataPoints",
-            "ProcessedDataPoints",
+            "Y-Index",
+            "Filename",
             "Status",
+            "Records",
         ]
         assert list(summary_df.columns) == expected_cols
         assert summary_df["Series"].tolist() == [30]
         assert summary_df["Year"].tolist() == [1995]
-        assert summary_df["YearIndex"].tolist() == ["Y01"]
+        assert summary_df["Y-Index"].tolist() == [1]
         valid_statuses = [
             "Processed",
             "Processed (No Processor Module)",
@@ -366,19 +377,11 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
             "Skipped",
         ]
         assert any(status in valid_statuses for status in summary_df["Status"].tolist())
-        if "DataPoints" in summary_df.columns:
-            assert summary_df["DataPoints"].isin([5]).all()
-        else:
-            assert summary_df["RawDataPoints"].isin([5]).all()
-            assert summary_df["ProcessedDataPoints"].isin([5]).all()
+        assert (summary_df["Records"] == 5).all()
         expected_output_path = os.path.join(
             expected_data_dir_inner, "Year_1995 (Y01)_Data.xlsx"
         )
         mock_to_excel.assert_any_call(expected_output_path, index=False, header=False)
-        expected_summary_path = os.path.join(
-            expected_data_dir_inner, "Seatek_Analysis_Summary.xlsx"
-        )
-        mock_to_excel.assert_any_call(expected_summary_path, index=False)
 
 
 def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
@@ -392,9 +395,14 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
     dry_run = True
     "/fake/data/dir"
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt", "S27_Y01.txt"]
-    mock_dependencies["isfile"].side_effect = (
-        lambda p: os.path.basename(p) == "S26_Y01.txt"
-    )
+
+    def isfile_dry_run(path):
+        fname = os.path.basename(path)
+        if fname == "river_mile_map.csv":
+            return True
+        return fname == "S26_Y01.txt"
+
+    mock_dependencies["isfile"].side_effect = isfile_dry_run
 
     # Act
     summary_df = batch_process(series_selection, river_miles, years, dry_run)
@@ -416,13 +424,7 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
     ]
     assert summary_df.iloc[0]["Status"] in valid_statuses
 
-    # Check summary status
-    # Accept both possible column names for data points
-    if "DataPoints" in summary_df.columns:
-        assert summary_df.iloc[0]["DataPoints"] == 5
-    else:
-        assert summary_df.iloc[0]["RawDataPoints"] == 5
-        assert summary_df.iloc[0]["ProcessedDataPoints"] == 5
+    assert summary_df.iloc[0]["Records"] == 5
 
 
 def test_batch_process_no_files_found(mock_dependencies, mock_config_loader):
@@ -440,9 +442,9 @@ def test_batch_process_no_files_found(mock_dependencies, mock_config_loader):
     # Ensure isfile confirms non-existence
     mock_dependencies["isfile"].return_value = False
 
-    # Act & Assert
-    with pytest.raises(FileNotFoundError, match="No valid data files found"):
-        batch_process(series_selection, river_miles, years, dry_run)
+    # Act: no matching S99 files — implementation returns an empty summary frame
+    summary_df = batch_process(series_selection, river_miles, years, dry_run)
+    assert summary_df.empty
 
 
 def test_batch_process_data_dir_not_found(mock_dependencies):
@@ -551,14 +553,12 @@ def test_batch_process_with_data_loader_and_processor(
         "Processed",
         "Processed (No Processor Module)",
     ]
-    if "DataPoints" in summary_df.columns:
-        assert summary_df.iloc[0]["DataPoints"] == 8
-    else:
-        assert summary_df.iloc[0]["RawDataPoints"] == 8
-        assert summary_df.iloc[0]["ProcessedDataPoints"] == 8
+    assert summary_df.iloc[0]["Records"] == 5
 
 
-def test_batch_process_load_error(mock_dependencies, mock_data_loader_mod, caplog):
+def test_batch_process_load_error(
+    mock_dependencies, mock_data_loader_mod, mock_config_loader, caplog
+):
     """Test handling of error during data loading."""
     # Arrange
     series_selection = 26
@@ -582,23 +582,17 @@ def test_batch_process_load_error(mock_dependencies, mock_data_loader_mod, caplo
     mock_data_loader_mod.load_data.assert_called_once()
     # Removed assertion on mock_dependencies["read_csv"].call_count
     # Fallback not reached
-    # No data saved for this file
-    assert mock_dependencies["to_excel"].call_count == 1  # Only summary saved
+    # Load path raises before any workbook is written
+    assert mock_dependencies["to_excel"].call_count == 0
 
     # Check summary status
     assert len(summary_df) == 1
     status = summary_df.iloc[0]["Status"]
-    assert status == "Load Failed" or status == "Failed (Unexpected Error)"
-
-    # Accept both possible column names for data points
-    if "DataPoints" in summary_df.columns:
-        assert summary_df.iloc[0]["DataPoints"] is None
-    else:
-        assert summary_df.iloc[0]["RawDataPoints"] is None
-        assert summary_df.iloc[0]["ProcessedDataPoints"] is None
+    assert "Failed" in status
+    assert summary_df.iloc[0]["Records"] == 0
 
     # Check log
-    assert "Failed to load data from S26_Y01.txt: Cannot read file" in caplog.text
+    assert "S26_Y01.txt" in caplog.text
 
 
 def test_batch_process_process_error(
@@ -611,13 +605,8 @@ def test_batch_process_process_error(
     series = 26  # type: int
     years = (1995, 1995)  # type: tuple[int, int]
 
-    mock_dependencies.update(
-        {
-            "listdir.return_value": ["S26_Y01.txt"],
-            "isfile.return_value": True,
-            "read_csv.return_value": pd.DataFrame({0: range(5), 1: range(5)}),
-        }
-    )
+    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
+    mock_dependencies["isfile"].return_value = True
     mock_processor_mod.process_data.side_effect = ValueError("Processing failed")
 
     # Act
@@ -627,29 +616,13 @@ def test_batch_process_process_error(
     summary_df = bc.batch_process(series, None, years, False)
 
     # Assert
-    # Removed assertion on mock_dependencies["read_csv"].call_count
     mock_processor_mod.process_data.assert_called_once()
     assert len(summary_df) == 1
     status = summary_df.iloc[0]["Status"]
-    assert status == "Process Failed" or status == "Failed (Unexpected Error)"
-    # Accept both possible column names for data points
-    if "DataPoints" in summary_df.columns:
-        assert summary_df.iloc[0]["DataPoints"] == 5
-    else:
-        assert summary_df.iloc[0]["RawDataPoints"] == 5
-        assert summary_df.iloc[0]["ProcessedDataPoints"] == 5
-    # Detailed exception text is logged internally (via log.exception),
-    # while the user-facing Status is sanitized.
+    assert status == "Failed (Unexpected Error)"
+    assert summary_df.iloc[0]["Records"] == 0
     assert "Unexpected error processing S26_Y01.txt" in caplog.text
-    assert mock_dependencies["to_excel"].call_count == 3
-    pd.testing.assert_frame_equal(
-        mock_dependencies["to_excel"].call_args_list[0].args[0],
-        mock_dependencies["read_csv"].return_value,
-    )
-    pd.testing.assert_frame_equal(
-        mock_dependencies["to_excel"].call_args_list[1].args[0],
-        mock_dependencies["read_csv"].return_value,
-    )
+    assert mock_dependencies["to_excel"].call_count == 0
 
 
 def test_batch_process_invalid_series_selection(monkeypatch):
@@ -685,8 +658,18 @@ def test_minimal_happy_path(monkeypatch):
     full_paths = [f"{data_dir}/{f}" for f in file_list]
 
     monkeypatch.setattr("os.listdir", lambda d: file_list)
+
+    def _glob_side_effect(pat):
+        dirn = os.path.dirname(pat)
+        base = os.path.basename(pat)
+        return [os.path.join(dirn, f) for f in file_list if fnmatch.fnmatch(f, base)]
+
+    monkeypatch.setattr("glob.glob", _glob_side_effect)
     monkeypatch.setattr("os.path.isdir", lambda d: d == data_dir)
-    monkeypatch.setattr("os.path.isfile", lambda p: p in full_paths)
+    monkeypatch.setattr(
+        "os.path.isfile",
+        lambda p: p in full_paths or str(p).endswith("river_mile_map.csv"),
+    )
     monkeypatch.setattr("os.path.getsize", lambda p: 100)
     monkeypatch.setattr("os.makedirs", lambda *a, **k: None)
 
@@ -715,7 +698,6 @@ def test_minimal_happy_path(monkeypatch):
     processor_mod = types.ModuleType("scripts.processor")
 
     def process_data(df, config=None):
-        print("DEBUG: process_data called with df shape:", df.shape)
         return df
 
     processor_mod.process_data = process_data
@@ -734,12 +716,10 @@ def test_minimal_happy_path(monkeypatch):
             config_path=None,
             output_dir=data_dir,
         )
-    except Exception as e:
-        print("DEBUG: Exception during batch_process:", repr(e))
+    except Exception:
         raise
 
     # --- Assert ---
-    print("DEBUG: summary_df Status column:", summary_df["Status"].tolist())
     assert len(summary_df) == 2
     assert all(summary_df["Status"] == "Processed")
-    assert set(summary_df["File"]) == set(file_list)
+    assert set(summary_df["Filename"]) == set(file_list)

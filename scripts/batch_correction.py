@@ -347,9 +347,12 @@ def _load_raw_data(file_path):
             skip_blank_lines=True,
         )
         log.debug(f"Loaded file: {file_path} with shape {df.shape}")
-        # Best-effort numeric conversion
+        # Best-effort numeric conversion (pandas 2+ removed errors="ignore"; try/except preserves columns)
         for col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="ignore")
+            try:
+                df[col] = pd.to_numeric(df[col])
+            except (ValueError, TypeError):
+                pass
 
         return _normalize_columns(df)
     except pd.errors.EmptyDataError:
