@@ -5,8 +5,8 @@ Unit tests for the batch_correction module.
 
 import os
 from typing import Dict
+from unittest import mock
 
-import mock
 import pandas as pd  # type: ignore
 import pytest
 from _pytest.logging import LogCaptureFixture
