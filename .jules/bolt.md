@@ -9,3 +9,7 @@
 ## 2024-05-18 - Redundant Pandas Series wrapping
 **Learning:** Wrapping slices returned from `iloc` or `loc` in a `pd.Series()` creates unnecessary overhead, and doing so with `pd.Series(list(slice))` is even worse.
 **Action:** Call aggregate methods like `.median()` or `.mean()` directly on the returned slice (which is already a Series) to reduce object instantiation time.
+
+## 2025-05-18 - Pandas iloc indexing inside Python loops
+**Learning:** Using Pandas `.iloc` indexing inside Python loops causes massive overhead due to repeated object instantiations.
+**Action:** Convert the Pandas Series to a NumPy array using `.to_numpy(copy=True)` before the loop, and use pure NumPy array indexing and operations (like `np.nanmedian`) inside the loop. Assign the modified array back to the DataFrame after the loop.
