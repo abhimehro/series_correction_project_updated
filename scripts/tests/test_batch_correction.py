@@ -5,8 +5,8 @@ Unit tests for the batch_correction module.
 
 import os
 from typing import Dict
+from unittest import mock
 
-import mock
 import pandas as pd  # type: ignore
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -168,7 +168,7 @@ def mock_processor_mod(mocker):
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
     import importlib
 
-    from mock import MagicMock, patch
+    from unittest.mock import MagicMock, patch
 
     def isfile_side_effect(path):
         if os.path.basename(path) == "river_mile_map.csv":
@@ -294,7 +294,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
     import importlib
 
-    from mock import MagicMock, patch
+    from unittest.mock import MagicMock, patch
 
     def isfile_side_effect(path):
         fname = os.path.basename(path)
