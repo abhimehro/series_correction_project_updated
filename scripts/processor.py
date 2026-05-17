@@ -628,9 +628,10 @@ def process_data(
                 "Converted time column '%s' to numeric (Unix timestamp).", time_col
             )
         except Exception as e:
+            log.exception("Time column '%s' is not numeric and could not be converted.", time_col)
             raise ValueError(
-                "Time column '{time_col}' is not numeric and could not be converted: {e}"
-            )
+                "Time column is not numeric and could not be converted."
+            ) from e
     value_col = merged_config["value_col"]
     if value_col is None:
         numeric_cols = processed_data.select_dtypes(include=np.number).columns
