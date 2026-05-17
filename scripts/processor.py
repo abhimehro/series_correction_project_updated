@@ -16,12 +16,13 @@ log = logging.getLogger(__name__)
 
 # --- Helper Functions to Extract Complex Logic ---
 
+
 def _compute_z_scores_vectorized(
     values_np: np.ndarray,
     rolling_median_np: np.ndarray,
     rolling_scaled_mad_np: np.ndarray,
     threshold: float,
-    n: int
+    n: int,
 ) -> Tuple[List[int], np.ndarray]:
     """Helper function to compute Z-scores in a vectorized manner."""
     abs_diff = np.abs(values_np - rolling_median_np)
@@ -32,7 +33,9 @@ def _compute_z_scores_vectorized(
     normal_mad_mask = valid_mask & (rolling_scaled_mad_np >= 1e-6)
 
     # normal mad
-    z_scores[normal_mad_mask] = abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
+    z_scores[normal_mad_mask] = (
+        abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
+    )
 
     # small mad
     small_mad_diff_large = small_mad_mask & (abs_diff > 1e-6)
@@ -47,6 +50,7 @@ def _compute_z_scores_vectorized(
 
 
 # --- End Helper Functions ---
+
 
 def detect_gaps(
     data: pd.DataFrame, time_col: str = "Time (Seconds)", threshold_factor: float = 3.0
@@ -579,6 +583,59 @@ def correct_outliers(
     return result_df
 
 
+def _validate_and_convert_time_col(processed_data: pd.DataFrame, time_col: str) -> None:
+    if time_col not in processed_data.columns:
+        log.warning(
+            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
+        )
+        raise ValueError(
+            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
+        )
+
+    if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
+        try:
+            processed_data[time_col] = pd.to_datetime(processed_data[time_col])
+            processed_data[time_col] = (
+                processed_data[time_col] - pd.Timestamp("1970-01-01")
+            ) // pd.Timedelta("1s")
+            log.info(
+                "Converted time column '%s' to numeric (Unix timestamp).", time_col
+            )
+        except Exception as e:
+            log.exception(
+                "Time column '%s' is not numeric and could not be converted.", time_col
+            )
+            raise ValueError(
+                "Time column is not numeric and could not be converted."
+            ) from e
+
+
+def _detect_and_validate_value_col(
+    processed_data: pd.DataFrame, time_col: str, value_col: Optional[str]
+) -> str:
+    if value_col is None:
+        numeric_cols = processed_data.select_dtypes(include=np.number).columns
+        potential_value_cols = [col for col in numeric_cols if col != time_col]
+        if not potential_value_cols:
+            log.warning(
+                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
+                time_col,
+            )
+            raise ValueError(
+                f"No numeric value columns found in the data (excluding time column '{time_col}')."
+            )
+        value_col = potential_value_cols[0]
+        log.info("Auto-detected value column: '%s'", value_col)
+    elif value_col not in processed_data.columns:
+        raise ValueError(
+            "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
+        )
+    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
+        raise ValueError("Specified value column '{value_col}' is not numeric.")
+
+    return value_col
+
+
 def process_data(
     data: pd.DataFrame, config: Optional[Dict[str, Any]] = None
 ) -> pd.DataFrame:
@@ -610,49 +667,12 @@ def process_data(
     processed_data = data.copy()
 
     time_col = merged_config["time_col"]
-    if time_col not in processed_data.columns:
-        log.warning(
-            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
-        )
-        raise ValueError(
-            "Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
-        )
+    _validate_and_convert_time_col(processed_data, time_col)
 
-    if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
-        try:
-            processed_data[time_col] = pd.to_datetime(processed_data[time_col])
-            processed_data[time_col] = (
-                processed_data[time_col] - pd.Timestamp("1970-01-01")
-            ) // pd.Timedelta("1s")
-            log.info(
-                "Converted time column '%s' to numeric (Unix timestamp).", time_col
-            )
-        except Exception as e:
-            log.exception("Time column '%s' is not numeric and could not be converted.", time_col)
-            raise ValueError(
-                "Time column is not numeric and could not be converted."
-            ) from e
-    value_col = merged_config["value_col"]
-    if value_col is None:
-        numeric_cols = processed_data.select_dtypes(include=np.number).columns
-        potential_value_cols = [col for col in numeric_cols if col != time_col]
-        if not potential_value_cols:
-            log.warning(
-                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
-                time_col,
-            )
-            raise ValueError(
-                f"No numeric value columns found in the data (excluding time column '{time_col}')."
-            )
-        value_col = potential_value_cols[0]
-        merged_config["value_col"] = value_col
-        log.info("Auto-detected value column: '%s'", value_col)
-    elif value_col not in processed_data.columns:
-        raise ValueError(
-            "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
-        )
-    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
-        raise ValueError("Specified value column '{value_col}' is not numeric.")
+    value_col = _detect_and_validate_value_col(
+        processed_data, time_col, merged_config["value_col"]
+    )
+    merged_config["value_col"] = value_col
 
     window_size = merged_config["window_size"]
     threshold = merged_config["threshold"]
