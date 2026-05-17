@@ -610,27 +610,33 @@ def _validate_and_convert_time_col(processed_data: pd.DataFrame, time_col: str) 
             ) from e
 
 
+def _auto_detect_value_col(processed_data: pd.DataFrame, time_col: str) -> str:
+    numeric_cols = processed_data.select_dtypes(include=np.number).columns
+    potential_value_cols = [col for col in numeric_cols if col != time_col]
+    if not potential_value_cols:
+        log.warning(
+            "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
+            time_col,
+        )
+        raise ValueError(
+            f"No numeric value columns found in the data (excluding time column '{time_col}')."
+        )
+    value_col = potential_value_cols[0]
+    log.info("Auto-detected value column: '%s'", value_col)
+    return value_col
+
+
 def _detect_and_validate_value_col(
     processed_data: pd.DataFrame, time_col: str, value_col: Optional[str]
 ) -> str:
     if value_col is None:
-        numeric_cols = processed_data.select_dtypes(include=np.number).columns
-        potential_value_cols = [col for col in numeric_cols if col != time_col]
-        if not potential_value_cols:
-            log.warning(
-                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
-                time_col,
-            )
-            raise ValueError(
-                f"No numeric value columns found in the data (excluding time column '{time_col}')."
-            )
-        value_col = potential_value_cols[0]
-        log.info("Auto-detected value column: '%s'", value_col)
-    elif value_col not in processed_data.columns:
+        return _auto_detect_value_col(processed_data, time_col)
+
+    if value_col not in processed_data.columns:
         raise ValueError(
             "Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
         )
-    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
+    if not pd.api.types.is_numeric_dtype(processed_data[value_col]):
         raise ValueError("Specified value column '{value_col}' is not numeric.")
 
     return value_col
