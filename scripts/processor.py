@@ -16,12 +16,13 @@ log = logging.getLogger(__name__)
 
 # --- Helper Functions to Extract Complex Logic ---
 
+
 def _compute_z_scores_vectorized(
     values_np: np.ndarray,
     rolling_median_np: np.ndarray,
     rolling_scaled_mad_np: np.ndarray,
     threshold: float,
-    n: int
+    n: int,
 ) -> Tuple[List[int], np.ndarray]:
     """Helper function to compute Z-scores in a vectorized manner."""
     abs_diff = np.abs(values_np - rolling_median_np)
@@ -32,7 +33,9 @@ def _compute_z_scores_vectorized(
     normal_mad_mask = valid_mask & (rolling_scaled_mad_np >= 1e-6)
 
     # normal mad
-    z_scores[normal_mad_mask] = abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
+    z_scores[normal_mad_mask] = (
+        abs_diff[normal_mad_mask] / rolling_scaled_mad_np[normal_mad_mask]
+    )
 
     # small mad
     small_mad_diff_large = small_mad_mask & (abs_diff > 1e-6)
@@ -47,6 +50,7 @@ def _compute_z_scores_vectorized(
 
 
 # --- End Helper Functions ---
+
 
 def detect_gaps(
     data: pd.DataFrame, time_col: str = "Time (Seconds)", threshold_factor: float = 3.0
@@ -445,6 +449,10 @@ def correct_jumps(
     result_df = data.copy()
     n = len(result_df)
 
+    # ⚡ Bolt: Use raw NumPy array to avoid pd.Series creation overhead in loop
+    # Convert to float to avoid casting errors when adding float offsets
+    values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+
     sorted_jump_indices = sorted(jump_indices)
 
     for jump_idx in sorted_jump_indices:
@@ -456,12 +464,12 @@ def correct_jumps(
             )
             continue
 
-        window_before = result_df[value_col].iloc[jump_idx - window_size : jump_idx]
-        window_after = result_df[value_col].iloc[jump_idx : jump_idx + window_size]
+        window_before = values_np[jump_idx - window_size : jump_idx]
+        window_after = values_np[jump_idx : jump_idx + window_size]
 
-        # ⚡ Bolt: Removed redundant pd.Series wraps
-        median_before = window_before.median()
-        median_after = window_after.median()
+        # ⚡ Bolt: Use np.nanmedian on raw arrays instead of .median() on Pandas series
+        median_before = np.nanmedian(window_before)
+        median_after = np.nanmedian(window_after)
 
         if pd.isna(median_before) or pd.isna(median_after):
             log.warning(
@@ -479,7 +487,9 @@ def correct_jumps(
             local_offset,
         )
 
-        result_df.loc[jump_idx:, value_col] += local_offset
+        values_np[jump_idx:] += local_offset
+
+    result_df[value_col] = values_np
 
     return result_df
 
@@ -531,6 +541,9 @@ def correct_outliers(
         log.info("Outliers replaced with NaN.")
 
     elif method in ["median", "mean"]:
+        # ⚡ Bolt: Use raw NumPy array to avoid pd.Series creation overhead in loop
+        values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+
         for outlier_idx in outlier_indices:
             start_idx = max(0, outlier_idx - window_size // 2)
             end_idx = min(n, outlier_idx + window_size // 2 + 1)
@@ -546,15 +559,18 @@ def correct_outliers(
                     outlier_idx,
                 )
                 continue
-            surrounding_values = result_df[value_col].loc[valid_indices_in_window]
-            # ⚡ Bolt: Removed redundant pd.Series(list(...)) wraps
+
+            surrounding_values = values_np[valid_indices_in_window]
+
+            # ⚡ Bolt: Use np.nanmedian/np.nanmean on raw arrays instead of pandas aggregation
             if method == "median":
-                replacement_value = surrounding_values.median()
+                replacement_value = np.nanmedian(surrounding_values)
             else:
-                replacement_value = surrounding_values.mean()
+                replacement_value = np.nanmean(surrounding_values)
+
             if pd.notna(replacement_value):
-                original_value = result_df.loc[outlier_idx, value_col]
-                result_df.loc[outlier_idx, value_col] = replacement_value
+                original_value = values_np[outlier_idx]
+                values_np[outlier_idx] = replacement_value
                 log.debug(
                     "Replaced outlier at index %d (Original: %s) with %s value: %s",
                     outlier_idx,
@@ -568,6 +584,8 @@ def correct_outliers(
                     method,
                     outlier_idx,
                 )
+
+        result_df[value_col] = values_np
     else:
         log.error(
             "Invalid outlier correction method specified: '%s'. No correction applied.",
@@ -627,7 +645,7 @@ def process_data(
             log.info(
                 "Converted time column '%s' to numeric (Unix timestamp).", time_col
             )
-        except Exception as e:
+        except Exception:
             raise ValueError(
                 "Time column '{time_col}' is not numeric and could not be converted: {e}"
             )
