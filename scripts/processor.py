@@ -447,6 +447,9 @@ def correct_jumps(
 
     sorted_jump_indices = sorted(jump_indices)
 
+    # ⚡ Bolt: Convert column to float NumPy array and perform operations on it to avoid loop overhead
+    values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+
     for jump_idx in sorted_jump_indices:
         if jump_idx < window_size or jump_idx >= n - window_size:
             log.warning(
@@ -456,12 +459,12 @@ def correct_jumps(
             )
             continue
 
-        window_before = result_df[value_col].iloc[jump_idx - window_size : jump_idx]
-        window_after = result_df[value_col].iloc[jump_idx : jump_idx + window_size]
+        window_before_np = values_np[jump_idx - window_size : jump_idx]
+        window_after_np = values_np[jump_idx : jump_idx + window_size]
 
-        # ⚡ Bolt: Removed redundant pd.Series wraps
-        median_before = window_before.median()
-        median_after = window_after.median()
+        # ⚡ Bolt: Using raw NumPy median is faster
+        median_before = np.nanmedian(window_before_np)
+        median_after = np.nanmedian(window_after_np)
 
         if pd.isna(median_before) or pd.isna(median_after):
             log.warning(
@@ -479,8 +482,9 @@ def correct_jumps(
             local_offset,
         )
 
-        result_df.loc[jump_idx:, value_col] += local_offset
+        values_np[jump_idx:] += local_offset
 
+    result_df[value_col] = values_np
     return result_df
 
 
