@@ -30,7 +30,8 @@ print(f"\nCreated output directory: {output_dir}")
 
 # 3. Process a single file manually to see where it goes
 print("\n===== PROCESSING A SINGLE FILE =====")
-from scripts.processor import process_data
+from scripts.processor import process_data  # noqa: E402
+from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
 
 # Find a raw data file
 raw_files = []
@@ -89,7 +90,7 @@ if raw_files:
 
         # Save with explicit writer
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-            processed_df.to_excel(writer, index=False)
+            write_excel_safely(processed_df, writer, index=False)
 
         print(f"Explicitly saved file to: {output_path}")
         print(f"Check if file exists: {os.path.exists(output_path)}")

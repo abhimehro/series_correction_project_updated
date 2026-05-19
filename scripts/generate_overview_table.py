@@ -97,7 +97,7 @@ def main(correction_log_path, updated_averages_csv_path):
         # Warn if any year pairs could not be parsed
         if unmatched_year_pairs:
             print(
-                f"\nWARNING: The following Year_Pair_Outlier strings could not be parsed and were skipped:"
+                "\nWARNING: The following Year_Pair_Outlier strings could not be parsed and were skipped:"
             )
             for s in unmatched_year_pairs:
                 print(f"  - {s}")
