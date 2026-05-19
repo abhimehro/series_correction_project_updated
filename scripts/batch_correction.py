@@ -214,7 +214,8 @@ def _determine_series_to_process(
         try:
             series_list = [int(s) for s in raw]
         except ValueError as exc:
-            raise ValueError(f"Invalid series selection {raw!r}") from exc
+            log.exception(f"Invalid series selection {raw!r}")
+            raise ValueError("Invalid series selection provided.") from exc
 
         if river_miles and rm_to_sensors_map:
             allowed = set()
@@ -485,7 +486,8 @@ def batch_process(
                 f"Config file {config_path} not found – continuing with empty config."
             )
         except Exception as exc:  # pragma: no cover
-            raise ProcessingError(f"Failed to load configuration: {exc}") from exc
+            log.exception("Failed to load configuration.")
+            raise ProcessingError("Failed to load configuration.") from exc
 
     # Optional river-mile lookup CSV – silently ignored when missing
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
@@ -509,7 +511,8 @@ def batch_process(
             os.makedirs(output_dir, exist_ok=True)
             log.info(f"Created output directory {output_dir}")
         except OSError as exc:
-            raise ProcessingError(f"Unable to create output directory: {exc}") from exc
+            log.exception("Unable to create output directory.")
+            raise ProcessingError("Unable to create output directory.") from exc
 
     # ------------------------------------------------------------------ #
     # Determine workloads
