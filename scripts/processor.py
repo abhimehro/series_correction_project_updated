@@ -112,8 +112,9 @@ def detect_jumps(
         return []
 
     # Calculate rolling mean and standard deviation
-    rolling_mean = data[value_col].rolling(window=window_size).mean()
-    rolling_std = data[value_col].rolling(window=window_size).std()
+    rolling_mean = data[value_col].rolling(window=window_size).mean().to_numpy()
+    rolling_std = data[value_col].rolling(window=window_size).std().to_numpy()
+    values = data[value_col].to_numpy()
 
     # Initialize CUSUM variables and list for jump indices
     jumps = []
@@ -123,11 +124,11 @@ def detect_jumps(
 
     # Process each point from the end of the first window
     for i in range(start_idx, n):
-        mean_prev_window = rolling_mean.iloc[i - 1]
-        std_prev_window = rolling_std.iloc[i - 1]
+        mean_prev_window = rolling_mean[i - 1]
+        std_prev_window = rolling_std[i - 1]
 
         # Current deviation from the previous window's mean
-        deviation = data[value_col].iloc[i] - mean_prev_window
+        deviation = values[i] - mean_prev_window
 
         # Normalize by previous window's standard deviation
         if pd.notna(std_prev_window) and std_prev_window > 1e-6:
@@ -193,7 +194,7 @@ def detect_outliers(
     values = data[value_col]
 
     # Calculate rolling median
-    rolling_median = values.rolling(window=window_size, center=True).median()
+    rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
     # Calculate rolling MAD
     # ⚡ Bolt: Replaced pd.Series instantiation inside lambda with pure NumPy operations.
@@ -201,15 +202,16 @@ def detect_outliers(
     # creation overhead inside the rolling apply loop, vastly improving performance.
     rolling_mad = values.rolling(window=window_size, center=True).apply(
         lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True
-    )
+    ).to_numpy()
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
+    values_np = values.to_numpy()
 
     for i in range(n):
-        median_i = rolling_median.iloc[i]
-        scaled_mad_i = rolling_scaled_mad.iloc[i]
-        current_value = values.iloc[i]
+        median_i = rolling_median[i]
+        scaled_mad_i = rolling_scaled_mad[i]
+        current_value = values_np[i]
 
         if pd.isna(median_i) or pd.isna(scaled_mad_i):
             continue
