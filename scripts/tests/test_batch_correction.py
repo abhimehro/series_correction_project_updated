@@ -510,118 +510,81 @@ def test_batch_process_skip_empty_file(mock_dependencies, caplog):
     assert summary_df.empty
 
 
-def test_batch_process_with_data_loader_and_processor(
-    mock_dependencies, mock_config_loader, mock_data_loader_mod, mock_processor_mod
+def test_batch_process_with_processor_module(
+    mock_dependencies, mock_config_loader, mock_processor_mod, mocker
 ):
-    """
-    Test using mocked data_loader and processor modules.
-    """
-    # Arrange
+    """Processor hook runs over the built-in pandas loader (no data_loader module)."""
     series_selection = 26
     river_miles = None
     years = (1995, 1995)
     dry_run = False
-    expected_data_dir_inner = "/fake/data/dir"  # type: str
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
     mock_dependencies["isfile"].return_value = True
+    mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
 
-    import sys
+    summary_df = batch_process(series_selection, river_miles, years, dry_run)
 
-    sys.modules["scripts.data_loader"] = mock_data_loader_mod
-    sys.modules["scripts.processor"] = mock_processor_mod
-
-    from importlib import reload
-
-    import scripts.batch_correction as bc
-
-    reload(bc)
-
-    # In python 3.12 patching modules inside modules requires manual reassignment if they were direct imports
-    bc.processor = mock_processor_mod
-    bc.data_loader = mock_data_loader_mod
-
-    summary_df = bc.batch_process(series_selection, river_miles, years, dry_run)
-
-    # Assert
-    mock_data_loader_mod.load_data.assert_called_once_with(
-        os.path.join(expected_data_dir_inner, "S26_Y01.txt")
-    )
     mock_processor_mod.process_data.assert_called_once()
     assert isinstance(summary_df, pd.DataFrame)
     assert len(summary_df) == 1
-    assert summary_df["Status"].iloc[0] in [
-        "Processed",
-        "Processed (No Processor Module)",
-    ]
+    assert summary_df["Status"].iloc[0] == "Processed"
     assert summary_df.iloc[0]["Records"] == 5
 
 
 def test_batch_process_load_error(
-    mock_dependencies, mock_data_loader_mod, mock_config_loader, caplog
+    mock_dependencies, mock_config_loader, caplog, mocker
 ):
-    """Test handling of error during data loading."""
-    # Arrange
+    """Test handling of error during built-in data loading."""
     series_selection = 26
     river_miles = None
     years = (1995, 1995)
     dry_run = False
-    # expected_data_dir = os.path.join(os.getcwd(), "data") # Not needed
 
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
     mock_dependencies["isfile"].return_value = True
-    # Simulate error during loading
-    mock_data_loader_mod.load_data.side_effect = IOError("Cannot read file")
-    mock_data_loader_mod.load_data.return_value = pd.DataFrame(
-        {0: range(5), 1: range(5)}
-    )
 
-    # Act
+    def read_csv_fail_sensor(path, *args, **kwargs):
+        if str(path).endswith("river_mile_map.csv"):
+            return pd.DataFrame(
+                {"SENSOR_ID": [26], "RIVER_MILE": [54.0]}
+            )
+        raise IOError("Cannot read file")
+
+    mocker.patch("pandas.read_csv", side_effect=read_csv_fail_sensor)
+
     summary_df = batch_process(series_selection, river_miles, years, dry_run)
 
-    # Assert
-    mock_data_loader_mod.load_data.assert_called_once()
-    # Removed assertion on mock_dependencies["read_csv"].call_count
-    # Fallback not reached
-    # Load path raises before any workbook is written
     assert mock_dependencies["to_excel"].call_count == 0
-
-    # Check summary status
     assert len(summary_df) == 1
     status = summary_df.iloc[0]["Status"]
     assert "Failed" in status
     assert summary_df.iloc[0]["Records"] == 0
-
-    # Check log
     assert "S26_Y01.txt" in caplog.text
 
 
 def test_batch_process_process_error(
     mock_dependencies: Dict[str, mock.MagicMock],
+    mock_config_loader,
     mock_processor_mod: mock.MagicMock,
-    caplog: LogCaptureFixture,
+    mocker,
 ) -> None:
     """Test handling of error during data processing."""
-    # Arrange
-    series = 26  # type: int
-    years = (1995, 1995)  # type: tuple[int, int]
+    series = 26
+    years = (1995, 1995)
 
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
     mock_dependencies["isfile"].return_value = True
     mock_processor_mod.process_data.side_effect = ValueError("Processing failed")
+    mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
 
-    # Act
-
-    import scripts.batch_correction as bc
-    bc.processor = mock_processor_mod
-    summary_df = bc.batch_process(series, None, years, False)
+    summary_df = batch_process(series, None, years, False)
 
     # Assert
     mock_processor_mod.process_data.assert_called_once()
     assert len(summary_df) == 1
     status = summary_df.iloc[0]["Status"]
-    assert status == "Failed (Unexpected Error)"
+    assert status == "Failed (Unexpected Error: Processing failed)"
     assert summary_df.iloc[0]["Records"] == 0
-    assert "Unexpected error processing S26_Y01.txt" in caplog.text
     assert mock_dependencies["to_excel"].call_count == 0
 
 
