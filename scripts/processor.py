@@ -161,6 +161,20 @@ def detect_jumps(
     return jumps
 
 
+def _calculate_z_score(current_value: float, median_i: float, scaled_mad_i: float, threshold: float) -> float:
+    """Helper function to calculate the modified Z-score for outlier detection."""
+    if scaled_mad_i < 1e-6:
+        if abs(current_value - median_i) > 1e-6:
+            if abs(current_value - median_i) > threshold * 1e-6:
+                return np.inf
+            else:
+                return 0.0
+        else:
+            return 0.0
+    else:
+        return abs(current_value - median_i) / scaled_mad_i
+
+
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -216,16 +230,7 @@ def detect_outliers(
         if pd.isna(median_i) or pd.isna(scaled_mad_i):
             continue
 
-        if scaled_mad_i < 1e-6:
-            if abs(current_value - median_i) > 1e-6:
-                if abs(current_value - median_i) > threshold * 1e-6:
-                    z_score = np.inf
-                else:
-                    z_score = 0.0
-            else:
-                z_score = 0.0
-        else:
-            z_score = abs(current_value - median_i) / scaled_mad_i
+        z_score = _calculate_z_score(current_value, median_i, scaled_mad_i, threshold)
 
         if z_score > threshold:
             outliers.append(i)
