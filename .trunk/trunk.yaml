@@ -17,14 +17,14 @@ lint:
     - shfmt@3.6.0
     - actionlint@1.7.12
     - bandit@1.9.4
-    - black@26.3.1
-    - checkov@3.2.527
+    - black@26.5.1
+    - checkov@3.2.529
     - git-diff-check
     - isort@8.0.1
     - markdownlint@0.48.0
     - osv-scanner@2.3.8
     - prettier@3.8.3
-    - ruff@0.15.12
+    - ruff@0.15.13
     - taplo@0.10.0
     - trivy@0.70.0
     - trufflehog@3.95.2
