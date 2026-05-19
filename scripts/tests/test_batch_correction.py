@@ -90,10 +90,7 @@ def patch_load_config(monkeypatch):
 @pytest.fixture
 def mock_dependencies(mocker):
     """Mocks optional dependencies and file system calls."""
-    # Mock optional imports (assume they are NOT found by default).
-    # NOTE: tests that also use the `mock_data_loader_mod` / `mock_processor_mod`
-    # fixtures will override these patches, so the None defaults below only
-    # apply to tests that don't request those fixtures.
+    # Mock optional imports (assume they are NOT found by default)
     mocker.patch("scripts.batch_correction.data_loader", None)
     mocker.patch("scripts.batch_correction.processor", None)
 
@@ -184,7 +181,7 @@ def mock_processor_mod(mocker):
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
     import importlib
 
-    from unittest.mock import MagicMock, patch
+    from mock import MagicMock, patch
 
     def isfile_side_effect(path):
         if os.path.basename(path) == "river_mile_map.csv":
@@ -301,7 +298,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
     import importlib
 
-    from unittest.mock import MagicMock, patch
+    from mock import MagicMock, patch
 
     def isfile_side_effect(path):
         fname = os.path.basename(path)
