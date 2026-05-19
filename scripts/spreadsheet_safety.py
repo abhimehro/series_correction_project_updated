@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pandas as pd
 
-FORMULA_PREFIXES = ("=", "+", "-", "@")
+# Leading whitespace may precede formula triggers in exported cells.
+FORMULA_PREFIX_RE = re.compile(r"^[\t\r\n ]*[=+\-@]")
 
 
 def escape_spreadsheet_formula(value: Any) -> Any:
-    if isinstance(value, str) and value.startswith(FORMULA_PREFIXES):
+    if isinstance(value, str) and FORMULA_PREFIX_RE.match(value):
         return "'" + value
     return value
 

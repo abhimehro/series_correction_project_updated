@@ -21,7 +21,7 @@ import re
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
-from scripts.spreadsheet_safety import sanitize_dataframe_for_spreadsheet as safe
+from scripts.spreadsheet_safety import write_excel_safely
 
 # Import optional dependencies from the helper module if possible
 try:
@@ -457,7 +457,7 @@ def batch_process(
                                         f"Series{series_id}_File{i:02d}_Processed.xlsx"
                                     )
                                     out_path = os.path.join(output_dir, out_name)
-                                    safe(processed_df).to_excel(out_path, index=False)
+                                    write_excel_safely(processed_df, out_path, index=False)
                                     log.info(f"Wrote output: {out_path}")
 
                                 summary_records.append(
@@ -529,7 +529,9 @@ def batch_process(
             if not dry_run:
                 out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
                 out_path = os.path.join(output_dir, out_name)
-                safe(processed_df).to_excel(out_path, index=False, header=False)
+                write_excel_safely(
+                    processed_df, out_path, index=False, header=False
+                )
                 log.info(f"Saved corrected data to {out_path}")
 
         except ProcessingError as exc:
