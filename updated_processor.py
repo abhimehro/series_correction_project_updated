@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from scripts.spreadsheet_safety import write_excel_safely
 
 # Paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -95,7 +96,7 @@ for i, file_path in enumerate(all_files):
         out_filename = f"Series{series}_Year{year}_Processed.xlsx"
         out_path = os.path.join(OUTPUT_DIR, out_filename)
 
-        df.to_excel(out_path, index=False)
+        write_excel_safely(df, out_path, index=False)
         print(f"  Saved: {out_filename}")
 
     except Exception as e:
