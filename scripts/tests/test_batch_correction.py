@@ -10,7 +10,6 @@ from typing import Dict
 from unittest import mock
 import pandas as pd  # type: ignore
 import pytest
-from _pytest.logging import LogCaptureFixture
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
