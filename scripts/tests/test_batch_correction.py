@@ -90,10 +90,7 @@ def patch_load_config(monkeypatch):
 @pytest.fixture
 def mock_dependencies(mocker):
     """Mocks optional dependencies and file system calls."""
-    # Mock optional imports (assume they are NOT found by default).
-    # NOTE: tests that also use the `mock_data_loader_mod` / `mock_processor_mod`
-    # fixtures will override these patches, so the None defaults below only
-    # apply to tests that don't request those fixtures.
+    # Mock optional imports (assume they are NOT found by default)
     mocker.patch("scripts.batch_correction.data_loader", None)
     mocker.patch("scripts.batch_correction.processor", None)
 
