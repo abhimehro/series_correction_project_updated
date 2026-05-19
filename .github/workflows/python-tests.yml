@@ -69,7 +69,7 @@ jobs:
       # Assumes source code is primarily in a 'scripts/' directory, adjust coverage target if needed.
       - name: Test with pytest
         run: |
-          pytest --cov=scripts tests/ --cov-report=xml # Generate XML coverage report
+          pytest --cov=scripts scripts/tests/ --cov-report=xml # Generate XML coverage report
 
       # Step 5: Upload coverage report to Codecov (Optional)
       # Requires setting up Codecov for your repository and potentially a CODECOV_TOKEN secret
