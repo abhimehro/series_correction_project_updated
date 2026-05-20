@@ -18,7 +18,7 @@ def test_escape_spreadsheet_formula_prefixes():
     assert escape_spreadsheet_formula("-cmd") == "'-cmd"
     assert escape_spreadsheet_formula("@cmd") == "'@cmd"
     assert escape_spreadsheet_formula("\t=SUM(1,2)") == "'\t=SUM(1,2)"
-    assert escape_spreadsheet_formula(" =HYPERLINK(\"x\")") == "' =HYPERLINK(\"x\")"
+    assert escape_spreadsheet_formula(' =HYPERLINK("x")') == '\' =HYPERLINK("x")'
     assert escape_spreadsheet_formula("safe") == "safe"
     assert escape_spreadsheet_formula(1) == 1
 
