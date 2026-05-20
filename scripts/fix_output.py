@@ -10,6 +10,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from scripts.processor import process_data  # noqa: E402
 from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
+
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 NEW_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "fixed_output")

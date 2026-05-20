@@ -10,7 +10,6 @@ from typing import Dict
 from unittest import mock
 import pandas as pd  # type: ignore
 import pytest
-from _pytest.logging import LogCaptureFixture
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
@@ -542,9 +541,7 @@ def test_batch_process_load_error(
 
     def read_csv_fail_sensor(path, *args, **kwargs):
         if str(path).endswith("river_mile_map.csv"):
-            return pd.DataFrame(
-                {"SENSOR_ID": [26], "RIVER_MILE": [54.0]}
-            )
+            return pd.DataFrame({"SENSOR_ID": [26], "RIVER_MILE": [54.0]})
         raise IOError("Cannot read file")
 
     mocker.patch("pandas.read_csv", side_effect=read_csv_fail_sensor)

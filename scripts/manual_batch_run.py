@@ -1,6 +1,7 @@
 import os
 import sys
 
+# flake8: noqa: E402
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from scripts.batch_correction import batch_process
 
