@@ -161,7 +161,9 @@ def detect_jumps(
     return jumps
 
 
-def _calculate_z_score(current_value: float, median_i: float, scaled_mad_i: float, threshold: float) -> float:
+def _calculate_z_score(
+    current_value: float, median_i: float, scaled_mad_i: float, threshold: float
+) -> float:
     """Helper function to calculate the modified Z-score for outlier detection."""
     if scaled_mad_i < 1e-6:
         if abs(current_value - median_i) > 1e-6:
@@ -214,9 +216,11 @@ def detect_outliers(
     # ⚡ Bolt: Replaced pd.Series instantiation inside lambda with pure NumPy operations.
     # Using np.nanmedian directly on the raw numpy array avoids significant Pandas object
     # creation overhead inside the rolling apply loop, vastly improving performance.
-    rolling_mad = values.rolling(window=window_size, center=True).apply(
-        lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True
-    ).to_numpy()
+    rolling_mad = (
+        values.rolling(window=window_size, center=True)
+        .apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True)
+        .to_numpy()
+    )
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
@@ -541,10 +545,12 @@ def correct_outliers(
                 )
                 continue
             surrounding_values = result_df[value_col].loc[valid_indices_in_window]
+            # ⚡ Bolt: removed redundant pd.Series(list(...)) wrapping which was creating
+            # unnecessary object instantiation overhead in this loop.
             if method == "median":
-                replacement_value = pd.Series(list(surrounding_values)).median()
+                replacement_value = surrounding_values.median()
             else:
-                replacement_value = pd.Series(list(surrounding_values)).mean()
+                replacement_value = surrounding_values.mean()
             if pd.notna(replacement_value):
                 original_value = result_df.loc[outlier_idx, value_col]
                 result_df.loc[outlier_idx, value_col] = replacement_value
