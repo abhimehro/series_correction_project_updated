@@ -475,7 +475,7 @@ def batch_process(
                                         "Records": len(processed_df),
                                     }
                                 )
-                        except Exception:
+                        except Exception as e:
                             log.exception(f"Failed to process {file_path}")
                             summary_records.append(
                                 {
@@ -537,11 +537,11 @@ def batch_process(
                 write_excel_safely(processed_df, out_path, index=False, header=False)
                 log.info(f"Saved corrected data to {out_path}")
 
-        except ProcessingError:
+        except ProcessingError as exc:
             log.exception(f"Processing error for {file_path}")
             status = "Failed (Processing Error)"
             processed_df = pd.DataFrame()
-        except Exception:  # pragma: no cover
+        except Exception as exc:  # pragma: no cover
             log.exception(f"Unexpected error for {file_path}")
             status = "Failed (Unexpected Error)"
             processed_df = pd.DataFrame()

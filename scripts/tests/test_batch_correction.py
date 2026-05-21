@@ -577,7 +577,7 @@ def test_batch_process_process_error(
     mock_processor_mod.process_data.assert_called_once()
     assert len(summary_df) == 1
     status = summary_df.iloc[0]["Status"]
-    assert status == "Failed (Unexpected Error: Processing failed)"
+    assert status == "Failed (Unexpected Error)"
     assert summary_df.iloc[0]["Records"] == 0
     assert mock_dependencies["to_excel"].call_count == 0
 

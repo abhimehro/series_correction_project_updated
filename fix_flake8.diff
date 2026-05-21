@@ -1,0 +1,25 @@
+--- scripts/batch_correction.py
++++ scripts/batch_correction.py
+@@ -475,7 +475,7 @@
+                                         "Records": len(processed_df),
+                                     }
+                                 )
+-                        except Exception as e:
++                        except Exception:
+                             log.exception(f"Failed to process {file_path}")
+                             summary_records.append(
+                                 {
+@@ -537,10 +537,10 @@
+                 write_excel_safely(processed_df, out_path, index=False, header=False)
+                 log.info(f"Saved corrected data to {out_path}")
+
+-        except ProcessingError as exc:
++        except ProcessingError:
+             log.exception(f"Processing error for {file_path}")
+             status = "Failed (Processing Error)"
+             processed_df = pd.DataFrame()
+-        except Exception as exc:  # pragma: no cover
++        except Exception:  # pragma: no cover
+             log.exception(f"Unexpected error for {file_path}")
+             status = "Failed (Unexpected Error)"
+             processed_df = pd.DataFrame()
