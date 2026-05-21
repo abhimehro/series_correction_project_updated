@@ -1,0 +1,38 @@
+--- scripts/batch_correction.py
++++ scripts/batch_correction.py
+@@ -522,17 +522,23 @@
+     if "series" not in config_data or processor is None:
+         return summary_records
+
++    series_config = config_data.get("series", {})
+     for series_id in series_to_process:
+-        str_series_id = str(series_id)
+-        if str_series_id not in config_data.get("series", {}):
+-            continue
++        records = _fallback_process_series(
++            str(series_id), series_config, config_data, output_dir, dry_run
++        )
++        summary_records.extend(records)
++    return summary_records
+
+-        series_cfg = config_data["series"][str_series_id]
+-        for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
+-            record = _process_single_fallback_file(
+-                file_path, series_id, i, config_data, output_dir, dry_run
+-            )
+-            if record:
+-                summary_records.append(record)
++
++def _fallback_process_series(str_series_id, series_config, config_data, output_dir, dry_run):
++    summary_records = []
++    if str_series_id not in series_config:
++        return summary_records
++
++    series_cfg = series_config[str_series_id]
++    for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
++        record = _process_single_fallback_file(
++            file_path, str_series_id, i, config_data, output_dir, dry_run
++        )
++        if record:
++            summary_records.append(record)
+     return summary_records
