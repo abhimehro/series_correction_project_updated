@@ -1,0 +1,101 @@
+--- scripts/batch_correction.py
++++ scripts/batch_correction.py
+@@ -512,54 +512,61 @@
+
+
+ def _fallback_process(series_to_process, config_data, output_dir, dry_run):
+     """Perform fallback processing when no standard files are matched."""
+     summary_records = []
+     if "series" not in config_data or processor is None:
+         return summary_records
+
+     for series_id in series_to_process:
+         str_series_id = str(series_id)
+         if str_series_id not in config_data.get("series", {}):
+             continue
+
+         series_cfg = config_data["series"][str_series_id]
+         for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
+-            log.info(f"Fallback processing file: {file_path} (series {series_id})")
+-            try:
+-                df = _load_raw_data(file_path)
+-                if not df.empty:
+-                    processor_config = {
+-                        **config_data.get("defaults", {}),
+-                        **config_data.get("processor_config", {}),
+-                    }
+-                    processed_df = processor.process_data(df, processor_config)
+-
+-                    if not dry_run:
+-                        out_name = f"Series{series_id}_File{i:02d}_Processed.xlsx"
+-                        out_path = os.path.join(output_dir, out_name)
+-                        write_excel_safely(processed_df, out_path, index=False)
+-                        log.info(f"Wrote output: {out_path}")
+-
+-                    summary_records.append(
+-                        {
+-                            "Series": series_id,
+-                            "Year": None,
+-                            "Y-Index": i,
+-                            "Filename": os.path.basename(file_path),
+-                            "Status": "Fallback Processed",
+-                            "Records": len(processed_df),
+-                        }
+-                    )
+-            except Exception:
+-                log.exception(f"Failed to process {file_path}")
+-                summary_records.append(
+-                    {
+-                        "Series": series_id,
+-                        "Year": None,
+-                        "Y-Index": i,
+-                        "Filename": os.path.basename(file_path),
+-                        "Status": "Failed (Unexpected Error)",
+-                        "Records": 0,
+-                    }
+-                )
++            record = _process_single_fallback_file(
++                file_path, series_id, i, config_data, output_dir, dry_run
++            )
++            if record:
++                summary_records.append(record)
+     return summary_records
++
++def _process_single_fallback_file(file_path, series_id, i, config_data, output_dir, dry_run):
++    """Process a single file during fallback processing."""
++    log.info(f"Fallback processing file: {file_path} (series {series_id})")
++    try:
++        df = _load_raw_data(file_path)
++        if df.empty:
++            return None
++
++        processor_config = {
++            **config_data.get("defaults", {}),
++            **config_data.get("processor_config", {}),
++        }
++        processed_df = processor.process_data(df, processor_config)
++
++        if not dry_run:
++            out_name = f"Series{series_id}_File{i:02d}_Processed.xlsx"
++            out_path = os.path.join(output_dir, out_name)
++            write_excel_safely(processed_df, out_path, index=False)
++            log.info(f"Wrote output: {out_path}")
++
++        return {
++            "Series": series_id,
++            "Year": None,
++            "Y-Index": i,
++            "Filename": os.path.basename(file_path),
++            "Status": "Fallback Processed",
++            "Records": len(processed_df),
++        }
++    except Exception:
++        log.exception(f"Failed to process {file_path}")
++        return {
++            "Series": series_id,
++            "Year": None,
++            "Y-Index": i,
++            "Filename": os.path.basename(file_path),
++            "Status": "Failed (Unexpected Error)",
++            "Records": 0,
++        }

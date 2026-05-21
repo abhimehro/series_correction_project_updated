@@ -451,6 +451,21 @@ def batch_process(
     # ------------------------------------------------------------------ #
     # Main loop
     # ------------------------------------------------------------------ #
+    summary_records = _process_matched_files(
+        files_to_process, processor_config, output_dir, dry_run
+    )
+
+    # Create a summary DataFrame and return it
+    summary_df = pd.DataFrame(summary_records)
+    log.info(
+        f"--- Batch processing COMPLETE --- Processed {len(summary_records)} files"
+    )
+    return summary_df
+
+
+def _process_matched_files(files_to_process, processor_config, output_dir, dry_run):
+    """Process the files found for standard processing."""
+    summary_records = []
     for series, year, yi, file_path in files_to_process:
         log.debug(f"Processing series: {series}, year: {year}, file: {file_path}")
         fname = os.path.basename(file_path)
@@ -466,7 +481,6 @@ def batch_process(
             if raw_df.empty:
                 raise ProcessingError("Empty or unreadable data")
 
-            processed_df = None
             if processor:
                 processed_df = processor.process_data(raw_df.copy(), processor_config)
                 status = "Processed"
@@ -474,9 +488,6 @@ def batch_process(
                 processed_df = raw_df.copy()
                 status = "Processed (No Processor Module)"
 
-            # ------------------------------------------------------------------ #
-            # Persist
-            # ------------------------------------------------------------------ #
             if not dry_run:
                 out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
                 out_path = os.path.join(output_dir, out_name)
@@ -502,13 +513,7 @@ def batch_process(
                 "Records": len(processed_df) if not processed_df.empty else 0,
             }
         )
-
-    # Create a summary DataFrame and return it
-    summary_df = pd.DataFrame(summary_records)
-    log.info(
-        f"--- Batch processing COMPLETE --- Processed {len(summary_records)} files"
-    )
-    return summary_df
+    return summary_records
 
 
 def _fallback_process(series_to_process, config_data, output_dir, dry_run):
@@ -524,44 +529,51 @@ def _fallback_process(series_to_process, config_data, output_dir, dry_run):
 
         series_cfg = config_data["series"][str_series_id]
         for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
-            log.info(f"Fallback processing file: {file_path} (series {series_id})")
-            try:
-                df = _load_raw_data(file_path)
-                if not df.empty:
-                    processor_config = {
-                        **config_data.get("defaults", {}),
-                        **config_data.get("processor_config", {}),
-                    }
-                    processed_df = processor.process_data(df, processor_config)
-
-                    if not dry_run:
-                        out_name = f"Series{series_id}_File{i:02d}_Processed.xlsx"
-                        out_path = os.path.join(output_dir, out_name)
-                        write_excel_safely(processed_df, out_path, index=False)
-                        log.info(f"Wrote output: {out_path}")
-
-                    summary_records.append(
-                        {
-                            "Series": series_id,
-                            "Year": None,
-                            "Y-Index": i,
-                            "Filename": os.path.basename(file_path),
-                            "Status": "Fallback Processed",
-                            "Records": len(processed_df),
-                        }
-                    )
-            except Exception:
-                log.exception(f"Failed to process {file_path}")
-                summary_records.append(
-                    {
-                        "Series": series_id,
-                        "Year": None,
-                        "Y-Index": i,
-                        "Filename": os.path.basename(file_path),
-                        "Status": "Failed (Unexpected Error)",
-                        "Records": 0,
-                    }
-                )
+            record = _process_single_fallback_file(
+                file_path, series_id, i, config_data, output_dir, dry_run
+            )
+            if record:
+                summary_records.append(record)
     return summary_records
+
+
+def _process_single_fallback_file(file_path, series_id, i, config_data, output_dir, dry_run):
+    """Process a single file during fallback processing."""
+    log.info(f"Fallback processing file: {file_path} (series {series_id})")
+    try:
+        df = _load_raw_data(file_path)
+        if df.empty:
+            return None
+
+        processor_config = {
+            **config_data.get("defaults", {}),
+            **config_data.get("processor_config", {}),
+        }
+        processed_df = processor.process_data(df, processor_config)
+
+        if not dry_run:
+            out_name = f"Series{series_id}_File{i:02d}_Processed.xlsx"
+            out_path = os.path.join(output_dir, out_name)
+            write_excel_safely(processed_df, out_path, index=False)
+            log.info(f"Wrote output: {out_path}")
+
+        return {
+            "Series": series_id,
+            "Year": None,
+            "Y-Index": i,
+            "Filename": os.path.basename(file_path),
+            "Status": "Fallback Processed",
+            "Records": len(processed_df),
+        }
+    except Exception:
+        log.exception(f"Failed to process {file_path}")
+        return {
+            "Series": series_id,
+            "Year": None,
+            "Y-Index": i,
+            "Filename": os.path.basename(file_path),
+            "Status": "Failed (Unexpected Error)",
+            "Records": 0,
+        }
 
 # ----------------------------------------------------------------------

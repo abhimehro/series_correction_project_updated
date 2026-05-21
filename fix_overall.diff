@@ -1,0 +1,121 @@
+--- scripts/batch_correction.py
++++ scripts/batch_correction.py
+@@ -448,58 +448,8 @@
+     # ------------------------------------------------------------------ #
+     # Main loop
+     # ------------------------------------------------------------------ #
+-    for series, year, yi, file_path in files_to_process:
+-        log.debug(f"Processing series: {series}, year: {year}, file: {file_path}")
+-        fname = os.path.basename(file_path)
+-        log.info(f"Processing {fname} (Series {series}, Year {year}, Y{yi:02d})")
+-
+-        # Skip zero-byte files early
+-        if os.path.getsize(file_path) == 0:
+-            log.info(f"Skipping empty file: {fname}")
+-            continue
+-
+-        try:
+-            raw_df = _load_raw_data(file_path)
+-            if raw_df.empty:
+-                raise ProcessingError("Empty or unreadable data")
+-
+-            processed_df = None
+-            if processor:
+-                processed_df = processor.process_data(raw_df.copy(), processor_config)
+-                status = "Processed"
+-            else:
+-                processed_df = raw_df.copy()
+-                status = "Processed (No Processor Module)"
+-
+-            # ------------------------------------------------------------------ #
+-            # Persist
+-            # ------------------------------------------------------------------ #
+-            if not dry_run:
+-                out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
+-                out_path = os.path.join(output_dir, out_name)
+-                write_excel_safely(processed_df, out_path, index=False, header=False)
+-                log.info(f"Saved corrected data to {out_path}")
+-
+-        except ProcessingError:
+-            log.exception(f"Processing error for {file_path}")
+-            status = "Failed (Processing Error)"
+-            processed_df = pd.DataFrame()
+-        except Exception:  # pragma: no cover
+-            log.exception(f"Unexpected error for {file_path}")
+-            status = "Failed (Unexpected Error)"
+-            processed_df = pd.DataFrame()
+-
+-        summary_records.append(
+-            {
+-                "Series": series,
+-                "Year": year,
+-                "Y-Index": yi,
+-                "Filename": fname,
+-                "Status": status,
+-                "Records": len(processed_df) if not processed_df.empty else 0,
+-            }
+-        )
++    summary_records = _process_matched_files(
++        files_to_process, processor_config, output_dir, dry_run
++    )
+
+     # Create a summary DataFrame and return it
+     summary_df = pd.DataFrame(summary_records)
+@@ -512,6 +462,60 @@
+
+
++def _process_matched_files(files_to_process, processor_config, output_dir, dry_run):
++    """Process the files found for standard processing."""
++    summary_records = []
++    for series, year, yi, file_path in files_to_process:
++        log.debug(f"Processing series: {series}, year: {year}, file: {file_path}")
++        fname = os.path.basename(file_path)
++        log.info(f"Processing {fname} (Series {series}, Year {year}, Y{yi:02d})")
++
++        # Skip zero-byte files early
++        if os.path.getsize(file_path) == 0:
++            log.info(f"Skipping empty file: {fname}")
++            continue
++
++        try:
++            raw_df = _load_raw_data(file_path)
++            if raw_df.empty:
++                raise ProcessingError("Empty or unreadable data")
++
++            if processor:
++                processed_df = processor.process_data(raw_df.copy(), processor_config)
++                status = "Processed"
++            else:
++                processed_df = raw_df.copy()
++                status = "Processed (No Processor Module)"
++
++            if not dry_run:
++                out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
++                out_path = os.path.join(output_dir, out_name)
++                write_excel_safely(processed_df, out_path, index=False, header=False)
++                log.info(f"Saved corrected data to {out_path}")
++
++        except ProcessingError:
++            log.exception(f"Processing error for {file_path}")
++            status = "Failed (Processing Error)"
++            processed_df = pd.DataFrame()
++        except Exception:  # pragma: no cover
++            log.exception(f"Unexpected error for {file_path}")
++            status = "Failed (Unexpected Error)"
++            processed_df = pd.DataFrame()
++
++        summary_records.append(
++            {
++                "Series": series,
++                "Year": year,
++                "Y-Index": yi,
++                "Filename": fname,
++                "Status": status,
++                "Records": len(processed_df) if not processed_df.empty else 0,
++            }
++        )
++    return summary_records
++
++
+ def _fallback_process(series_to_process, config_data, output_dir, dry_run):
+     """Perform fallback processing when no standard files are matched."""
