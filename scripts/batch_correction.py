@@ -148,12 +148,13 @@ def _get_data_directory(
             os.makedirs(default_data_dir, exist_ok=True)
             log.info(f"Created data directory: {default_data_dir}")
         except OSError as e:
+            log.exception(f"Cannot create default data directory {default_data_dir!r}: {e}")
             raise FileNotFoundError(
-                f"Cannot create default data directory {default_data_dir!r}: {e}"
+                "Cannot create default data directory"
             )
     elif not os.path.isdir(default_data_dir):
         raise FileNotFoundError(
-            f"Default data directory not found: {default_data_dir!r}"
+            "Default data directory not found"
         )
 
     return default_data_dir
@@ -215,7 +216,8 @@ def _determine_series_to_process(
         try:
             series_list = [int(s) for s in raw]
         except ValueError as exc:
-            raise ValueError(f"Invalid series selection {raw!r}") from exc
+            log.exception(f"Invalid series selection {raw!r}: {exc}")
+            raise ValueError("Invalid series selection") from exc
 
         if river_miles and rm_to_sensors_map:
             allowed = set()
@@ -340,9 +342,9 @@ def _load_raw_data(file_path):
         log.debug(f"File {file_path} empty.")
         return pd.DataFrame()
     except Exception as exc:
-        log.error(f"Failed to load data from {file_path}: {exc}")
+        log.exception(f"Failed to load data from {file_path}: {exc}")
         raise ProcessingError(
-            f"Failed to load data from {os.path.basename(file_path)}"
+            "Failed to load data from file"
         ) from exc
 
 
@@ -388,7 +390,8 @@ def batch_process(
                 f"Config file {config_path} not found – continuing with empty config."
             )
         except Exception as exc:  # pragma: no cover
-            raise ProcessingError(f"Failed to load configuration: {exc}") from exc
+            log.exception(f"Failed to load configuration: {exc}")
+            raise ProcessingError("Failed to load configuration") from exc
 
     # Optional river-mile lookup CSV – silently ignored when missing
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
@@ -412,7 +415,8 @@ def batch_process(
             os.makedirs(output_dir, exist_ok=True)
             log.info(f"Created output directory {output_dir}")
         except OSError as exc:
-            raise ProcessingError(f"Unable to create output directory: {exc}") from exc
+            log.exception(f"Unable to create output directory: {exc}")
+            raise ProcessingError("Unable to create output directory") from exc
 
     # ------------------------------------------------------------------ #
     # Determine workloads
