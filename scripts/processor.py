@@ -442,6 +442,10 @@ def correct_jumps(
 
     sorted_jump_indices = sorted(jump_indices)
 
+    # ⚡ Bolt: Extract to raw NumPy array to avoid Pandas object overhead in the loop
+    # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
+    values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+
     for jump_idx in sorted_jump_indices:
         if jump_idx < window_size or jump_idx >= n - window_size:
             log.warning(
@@ -451,11 +455,13 @@ def correct_jumps(
             )
             continue
 
-        window_before = result_df[value_col].iloc[jump_idx - window_size : jump_idx]
-        window_after = result_df[value_col].iloc[jump_idx : jump_idx + window_size]
+        # ⚡ Bolt: Use native array slicing instead of Pandas .iloc
+        window_before = values_np[jump_idx - window_size : jump_idx]
+        window_after = values_np[jump_idx : jump_idx + window_size]
 
-        median_before = window_before.median()
-        median_after = window_after.median()
+        # ⚡ Bolt: Use numpy.nanmedian instead of pandas .median()
+        median_before = np.nanmedian(window_before)
+        median_after = np.nanmedian(window_after)
 
         if pd.isna(median_before) or pd.isna(median_after):
             log.warning(
@@ -473,10 +479,14 @@ def correct_jumps(
             local_offset,
         )
 
-        result_df.loc[jump_idx:, value_col] += local_offset
+        # ⚡ Bolt: Apply offset directly to numpy array
+        values_np[jump_idx:] += local_offset
         log.info(
             "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
         )
+
+    # ⚡ Bolt: Assign the modified numpy array back to the DataFrame
+    result_df[value_col] = values_np
 
     log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
