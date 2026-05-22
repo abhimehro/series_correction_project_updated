@@ -676,6 +676,15 @@ def process_data(
     log.debug("Sorting data by time column: '%s'", time_col)
     processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
 
+    processed_data = _process_gaps(processed_data, time_col, value_col, gap_threshold_factor, gap_method)
+    processed_data = _process_outliers(processed_data, value_col, window_size, threshold, outlier_method)
+    processed_data = _process_jumps(processed_data, value_col, window_size, threshold)
+
+    log.info("Data processing complete for value column '%s'.", value_col)
+    return processed_data
+
+
+def _process_gaps(processed_data, time_col, value_col, gap_threshold_factor, gap_method):
     log.info("--- Step 1: Detecting and Correcting Gaps ---")
     gap_indices = detect_gaps(
         processed_data, time_col=time_col, threshold_factor=gap_threshold_factor
@@ -691,7 +700,10 @@ def process_data(
         processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
     else:
         log.info("No gaps detected or corrected.")
+    return processed_data
 
+
+def _process_outliers(processed_data, value_col, window_size, threshold, outlier_method):
     log.info("--- Step 2: Detecting and Correcting Outliers ---")
     outlier_indices = detect_outliers(
         processed_data,
@@ -709,7 +721,10 @@ def process_data(
         )
     else:
         log.info("No outliers detected or corrected.")
+    return processed_data
 
+
+def _process_jumps(processed_data, value_col, window_size, threshold):
     log.info("--- Step 3: Detecting and Correcting Jumps ---")
     jump_indices = detect_jumps(
         processed_data,
@@ -726,6 +741,4 @@ def process_data(
         )
     else:
         log.info("No jumps detected or corrected.")
-
-    log.info("Data processing complete for value column '%s'.", value_col)
     return processed_data
