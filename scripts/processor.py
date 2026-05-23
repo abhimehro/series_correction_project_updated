@@ -626,7 +626,7 @@ def process_data(
             list(processed_data.columns),
         )
         raise ValueError(
-            f"Time column '{time_col}' not found in data columns: {list(processed_data.columns)}"
+            "Time column not found in data columns"
         )
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
@@ -639,8 +639,9 @@ def process_data(
                 "Converted time column '%s' to numeric (Unix timestamp).", time_col
             )
         except Exception as exc:
+            log.exception(f"Time column '{time_col}' is not numeric and could not be converted: {exc}")
             raise ValueError(
-                f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
+                "Time column is not numeric and could not be converted"
             ) from exc
     value_col = merged_config["value_col"]
     if value_col is None:
@@ -652,17 +653,19 @@ def process_data(
                 time_col,
             )
             raise ValueError(
-                f"No numeric value columns found in the data (excluding time column '{time_col}')."
+                "No numeric value columns found in the data"
             )
         value_col = potential_value_cols[0]
         merged_config["value_col"] = value_col
         log.info("Auto-detected value column: '%s'", value_col)
     elif value_col not in processed_data.columns:
+        log.warning(f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}")
         raise ValueError(
-            f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
+            "Specified value column not found in data columns"
         )
     elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
-        raise ValueError(f"Specified value column '{value_col}' is not numeric.")
+        log.warning(f"Specified value column '{value_col}' is not numeric.")
+        raise ValueError("Specified value column is not numeric.")
 
     window_size = merged_config["window_size"]
     threshold = merged_config["threshold"]
@@ -673,6 +676,15 @@ def process_data(
     log.debug("Sorting data by time column: '%s'", time_col)
     processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
 
+    processed_data = _process_gaps(processed_data, time_col, value_col, gap_threshold_factor, gap_method)
+    processed_data = _process_outliers(processed_data, value_col, window_size, threshold, outlier_method)
+    processed_data = _process_jumps(processed_data, value_col, window_size, threshold)
+
+    log.info("Data processing complete for value column '%s'.", value_col)
+    return processed_data
+
+
+def _process_gaps(processed_data, time_col, value_col, gap_threshold_factor, gap_method):
     log.info("--- Step 1: Detecting and Correcting Gaps ---")
     gap_indices = detect_gaps(
         processed_data, time_col=time_col, threshold_factor=gap_threshold_factor
@@ -688,7 +700,10 @@ def process_data(
         processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
     else:
         log.info("No gaps detected or corrected.")
+    return processed_data
 
+
+def _process_outliers(processed_data, value_col, window_size, threshold, outlier_method):
     log.info("--- Step 2: Detecting and Correcting Outliers ---")
     outlier_indices = detect_outliers(
         processed_data,
@@ -706,7 +721,10 @@ def process_data(
         )
     else:
         log.info("No outliers detected or corrected.")
+    return processed_data
 
+
+def _process_jumps(processed_data, value_col, window_size, threshold):
     log.info("--- Step 3: Detecting and Correcting Jumps ---")
     jump_indices = detect_jumps(
         processed_data,
@@ -723,6 +741,4 @@ def process_data(
         )
     else:
         log.info("No jumps detected or corrected.")
-
-    log.info("Data processing complete for value column '%s'.", value_col)
     return processed_data
