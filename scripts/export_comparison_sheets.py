@@ -2,7 +2,7 @@ import os
 from glob import glob
 
 import numpy as np
-from pandas import concat, isna, merge, read_csv, read_excel
+from pandas import concat, merge, read_csv, read_excel
 
 from scripts.spreadsheet_safety import write_excel_safely
 
@@ -40,28 +40,33 @@ def find_matching_raw_file(processed_filename):
 
 def detect_outliers_series(values, window_size=5, threshold=3.0):
     # Simple rolling MAD outlier detection for a pandas Series
-    rolling_median = values.rolling(window=window_size, center=True).median()
+    rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
     # Optimization: Use pure NumPy instead of creating pd.Series inside the tight rolling loop
     # This significantly reduces object creation overhead.
-    rolling_mad = values.rolling(window=window_size, center=True).apply(
-        lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True
+    rolling_mad = (
+        values.rolling(window=window_size, center=True)
+        .apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True)
+        .to_numpy()
     )
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
-    outliers = []
-    for i in range(len(values)):
-        median_i = rolling_median.iloc[i]
-        scaled_mad_i = rolling_scaled_mad.iloc[i]
-        current_value = values.iloc[i]
-        if isna(median_i) or isna(scaled_mad_i):
-            continue
-        if scaled_mad_i < 1e-6:
-            z_score = float(abs(current_value - median_i) > 1e-6) * float("inf")
-        else:
-            z_score = abs(current_value - median_i) / scaled_mad_i
-        if z_score > threshold:
-            outliers.append(i)
-    return outliers
+    values_np = values.to_numpy()
+
+    # Calculate absolute differences
+    abs_diff = np.abs(values_np - rolling_median)
+
+    # ⚡ Bolt: Vectorize z-score calculation and outlier detection loop using NumPy arrays
+    with np.errstate(divide="ignore", invalid="ignore"):
+        z_scores = np.where(
+            rolling_scaled_mad < 1e-6,
+            np.where(abs_diff > 1e-6, np.inf, 0.0),
+            abs_diff / rolling_scaled_mad,
+        )
+
+    valid_mask = ~(np.isnan(rolling_median) | np.isnan(rolling_scaled_mad))
+    outlier_mask = valid_mask & (z_scores > threshold)
+
+    return np.where(outlier_mask)[0].tolist()
 
 
 def export_comparisons():
