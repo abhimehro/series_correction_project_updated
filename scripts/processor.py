@@ -539,6 +539,8 @@ def correct_outliers(
         log.info("Outliers replaced with NaN.")
 
     elif method in ["median", "mean"]:
+        # ⚡ Bolt: Extracted to raw NumPy array to avoid Pandas object overhead in the loop
+        values_np = result_df[value_col].astype(float).to_numpy(copy=True)
         for outlier_idx in outlier_indices:
             start_idx = max(0, outlier_idx - window_size // 2)
             end_idx = min(n, outlier_idx + window_size // 2 + 1)
@@ -554,16 +556,18 @@ def correct_outliers(
                     outlier_idx,
                 )
                 continue
-            surrounding_values = result_df[value_col].loc[valid_indices_in_window]
-            # ⚡ Bolt: removed redundant pd.Series(list(...)) wrapping which was creating
-            # unnecessary object instantiation overhead in this loop.
+
+            # ⚡ Bolt: Use native array indexing
+            surrounding_values = values_np[valid_indices_in_window]
+
             if method == "median":
-                replacement_value = surrounding_values.median()
+                replacement_value = np.nanmedian(surrounding_values)
             else:
-                replacement_value = surrounding_values.mean()
+                replacement_value = np.nanmean(surrounding_values)
+
             if pd.notna(replacement_value):
-                original_value = result_df.loc[outlier_idx, value_col]
-                result_df.loc[outlier_idx, value_col] = replacement_value
+                original_value = values_np[outlier_idx]
+                values_np[outlier_idx] = replacement_value
                 log.debug(
                     "Replaced outlier at index %d (Original: %s) with %s value: %s",
                     outlier_idx,
@@ -577,6 +581,9 @@ def correct_outliers(
                     method,
                     outlier_idx,
                 )
+
+        # ⚡ Bolt: Assign modified array back to DataFrame
+        result_df[value_col] = values_np
     else:
         log.error(
             "Invalid outlier correction method specified: '%s'. No correction applied.",
@@ -625,9 +632,7 @@ def process_data(
             time_col,
             list(processed_data.columns),
         )
-        raise ValueError(
-            "Time column not found in data columns"
-        )
+        raise ValueError("Time column not found in data columns")
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
         try:
@@ -639,7 +644,9 @@ def process_data(
                 "Converted time column '%s' to numeric (Unix timestamp).", time_col
             )
         except Exception as exc:
-            log.exception(f"Time column '{time_col}' is not numeric and could not be converted: {exc}")
+            log.exception(
+                f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
+            )
             raise ValueError(
                 "Time column is not numeric and could not be converted"
             ) from exc
@@ -652,17 +659,15 @@ def process_data(
                 "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
                 time_col,
             )
-            raise ValueError(
-                "No numeric value columns found in the data"
-            )
+            raise ValueError("No numeric value columns found in the data")
         value_col = potential_value_cols[0]
         merged_config["value_col"] = value_col
         log.info("Auto-detected value column: '%s'", value_col)
     elif value_col not in processed_data.columns:
-        log.warning(f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}")
-        raise ValueError(
-            "Specified value column not found in data columns"
+        log.warning(
+            f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
         )
+        raise ValueError("Specified value column not found in data columns")
     elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
         log.warning(f"Specified value column '{value_col}' is not numeric.")
         raise ValueError("Specified value column is not numeric.")
@@ -676,15 +681,21 @@ def process_data(
     log.debug("Sorting data by time column: '%s'", time_col)
     processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
 
-    processed_data = _process_gaps(processed_data, time_col, value_col, gap_threshold_factor, gap_method)
-    processed_data = _process_outliers(processed_data, value_col, window_size, threshold, outlier_method)
+    processed_data = _process_gaps(
+        processed_data, time_col, value_col, gap_threshold_factor, gap_method
+    )
+    processed_data = _process_outliers(
+        processed_data, value_col, window_size, threshold, outlier_method
+    )
     processed_data = _process_jumps(processed_data, value_col, window_size, threshold)
 
     log.info("Data processing complete for value column '%s'.", value_col)
     return processed_data
 
 
-def _process_gaps(processed_data, time_col, value_col, gap_threshold_factor, gap_method):
+def _process_gaps(
+    processed_data, time_col, value_col, gap_threshold_factor, gap_method
+):
     log.info("--- Step 1: Detecting and Correcting Gaps ---")
     gap_indices = detect_gaps(
         processed_data, time_col=time_col, threshold_factor=gap_threshold_factor
@@ -703,7 +714,9 @@ def _process_gaps(processed_data, time_col, value_col, gap_threshold_factor, gap
     return processed_data
 
 
-def _process_outliers(processed_data, value_col, window_size, threshold, outlier_method):
+def _process_outliers(
+    processed_data, value_col, window_size, threshold, outlier_method
+):
     log.info("--- Step 2: Detecting and Correcting Outliers ---")
     outlier_indices = detect_outliers(
         processed_data,
