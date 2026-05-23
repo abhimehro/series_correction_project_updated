@@ -626,6 +626,34 @@ def process_data(
     processed_data = data.copy()
 
     time_col = merged_config["time_col"]
+    processed_data = _prepare_time_column(processed_data, time_col)
+
+    value_col = merged_config["value_col"]
+    value_col = _prepare_value_column(processed_data, time_col, value_col)
+    merged_config["value_col"] = value_col
+
+    window_size = merged_config["window_size"]
+    threshold = merged_config["threshold"]
+    gap_threshold_factor = merged_config["gap_threshold_factor"]
+    gap_method = merged_config["gap_method"]
+    outlier_method = merged_config["outlier_method"]
+
+    log.debug("Sorting data by time column: '%s'", time_col)
+    processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
+
+    processed_data = _process_gaps(
+        processed_data, time_col, value_col, gap_threshold_factor, gap_method
+    )
+    processed_data = _process_outliers(
+        processed_data, value_col, window_size, threshold, outlier_method
+    )
+    processed_data = _process_jumps(processed_data, value_col, window_size, threshold)
+
+    log.info("Data processing complete for value column '%s'.", value_col)
+    return processed_data
+
+
+def _prepare_time_column(processed_data: pd.DataFrame, time_col: str) -> pd.DataFrame:
     if time_col not in processed_data.columns:
         log.warning(
             "Time column '%s' not found in data columns: %s",
@@ -650,7 +678,12 @@ def process_data(
             raise ValueError(
                 "Time column is not numeric and could not be converted"
             ) from exc
-    value_col = merged_config["value_col"]
+    return processed_data
+
+
+def _prepare_value_column(
+    processed_data: pd.DataFrame, time_col: str, value_col: str | None
+) -> str:
     if value_col is None:
         numeric_cols = processed_data.select_dtypes(include=np.number).columns
         potential_value_cols = [col for col in numeric_cols if col != time_col]
@@ -661,7 +694,6 @@ def process_data(
             )
             raise ValueError("No numeric value columns found in the data")
         value_col = potential_value_cols[0]
-        merged_config["value_col"] = value_col
         log.info("Auto-detected value column: '%s'", value_col)
     elif value_col not in processed_data.columns:
         log.warning(
@@ -671,26 +703,7 @@ def process_data(
     elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
         log.warning(f"Specified value column '{value_col}' is not numeric.")
         raise ValueError("Specified value column is not numeric.")
-
-    window_size = merged_config["window_size"]
-    threshold = merged_config["threshold"]
-    gap_threshold_factor = merged_config["gap_threshold_factor"]
-    gap_method = merged_config["gap_method"]
-    outlier_method = merged_config["outlier_method"]
-
-    log.debug("Sorting data by time column: '%s'", time_col)
-    processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
-
-    processed_data = _process_gaps(
-        processed_data, time_col, value_col, gap_threshold_factor, gap_method
-    )
-    processed_data = _process_outliers(
-        processed_data, value_col, window_size, threshold, outlier_method
-    )
-    processed_data = _process_jumps(processed_data, value_col, window_size, threshold)
-
-    log.info("Data processing complete for value column '%s'.", value_col)
-    return processed_data
+    return value_col
 
 
 def _process_gaps(
