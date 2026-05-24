@@ -29,9 +29,10 @@ def test_sanitize_dataframe_returns_original_without_object_columns():
     assert sanitize_dataframe_for_spreadsheet(dataframe) is dataframe
 
 
-def test_batch_process_escapes_formula_like_raw_cells(tmp_path):
+def test_batch_process_escapes_formula_like_raw_cells(tmp_path, monkeypatch):
     batch_correction.load_config_func = loaders.load_config
 
+    monkeypatch.setattr("os.getcwd", lambda: str(tmp_path))
     data_dir = tmp_path / "data"
     output_dir = tmp_path / "out"
     data_dir.mkdir()
