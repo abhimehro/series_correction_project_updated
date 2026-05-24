@@ -135,9 +135,7 @@ def export_comparisons():
             vcol = value_cols[1] if len(value_cols) > 1 else value_cols[0]
             outlier_indices = detect_outliers_series(raw_df[vcol])
             merged["Outlier_Flag"] = False
-            for idx in outlier_indices:
-                if idx < len(merged):
-                    merged.at[idx, "Outlier_Flag"] = True
+            merged.loc[merged.index.isin(outlier_indices), "Outlier_Flag"] = True
         # Export
         out_path = os.path.join(
             COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx")

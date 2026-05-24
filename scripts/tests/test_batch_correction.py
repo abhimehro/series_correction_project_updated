@@ -458,9 +458,7 @@ def test_batch_process_data_dir_not_found(mock_dependencies):
 
     # Act & Assert
     expected_data_dir_inner = os.path.join(os.getcwd(), "data")  # Default dir check
-    with pytest.raises(
-        FileNotFoundError, match=r"Default data directory not found"
-    ):
+    with pytest.raises(FileNotFoundError, match=r"Default data directory not found"):
         batch_process(series_selection, river_miles, years, dry_run)
     # Ensure isdir was called for the default path
     # Accept both possible calls for isdir: data_dir and data_dir/output
