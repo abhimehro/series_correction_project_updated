@@ -493,7 +493,7 @@ def _process_fallback_mode(
                                 "Year": None,
                                 "Y-Index": i,
                                 "Filename": os.path.basename(file_path),
-                                "Status": f"Failed ({e})",
+                                "Status": "Failed (Processing Error)",
                                 "Records": 0,
                             }
                         )
@@ -540,11 +540,11 @@ def _process_main_mode(
                 write_excel_safely(processed_df, out_path, index=False, header=False)
                 log.info(f"Saved corrected data to {out_path}")
 
-        except ProcessingError as exc:
-            status = f"Failed ({exc})"
+        except ProcessingError:
+            status = "Failed (Processing Error)"
             processed_df = pd.DataFrame()
-        except Exception as exc:  # pragma: no cover
-            status = f"Failed (Unexpected Error: {exc})"
+        except Exception:  # pragma: no cover
+            status = "Failed (Unexpected Error)"
             processed_df = pd.DataFrame()
 
         summary_records.append(
