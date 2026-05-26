@@ -213,7 +213,6 @@ def detect_outliers(
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
     # Calculate rolling MAD
-    # ⚡ Bolt: Replaced pd.Series instantiation inside lambda with pure NumPy operations.
     # Using np.nanmedian directly on the raw numpy array avoids significant Pandas object
     # creation overhead inside the rolling apply loop, vastly improving performance.
     rolling_mad = (
@@ -367,18 +366,16 @@ def correct_gaps(
             dtype=type(time_before),
         )
 
-        for t in new_times:
-            new_row = {time_col: t}
-            for col in result_df.columns:
-                if col != time_col:
-                    new_row[col] = np.nan
-            all_new_rows.append(new_row)
+        gap_df = pd.DataFrame(
+            np.nan, index=range(num_missing_points), columns=result_df.columns
+        )
+        gap_df[time_col] = new_times
+        all_new_rows.append(gap_df)
 
         processed_gap_indices.add(gap_idx)
 
     if all_new_rows:
-        new_rows_df = pd.DataFrame(all_new_rows)
-        result_df = pd.concat([result_df, new_rows_df], ignore_index=True)
+        result_df = pd.concat([result_df] + all_new_rows, ignore_index=True)
         result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
 
     log.info(
@@ -438,7 +435,6 @@ def correct_jumps(
 
     sorted_jump_indices = sorted(jump_indices)
 
-    # ⚡ Bolt: Extract to raw NumPy array to avoid Pandas object overhead in the loop
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
@@ -451,11 +447,9 @@ def correct_jumps(
             )
             continue
 
-        # ⚡ Bolt: Use native array slicing instead of Pandas .iloc
         window_before = values_np[jump_idx - window_size : jump_idx]
         window_after = values_np[jump_idx : jump_idx + window_size]
 
-        # ⚡ Bolt: Use numpy.nanmedian instead of pandas .median()
         median_before = np.nanmedian(window_before)
         median_after = np.nanmedian(window_after)
 
@@ -475,13 +469,11 @@ def correct_jumps(
             local_offset,
         )
 
-        # ⚡ Bolt: Apply offset directly to numpy array
         values_np[jump_idx:] += local_offset
         log.info(
             "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
         )
 
-    # ⚡ Bolt: Assign the modified numpy array back to the DataFrame
     result_df[value_col] = values_np
 
     log.info("Jump correction complete for column '%s'.", value_col)
@@ -535,7 +527,6 @@ def correct_outliers(
         log.info("Outliers replaced with NaN.")
 
     elif method in ["median", "mean"]:
-        # ⚡ Bolt: Extracted to raw NumPy array to avoid Pandas object overhead in the loop
         values_np = result_df[value_col].astype(float).to_numpy(copy=True)
         for outlier_idx in outlier_indices:
             start_idx = max(0, outlier_idx - window_size // 2)
@@ -553,7 +544,6 @@ def correct_outliers(
                 )
                 continue
 
-            # ⚡ Bolt: Use native array indexing
             surrounding_values = values_np[valid_indices_in_window]
 
             if method == "median":
@@ -578,7 +568,6 @@ def correct_outliers(
                     outlier_idx,
                 )
 
-        # ⚡ Bolt: Assign modified array back to DataFrame
         result_df[value_col] = values_np
     else:
         log.error(
