@@ -309,6 +309,7 @@ def correct_gaps(
 
     result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
     processed_gap_indices = set()
+    all_new_rows = []
 
     for gap_idx in sorted(gap_indices, reverse=True):
         if gap_idx in processed_gap_indices or gap_idx == 0:
@@ -366,24 +367,19 @@ def correct_gaps(
             dtype=type(time_before),
         )
 
-        new_rows_list = []
         for t in new_times:
             new_row = {time_col: t}
             for col in result_df.columns:
                 if col != time_col:
                     new_row[col] = np.nan
-            new_rows_list.append(new_row)
-
-        if not new_rows_list:
-            continue
-
-        new_rows_df = pd.DataFrame(new_rows_list)
-
-        result_df = pd.concat(
-            [result_df.iloc[:gap_idx], new_rows_df, result_df.iloc[gap_idx:]]
-        ).reset_index(drop=True)
+            all_new_rows.append(new_row)
 
         processed_gap_indices.add(gap_idx)
+
+    if all_new_rows:
+        new_rows_df = pd.DataFrame(all_new_rows)
+        result_df = pd.concat([result_df, new_rows_df], ignore_index=True)
+        result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
 
     log.info(
         "Interpolating values for columns %s using method '%s'.", value_cols, method
