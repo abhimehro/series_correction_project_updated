@@ -215,7 +215,7 @@ def _determine_series_to_process(
             series_list = [int(s) for s in raw]
         except ValueError as exc:
             log.exception(f"Invalid series selection {raw!r}: {exc}")
-            raise ValueError("Invalid series selection") from exc
+            raise ValueError("Invalid series selection") from None
 
         if river_miles and rm_to_sensors_map:
             allowed = set()
@@ -341,7 +341,7 @@ def _load_raw_data(file_path):
         return pd.DataFrame()
     except Exception as exc:
         log.exception(f"Failed to load data from {file_path}: {exc}")
-        raise ProcessingError("Failed to load data from file") from exc
+        raise ProcessingError("Failed to load data from file") from None
 
 
 # --------------------------------------------------------------------------- #
@@ -387,7 +387,7 @@ def batch_process(
             )
         except Exception as exc:  # pragma: no cover
             log.exception(f"Failed to load configuration: {exc}")
-            raise ProcessingError("Failed to load configuration") from exc
+            raise ProcessingError("Failed to load configuration") from None
 
     # Optional river-mile lookup CSV – silently ignored when missing
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
@@ -415,7 +415,7 @@ def batch_process(
             log.info(f"Created output directory {output_dir}")
         except OSError as exc:
             log.exception(f"Unable to create output directory: {exc}")
-            raise ProcessingError("Unable to create output directory") from exc
+            raise ProcessingError("Unable to create output directory") from None
 
     # ------------------------------------------------------------------ #
     # Determine workloads
