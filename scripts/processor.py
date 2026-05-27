@@ -310,6 +310,8 @@ def correct_gaps(
     processed_gap_indices = set()
     all_new_rows = []
 
+    time_col_arr = result_df[time_col].to_numpy()
+
     for gap_idx in sorted(gap_indices, reverse=True):
         if gap_idx in processed_gap_indices or gap_idx == 0:
             continue
@@ -317,14 +319,14 @@ def correct_gaps(
         idx_before = gap_idx - 1
         idx_after = gap_idx
 
-        time_before = result_df[time_col].iloc[idx_before]
-        time_after = result_df[time_col].iloc[idx_after]
+        time_before = time_col_arr[idx_before]
+        time_after = time_col_arr[idx_after]
 
         if idx_before > 0:
-            time_prev = result_df[time_col].iloc[idx_before - 1]
+            time_prev = time_col_arr[idx_before - 1]
             normal_step = time_before - time_prev
         elif len(result_df) > idx_after + 1:
-            time_next = result_df[time_col].iloc[idx_after + 1]
+            time_next = time_col_arr[idx_after + 1]
             normal_step = time_next - time_after
         else:
             log.warning(
@@ -333,7 +335,15 @@ def correct_gaps(
             )
             continue
 
-        if normal_step <= 0:
+        if isinstance(normal_step, pd.Timedelta):
+            normal_step_sec = normal_step.total_seconds()
+            is_non_positive = normal_step_sec <= 0
+        elif isinstance(normal_step, np.timedelta64):
+            is_non_positive = normal_step <= np.timedelta64(0, 'ns')
+        else:
+            is_non_positive = normal_step <= 0
+
+        if is_non_positive:
             log.warning(
                 "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
                 normal_step,
@@ -359,12 +369,31 @@ def correct_gaps(
             normal_step,
         )
 
-        new_times = np.linspace(
-            time_before + normal_step,
-            time_after - normal_step,
-            num=num_missing_points,
-            dtype=type(time_before),
-        )
+        start_time = time_before + normal_step
+        end_time = time_after - normal_step
+
+        # Performance/Compatibility: Handle numpy datetime64 natively or convert pd.Timestamps
+        if isinstance(start_time, pd.Timestamp) and isinstance(end_time, pd.Timestamp):
+            new_times = pd.date_range(
+                start=start_time, end=end_time, periods=num_missing_points
+            )
+        elif isinstance(start_time, np.datetime64) and isinstance(end_time, np.datetime64):
+            new_times = pd.date_range(
+                start=pd.Timestamp(start_time), end=pd.Timestamp(end_time), periods=num_missing_points
+            )
+        elif hasattr(start_time, "value") and hasattr(end_time, "value"):
+            # For other datetime-like objects that support .value
+            new_times_vals = np.linspace(
+                start_time.value, end_time.value, num=num_missing_points
+            )
+            new_times = pd.to_datetime(new_times_vals)
+        else:
+            new_times = np.linspace(
+                start_time,
+                end_time,
+                num=num_missing_points,
+                dtype=type(time_before),
+            )
 
         gap_df = pd.DataFrame(
             np.nan, index=range(num_missing_points), columns=result_df.columns
