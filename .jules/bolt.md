@@ -19,3 +19,6 @@
 ## 2024-06-25 - Avoid Quadratic pd.concat in DataFrame Iteration
 **Learning:** Using `pd.concat` inside a loop that slices a large DataFrame at each iteration creates quadratic time complexity. This was occurring in `correct_gaps` during missing data point interpolation.
 **Action:** Accumulate row dictionaries in a simple Python list (`all_new_rows`) within the loop. Convert this list to a DataFrame once outside the loop and apply `pd.concat` in one single operation at the end.
+## 2024-06-13 - [Pandas Loop Bottleneck]
+**Learning:** Creating empty Pandas DataFrame rows incrementally using a dictionary loop is highly inefficient. Benchmarks show `pd.DataFrame(np.nan, ...)` with column assignment is ~180x faster because it bypasses python loops and object overhead.
+**Action:** Always pre-allocate entire DataFrame blocks or use vectorized creation (`pd.DataFrame(np.nan)`) before concatenating when generating placeholder rows, rather than building them row-by-row via dictionary appending.
