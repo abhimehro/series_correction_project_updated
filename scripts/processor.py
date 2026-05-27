@@ -615,7 +615,7 @@ def process_data(
             )
             raise ValueError(
                 "Time column is not numeric and could not be converted"
-            ) from exc
+            ) from None
     value_col = merged_config["value_col"]
     if value_col is None:
         numeric_cols = processed_data.select_dtypes(include=np.number).columns

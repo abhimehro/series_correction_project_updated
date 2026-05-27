@@ -12,7 +12,7 @@ def load_config(config_path="scripts/config.json"):
     except ValueError as exc:
         if "Path traversal detected" in str(exc):
             raise
-        raise ValueError("Path traversal detected") from exc
+        raise ValueError("Path traversal detected") from None
 
     with open(resolved, "r", encoding="utf-8") as f:
         return json.load(f)
