@@ -310,68 +310,49 @@ def correct_gaps(
     processed_gap_indices = set()
     all_new_rows = []
 
+    time_col_arr = result_df[time_col].to_numpy()
+
     for gap_idx in sorted(gap_indices, reverse=True):
         if gap_idx in processed_gap_indices or gap_idx == 0:
             continue
 
-        idx_before = gap_idx - 1
-        idx_after = gap_idx
-
-        time_before = result_df[time_col].iloc[idx_before]
-        time_after = result_df[time_col].iloc[idx_after]
+        idx_before, idx_after = gap_idx - 1, gap_idx
+        time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
 
         if idx_before > 0:
-            time_prev = result_df[time_col].iloc[idx_before - 1]
-            normal_step = time_before - time_prev
+            normal_step = time_before - time_col_arr[idx_before - 1]
         elif len(result_df) > idx_after + 1:
-            time_next = result_df[time_col].iloc[idx_after + 1]
-            normal_step = time_next - time_after
+            normal_step = time_col_arr[idx_after + 1] - time_after
         else:
-            log.warning(
-                "Cannot determine normal time step for gap at index %d. Skipping.",
-                gap_idx,
-            )
+            log.warning("Cannot determine normal time step for gap at index %d. Skipping.", gap_idx)
             continue
 
-        if normal_step <= 0:
-            log.warning(
-                "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
-                normal_step,
-                gap_idx,
-            )
+        if (isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0) or \
+           (isinstance(normal_step, np.timedelta64) and normal_step <= np.timedelta64(0, 'ns')) or \
+           (not isinstance(normal_step, (pd.Timedelta, np.timedelta64)) and normal_step <= 0):
+            log.warning("Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.", normal_step, gap_idx)
             continue
 
         num_missing_points = round((time_after - time_before) / normal_step) - 1
 
         if num_missing_points <= 0:
-            log.debug(
-                "Calculated 0 or negative missing points for gap at index %d. Skipping.",
-                gap_idx,
-            )
+            log.debug("Calculated 0 or negative missing points for gap at index %d. Skipping.", gap_idx)
             continue
 
-        log.info(
-            "Filling gap at index %d: %d points missing between %s and %s (step: %s).",
-            gap_idx,
-            num_missing_points,
-            time_before,
-            time_after,
-            normal_step,
-        )
+        log.info("Filling gap at index %d: %d points missing between %s and %s (step: %s).", gap_idx, num_missing_points, time_before, time_after, normal_step)
 
-        new_times = np.linspace(
-            time_before + normal_step,
-            time_after - normal_step,
-            num=num_missing_points,
-            dtype=type(time_before),
-        )
+        start_time, end_time = time_before + normal_step, time_after - normal_step
 
-        gap_df = pd.DataFrame(
-            np.nan, index=range(num_missing_points), columns=result_df.columns
-        )
+        if isinstance(start_time, (pd.Timestamp, np.datetime64)):
+            new_times = pd.date_range(start=pd.Timestamp(start_time), end=pd.Timestamp(end_time), periods=num_missing_points)
+        elif hasattr(start_time, "value"):
+            new_times = pd.to_datetime(np.linspace(start_time.value, end_time.value, num=num_missing_points))
+        else:
+            new_times = np.linspace(start_time, end_time, num=num_missing_points, dtype=type(time_before))
+
+        gap_df = pd.DataFrame(np.nan, index=range(num_missing_points), columns=result_df.columns)
         gap_df[time_col] = new_times
         all_new_rows.append(gap_df)
-
         processed_gap_indices.add(gap_idx)
 
     if all_new_rows:
