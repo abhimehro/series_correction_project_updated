@@ -263,53 +263,12 @@ def detect_outliers(
     return outliers
 
 
-def correct_gaps(
-    data: pd.DataFrame,
-    gap_indices: list[int],
-    time_col: str = "Time (Seconds)",
-    value_cols: list[str] | None = None,
-    method: str = "time",
-) -> pd.DataFrame:
-    """
-    Fill gaps in time series data by interpolating missing time points and values.
-
-    First, it inserts rows with linearly spaced timestamps within the gap,
-    then interpolates the values in `value_cols` using the specified method.
-
-    Args:
-        data: DataFrame containing time series data.
-        gap_indices: List of indices *before* which gaps are detected (output from detect_gaps).
-        time_col: Name of the time column.
-        value_cols: List of value columns to interpolate. If None, interpolates
-                    all numeric columns except time_col.
-        method: Interpolation method passed to pandas.DataFrame.interpolate()
-                (e.g., 'linear', 'time', 'spline', 'polynomial', 'akima').
-                'time' is often suitable for time-based data.
-
-    Returns:
-        DataFrame with gaps filled. Returns a copy of the original if no gaps.
-    """
-    if not gap_indices:
-        return data.copy()
-
-    result_df = data.copy()
-
-    if value_cols is None:
-        value_cols = [
-            col
-            for col in result_df.select_dtypes(include=np.number).columns
-            if col != time_col
-        ]
-        log.debug("Auto-detected value columns for gap correction: %s", value_cols)
-
-    if not value_cols:
-        log.warning("No numeric value columns found to interpolate for gap correction.")
-        return result_df
-
-    result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
+def _build_gap_fill_rows(
+    result_df: pd.DataFrame, gap_indices: list[int], time_col: str
+) -> list[pd.DataFrame]:
+    """Helper function to build interpolation rows for gaps."""
     processed_gap_indices = set()
     all_new_rows = []
-
     time_col_arr = result_df[time_col].to_numpy()
 
     for gap_idx in sorted(gap_indices, reverse=True):
@@ -402,6 +361,56 @@ def correct_gaps(
         all_new_rows.append(gap_df)
 
         processed_gap_indices.add(gap_idx)
+
+    return all_new_rows
+
+
+def correct_gaps(
+    data: pd.DataFrame,
+    gap_indices: list[int],
+    time_col: str = "Time (Seconds)",
+    value_cols: list[str] | None = None,
+    method: str = "time",
+) -> pd.DataFrame:
+    """
+    Fill gaps in time series data by interpolating missing time points and values.
+
+    First, it inserts rows with linearly spaced timestamps within the gap,
+    then interpolates the values in `value_cols` using the specified method.
+
+    Args:
+        data: DataFrame containing time series data.
+        gap_indices: List of indices *before* which gaps are detected (output from detect_gaps).
+        time_col: Name of the time column.
+        value_cols: List of value columns to interpolate. If None, interpolates
+                    all numeric columns except time_col.
+        method: Interpolation method passed to pandas.DataFrame.interpolate()
+                (e.g., 'linear', 'time', 'spline', 'polynomial', 'akima').
+                'time' is often suitable for time-based data.
+
+    Returns:
+        DataFrame with gaps filled. Returns a copy of the original if no gaps.
+    """
+    if not gap_indices:
+        return data.copy()
+
+    result_df = data.copy()
+
+    if value_cols is None:
+        value_cols = [
+            col
+            for col in result_df.select_dtypes(include=np.number).columns
+            if col != time_col
+        ]
+        log.debug("Auto-detected value columns for gap correction: %s", value_cols)
+
+    if not value_cols:
+        log.warning("No numeric value columns found to interpolate for gap correction.")
+        return result_df
+
+    result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
+
+    all_new_rows = _build_gap_fill_rows(result_df, gap_indices, time_col)
 
     if all_new_rows:
         result_df = pd.concat([result_df] + all_new_rows, ignore_index=True)
