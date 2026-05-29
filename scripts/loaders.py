@@ -4,8 +4,8 @@ import os
 
 def load_config(config_path="scripts/config.json"):
     # SECURITY: reject paths that escape the working directory (CWE-22).
-    base_dir = os.path.abspath(os.getcwd())
-    resolved = os.path.abspath(config_path)
+    base_dir = os.path.realpath(os.getcwd())
+    resolved = os.path.realpath(config_path)
     try:
         if os.path.commonpath([base_dir, resolved]) != base_dir:
             raise ValueError("Path traversal detected")
