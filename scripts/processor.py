@@ -383,13 +383,17 @@ def correct_gaps(
         else:
             new_times = np.linspace(start_time, end_time, num=num_missing_points, dtype=type(time_before))
 
-        gap_df = pd.DataFrame(np.nan, index=range(num_missing_points), columns=result_df.columns)
-        gap_df[time_col] = new_times
-        all_new_rows.append(gap_df)
+        # ⚡ Bolt: Accumulate raw times instead of building pd.DataFrames incrementally
+        all_new_rows.append(new_times)
         processed_gap_indices.add(gap_idx)
 
     if all_new_rows:
-        result_df = pd.concat([result_df] + all_new_rows, ignore_index=True)
+        # Concatenate all new times once outside the loop
+        concatenated_times = np.concatenate(all_new_rows)
+        gaps_df = pd.DataFrame(np.nan, index=range(len(concatenated_times)), columns=result_df.columns)
+        gaps_df[time_col] = concatenated_times
+
+        result_df = pd.concat([result_df, gaps_df], ignore_index=True)
         result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
 
     log.info(
