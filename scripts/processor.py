@@ -296,6 +296,66 @@ def detect_outliers(
     return outliers
 
 
+def _build_gaps_dataframe(result_df: pd.DataFrame, gap_indices: list[int], time_col: str) -> Any:
+    """Helper to isolate gap generation logic and reduce correct_gaps complexity."""
+    processed_gap_indices = set()
+    all_new_rows = []
+    time_col_arr = result_df[time_col].to_numpy()
+
+    for gap_idx in sorted(gap_indices, reverse=True):
+        if gap_idx in processed_gap_indices or gap_idx == 0:
+            continue
+
+        idx_before, idx_after = gap_idx - 1, gap_idx
+        time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
+
+        # Calculate step compactly but readably
+        normal_step = time_before - time_col_arr[idx_before - 1] if idx_before > 0 else (
+            time_col_arr[idx_after + 1] - time_after if len(result_df) > idx_after + 1 else None)
+
+        if normal_step is None:
+            log.warning("Cannot determine normal time step for gap at index %d. Skipping.", gap_idx)
+            continue
+
+        # Check for invalid step compactly
+        invalid_td = isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
+        invalid_np = isinstance(normal_step, np.timedelta64) and normal_step <= np.timedelta64(0, 'ns')
+        invalid_num = not isinstance(normal_step, (pd.Timedelta, np.timedelta64)) and normal_step <= 0
+
+        if invalid_td or invalid_np or invalid_num:
+            log.warning("Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.", normal_step, gap_idx)
+            continue
+
+        num_missing_points = round((time_after - time_before) / normal_step) - 1
+
+        if num_missing_points <= 0:
+            log.debug("Calculated 0 or negative missing points for gap at index %d. Skipping.", gap_idx)
+            continue
+
+        log.info("Filling gap at index %d: %d points missing between %s and %s (step: %s).", gap_idx, num_missing_points, time_before, time_after, normal_step)
+
+        start_time, end_time = time_before + normal_step, time_after - normal_step
+
+        if isinstance(start_time, (pd.Timestamp, np.datetime64)):
+            new_times = pd.date_range(start=pd.Timestamp(start_time), end=pd.Timestamp(end_time), periods=num_missing_points)
+        elif hasattr(start_time, "value"):
+            new_times = pd.to_datetime(np.linspace(start_time.value, end_time.value, num=num_missing_points))
+        else:
+            new_times = np.linspace(start_time, end_time, num=num_missing_points, dtype=type(time_before))
+
+        # ⚡ Bolt: Accumulate raw times instead of building pd.DataFrames incrementally
+        all_new_rows.append(new_times)
+        processed_gap_indices.add(gap_idx)
+
+    if not all_new_rows:
+        return None
+
+    concatenated_times = np.concatenate(all_new_rows)
+    gaps_df = pd.DataFrame(np.nan, index=range(len(concatenated_times)), columns=result_df.columns)
+    gaps_df[time_col] = concatenated_times
+    return gaps_df
+
+
 def correct_gaps(
     data: pd.DataFrame,
     gap_indices: list[int],
@@ -340,62 +400,9 @@ def correct_gaps(
         return result_df
 
     result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
-    processed_gap_indices = set()
-    all_new_rows = []
 
-    time_col_arr = result_df[time_col].to_numpy()
-
-    for gap_idx in sorted(gap_indices, reverse=True):
-        if gap_idx in processed_gap_indices or gap_idx == 0:
-            continue
-
-        idx_before, idx_after = gap_idx - 1, gap_idx
-        time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
-
-        if idx_before > 0:
-            normal_step = time_before - time_col_arr[idx_before - 1]
-        elif len(result_df) > idx_after + 1:
-            normal_step = time_col_arr[idx_after + 1] - time_after
-        else:
-            log.warning("Cannot determine normal time step for gap at index %d. Skipping.", gap_idx)
-            continue
-
-        valid_step = normal_step is not None and (
-            (isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() > 0)
-            or (isinstance(normal_step, np.timedelta64) and normal_step > np.timedelta64(0, 'ns'))
-            or (not isinstance(normal_step, (pd.Timedelta, np.timedelta64)) and normal_step > 0)
-        )
-
-        if not valid_step:
-            log.warning("Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.", normal_step, gap_idx)
-            continue
-
-        num_missing_points = round((time_after - time_before) / normal_step) - 1
-
-        if num_missing_points <= 0:
-            log.debug("Calculated 0 or negative missing points for gap at index %d. Skipping.", gap_idx)
-            continue
-
-        log.info("Filling gap at index %d: %d points missing between %s and %s (step: %s).", gap_idx, num_missing_points, time_before, time_after, normal_step)
-
-        start_time, end_time = time_before + normal_step, time_after - normal_step
-
-        if isinstance(start_time, (pd.Timestamp, np.datetime64)):
-            new_times = pd.date_range(start=pd.Timestamp(start_time), end=pd.Timestamp(end_time), periods=num_missing_points)
-        elif hasattr(start_time, "value"):
-            new_times = pd.to_datetime(np.linspace(start_time.value, end_time.value, num=num_missing_points))
-        else:
-            new_times = np.linspace(start_time, end_time, num=num_missing_points, dtype=type(time_before))
-
-        # ⚡ Bolt: Accumulate raw times instead of building pd.DataFrames incrementally
-        all_new_rows.append(new_times)
-        processed_gap_indices.add(gap_idx)
-
-    if all_new_rows:
-        concatenated_times = np.concatenate(all_new_rows)
-        gaps_df = pd.DataFrame(np.nan, index=range(len(concatenated_times)), columns=result_df.columns)
-        gaps_df[time_col] = concatenated_times
-
+    gaps_df = _build_gaps_dataframe(result_df, gap_indices, time_col)
+    if gaps_df is not None:
         result_df = pd.concat([result_df, gaps_df], ignore_index=True)
         result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
 
