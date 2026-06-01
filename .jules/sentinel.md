@@ -10,3 +10,7 @@
 **Vulnerability:** A symlink path traversal bypass in `scripts/loaders.py` caused by using `os.path.abspath` instead of `os.path.realpath`.
 **Learning:** `os.path.abspath` standardizes path representation but does not resolve symbolic links, allowing an attacker to bypass `os.path.commonpath` checks if they control symlinks within the allowed directory.
 **Prevention:** Always use `os.path.realpath` to fully resolve symlinks before verifying directory confinement using `os.path.commonpath`.
+## 2025-02-25 - Pandas Categorical Type CSV/Formula Injection
+**Vulnerability:** Malicious formulas were not escaped in Pandas `category` columns during spreadsheet sanitization.
+**Learning:** `dataframe.select_dtypes(include=["object", "string"])` misses `category` types. A standard `.map()` on a category column throws an error or silently fails; one must use `.cat.rename_categories()` to safely escape categorical values without breaking their properties.
+**Prevention:** Always include `category` in `select_dtypes` for sanitization, and handle `CategoricalDtype` uniquely using its built-in `.cat` accessor methods.

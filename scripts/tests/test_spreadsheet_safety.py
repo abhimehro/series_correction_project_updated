@@ -87,3 +87,12 @@ def test_batch_process_escapes_formula_like_raw_cells(tmp_path, monkeypatch):
     cell = workbook.active["C2"]
     assert cell.value == "'" + payload
     assert cell.data_type == "s"
+
+def test_sanitize_dataframe_escapes_category_columns():
+    import pandas as pd
+
+    dataframe = pd.DataFrame({"value": pd.Categorical(["=1+2", "safe"])})
+    sanitized = sanitize_dataframe_for_spreadsheet(dataframe)
+    assert sanitized["value"].iloc[0] == "'=1+2"
+    assert sanitized["value"].iloc[1] == "safe"
+    assert isinstance(sanitized["value"].dtype, pd.CategoricalDtype)
