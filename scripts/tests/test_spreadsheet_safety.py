@@ -88,6 +88,7 @@ def test_batch_process_escapes_formula_like_raw_cells(tmp_path, monkeypatch):
     assert cell.value == "'" + payload
     assert cell.data_type == "s"
 
+
 def test_sanitize_dataframe_escapes_category_columns():
     import pandas as pd
 
