@@ -317,7 +317,6 @@ def _load_raw_data(file_path):
             file_path,
             header=None,
             sep=r"\s+",
-            engine="python",
             comment="#",
             skip_blank_lines=True,
         )
