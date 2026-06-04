@@ -12,8 +12,8 @@ runtimes:
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   disabled:
-    - prettier
   enabled:
+    - prettier@3.8.3
     - flake8@7.3.0
     - grype@0.112.0
     - shellcheck@0.11.0
@@ -21,12 +21,12 @@ lint:
     - actionlint@1.7.12
     - bandit@1.9.4
     - black@26.5.1
-    - checkov@3.2.531
+    - checkov@3.2.533
     - git-diff-check
     - isort@8.0.1
     - markdownlint@0.48.0
     - osv-scanner@2.3.8
-    - ruff@0.15.15
+    - ruff@0.15.16
     - taplo@0.10.0
     - trivy@0.71.0
     - trufflehog@3.95.3
@@ -45,3 +45,6 @@ plugins:
     - id: trunk
       ref: v1.10.0
       uri: https://github.com/trunk-io/plugins
+tools:
+  enabled:
+    - prettier@3.8.3
