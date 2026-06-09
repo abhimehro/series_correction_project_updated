@@ -119,9 +119,6 @@ def main(correction_log_path, updated_averages_csv_path):
         )
     except Exception as e:
         print(f"\nAn error occurred while generating Overview table content: {e}")
-        import traceback
-
-        traceback.print_exc()
 
     print("\n--- Script Finished ---")
 
