@@ -11,10 +11,10 @@ runtimes:
     - python@3.14.4
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
-  disabled:
-    - markdownlint
-    - prettier
   enabled:
+    - pinact@4.1.0
+    - markdownlint@0.48.0
+    - prettier@3.8.4
     - flake8@7.3.0
     - grype@0.112.0
     - shellcheck@0.11.0
@@ -43,9 +43,9 @@ actions:
 plugins:
   sources:
     - id: trunk
-      ref: v1.10.0
+      ref: v1.10.2
       uri: https://github.com/trunk-io/plugins
 tools:
-  disabled:
-    - markdownlint
-    - prettier
+  enabled:
+    - markdownlint@0.48.0
+    - prettier@3.8.4

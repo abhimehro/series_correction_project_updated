@@ -4,6 +4,9 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
   refactor:
     if: github.event.issue.pull_request != null && contains(github.event.comment.body, '/cs-agent')
@@ -72,7 +75,8 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: codescene-oss/pr-refactoring-agent@bc0d8b91c0a1a88154fb1dfb82124f8f43733d65 # v1.0.3
+      # trunk-ignore(pinact/parse-error)
+      - uses: codescene-oss/pr-refactoring-agent@bc0d8b91c0a1a88154fb1dfb82124f8f43733d65 # untagged-fix-commit
         env:
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
