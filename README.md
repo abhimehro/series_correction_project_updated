@@ -263,6 +263,14 @@ This project uses pytest for testing.
 
 Contributions are welcome! Please follow standard GitHub Fork & Pull Request workflows. Ensure code includes tests, passes linting/formatting checks, and updates documentation where necessary.
 
+If CodeScene fails on a PR during review/salvage sessions, post:
+
+```bash
+/cs-agent skill:fix-code-health-degradations
+```
+
+Then continue salvage verification after that run finishes.
+
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.

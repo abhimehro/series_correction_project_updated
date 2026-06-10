@@ -26,3 +26,13 @@ CLI tool to detect and correct discontinuities (jumps, gaps, outliers) in Seatek
 - **Test path**: Tests are under `scripts/tests/`, not `tests/`.
 - **Data files**: `.txt` sensor data files in `data/` are committed for Series 26 and 27. Output goes to `data/output/`.
 - Use `python3` (not `python`) as the command.
+
+### CodeScene review/salvage trigger
+
+During automated PR review or salvage sessions, if CodeScene is red on a PR, post:
+
+```bash
+/cs-agent skill:fix-code-health-degradations
+```
+
+Then wait for that run to complete before final defer/salvage disposition.
