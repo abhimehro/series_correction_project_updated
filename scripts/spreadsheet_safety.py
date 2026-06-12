@@ -16,14 +16,19 @@ def escape_spreadsheet_formula(value: Any) -> Any:
 
 
 def sanitize_dataframe_for_spreadsheet(dataframe: pd.DataFrame) -> pd.DataFrame:
-    object_columns = dataframe.select_dtypes(include=["object", "string", "category"]).columns
+    object_columns = dataframe.select_dtypes(
+        include=["object", "string", "category"]
+    ).columns
     if object_columns.empty:
         return dataframe
 
     sanitized = dataframe.copy()
     for column in object_columns:
         if isinstance(sanitized[column].dtype, pd.CategoricalDtype):
-            new_categories = [escape_spreadsheet_formula(cat) for cat in sanitized[column].cat.categories]
+            new_categories = [
+                escape_spreadsheet_formula(cat)
+                for cat in sanitized[column].cat.categories
+            ]
             sanitized[column] = sanitized[column].cat.rename_categories(new_categories)
         else:
             sanitized[column] = sanitized[column].map(escape_spreadsheet_formula)

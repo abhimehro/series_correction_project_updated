@@ -253,7 +253,9 @@ def detect_outliers(
     # Ensure the length matches by computing padding for left and right
     pad_left = pad_width
     pad_right = n - len(mads) - pad_left
-    rolling_mad = np.pad(mads, (pad_left, pad_right), mode='constant', constant_values=np.nan)
+    rolling_mad = np.pad(
+        mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
+    )
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
@@ -296,7 +298,9 @@ def detect_outliers(
     return outliers
 
 
-def _build_gaps_dataframe(result_df: pd.DataFrame, gap_indices: list[int], time_col: str) -> Any:
+def _build_gaps_dataframe(
+    result_df: pd.DataFrame, gap_indices: list[int], time_col: str
+) -> Any:
     """Helper to isolate gap generation logic and reduce correct_gaps complexity."""
     processed_gap_indices = set()
     all_new_rows = []
@@ -310,38 +314,77 @@ def _build_gaps_dataframe(result_df: pd.DataFrame, gap_indices: list[int], time_
         time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
 
         # Calculate step compactly but readably
-        normal_step = time_before - time_col_arr[idx_before - 1] if idx_before > 0 else (
-            time_col_arr[idx_after + 1] - time_after if len(result_df) > idx_after + 1 else None)
+        normal_step = (
+            time_before - time_col_arr[idx_before - 1]
+            if idx_before > 0
+            else (
+                time_col_arr[idx_after + 1] - time_after
+                if len(result_df) > idx_after + 1
+                else None
+            )
+        )
 
         if normal_step is None:
-            log.warning("Cannot determine normal time step for gap at index %d. Skipping.", gap_idx)
+            log.warning(
+                "Cannot determine normal time step for gap at index %d. Skipping.",
+                gap_idx,
+            )
             continue
 
         # Check for invalid step compactly
-        invalid_td = isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
-        invalid_np = isinstance(normal_step, np.timedelta64) and normal_step <= np.timedelta64(0, 'ns')
-        invalid_num = not isinstance(normal_step, (pd.Timedelta, np.timedelta64)) and normal_step <= 0
+        invalid_td = (
+            isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
+        )
+        invalid_np = isinstance(
+            normal_step, np.timedelta64
+        ) and normal_step <= np.timedelta64(0, "ns")
+        invalid_num = (
+            not isinstance(normal_step, (pd.Timedelta, np.timedelta64))
+            and normal_step <= 0
+        )
 
         if invalid_td or invalid_np or invalid_num:
-            log.warning("Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.", normal_step, gap_idx)
+            log.warning(
+                "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
+                normal_step,
+                gap_idx,
+            )
             continue
 
         num_missing_points = round((time_after - time_before) / normal_step) - 1
 
         if num_missing_points <= 0:
-            log.debug("Calculated 0 or negative missing points for gap at index %d. Skipping.", gap_idx)
+            log.debug(
+                "Calculated 0 or negative missing points for gap at index %d. Skipping.",
+                gap_idx,
+            )
             continue
 
-        log.info("Filling gap at index %d: %d points missing between %s and %s (step: %s).", gap_idx, num_missing_points, time_before, time_after, normal_step)
+        log.info(
+            "Filling gap at index %d: %d points missing between %s and %s (step: %s).",
+            gap_idx,
+            num_missing_points,
+            time_before,
+            time_after,
+            normal_step,
+        )
 
         start_time, end_time = time_before + normal_step, time_after - normal_step
 
         if isinstance(start_time, (pd.Timestamp, np.datetime64)):
-            new_times = pd.date_range(start=pd.Timestamp(start_time), end=pd.Timestamp(end_time), periods=num_missing_points)
+            new_times = pd.date_range(
+                start=pd.Timestamp(start_time),
+                end=pd.Timestamp(end_time),
+                periods=num_missing_points,
+            )
         elif hasattr(start_time, "value"):
-            new_times = pd.to_datetime(np.linspace(start_time.value, end_time.value, num=num_missing_points))
+            new_times = pd.to_datetime(
+                np.linspace(start_time.value, end_time.value, num=num_missing_points)
+            )
         else:
-            new_times = np.linspace(start_time, end_time, num=num_missing_points, dtype=type(time_before))
+            new_times = np.linspace(
+                start_time, end_time, num=num_missing_points, dtype=type(time_before)
+            )
 
         # ⚡ Bolt: Accumulate raw times instead of building pd.DataFrames incrementally
         all_new_rows.append(new_times)
@@ -351,7 +394,9 @@ def _build_gaps_dataframe(result_df: pd.DataFrame, gap_indices: list[int], time_
         return None
 
     concatenated_times = np.concatenate(all_new_rows)
-    gaps_df = pd.DataFrame(np.nan, index=range(len(concatenated_times)), columns=result_df.columns)
+    gaps_df = pd.DataFrame(
+        np.nan, index=range(len(concatenated_times)), columns=result_df.columns
+    )
     gaps_df[time_col] = concatenated_times
     return gaps_df
 
