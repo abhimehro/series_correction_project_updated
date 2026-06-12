@@ -2,6 +2,7 @@ import argparse
 import re
 
 import pandas as pd
+from scripts.spreadsheet_safety import write_csv_safely
 
 
 def main(correction_log_path, updated_averages_csv_path):
@@ -109,7 +110,7 @@ def main(correction_log_path, updated_averages_csv_path):
         print(
             "\n--- Content for Refined Overview of Level Shift Strategies Table (CSV Format) ---"
         )
-        print(df_overview.to_csv(index=False))
+        print(write_csv_safely(df_overview, index=False))
         print("--- End Content for Refined Overview Table ---")
 
     except FileNotFoundError as e:
