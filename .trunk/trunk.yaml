@@ -11,33 +11,38 @@ runtimes:
     - python@3.14.4
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
+  disabled:
+    - markdownlint
   enabled:
-    - pinact@4.1.0
-    - markdownlint@0.48.0
-    - prettier@3.8.4
     - flake8@7.3.0
-    - grype@0.112.0
-    - shellcheck@0.11.0
-    - shfmt@3.6.0
+    - grype@0.114.0
+    - pinact@4.1.0
     - actionlint@1.7.12
     - bandit@1.9.4
     - black@26.5.1
-    - checkov@3.2.533
+    - checkov@3.3.1
+    - dotenv-linter@4.0.0
     - git-diff-check
+    - hadolint@2.14.0
     - isort@8.0.1
     - osv-scanner@2.3.8
-    - ruff@0.15.16
+    - prettier@3.8.4
+    - ruff@0.15.17
+    - shellcheck@0.11.0
+    - shfmt@3.6.0
     - taplo@0.10.0
+    - terrascan@1.19.9
     - trivy@0.71.0
-    - trufflehog@3.95.3
+    - trufflehog@3.95.5
     - yamllint@1.38.0
 actions:
   disabled:
     - trufflehog-pre-commit
+    - commitlint
     - trunk-check-pre-push
   enabled:
-    - trunk-announce
     - trunk-check-pre-commit
+    - trunk-announce
     - trunk-fmt-pre-commit
     - trunk-upgrade-available
 plugins:
@@ -46,6 +51,9 @@ plugins:
       ref: v1.10.2
       uri: https://github.com/trunk-io/plugins
 tools:
+  disabled:
+    - ruby
   enabled:
-    - markdownlint@0.48.0
-    - prettier@3.8.4
+    - snyk@1.1295.0
+    - trivy@0.71.0
+    - trufflehog@3.95.5
