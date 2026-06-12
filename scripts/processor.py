@@ -180,43 +180,10 @@ def _calculate_z_score(
         return abs(current_value - median_i) / scaled_mad_i
 
 
-def detect_outliers(
-    data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
-) -> list[int]:
-    """
-    Detect outliers using modified Z-scores based on the median absolute
-    deviation (MAD) within rolling windows.
-
-    This method is robust to existing outliers within the window.
-
-    Args:
-        data: DataFrame containing sensor data.
-        value_col: Name of the value column to analyze.
-        window_size: Size of the moving window for calculating statistics.
-        threshold: Threshold for detecting outliers (modified Z-scores).
-                     A common value is 3.5 for ~3 sigma equivalent with MAD.
-
-    Returns:
-        List of indices where outliers are detected. Returns an empty list if
-        fewer than window_size data points exist or no outliers are found.
-    """
-    n = len(data)
-    if n < window_size:
-        log.debug(
-            "Not enough data points (< %d) for outlier detection with window size %d.",
-            n,
-            window_size,
-        )
-        return []
-
-    outliers = []
-    values = data[value_col]
-    values_np = values.to_numpy()
-
-    # Calculate rolling median
-    rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
-
-    # Calculate rolling MAD using sliding_window_view
+def _calculate_rolling_mad(
+    values_np: np.ndarray, window_size: int, n: int
+) -> np.ndarray:
+    """Helper function to calculate rolling MAD to reduce complexity in detect_outliers."""
     from numpy.lib.stride_tricks import sliding_window_view
 
     # ⚡ Bolt: Use sliding_window_view to vectorize MAD calculation instead of pandas rolling.apply
@@ -256,9 +223,46 @@ def detect_outliers(
     # Ensure the length matches by computing padding for left and right
     pad_left = pad_width
     pad_right = n - len(mads) - pad_left
-    rolling_mad = np.pad(
-        mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
-    )
+    return np.pad(mads, (pad_left, pad_right), mode="constant", constant_values=np.nan)
+
+
+def detect_outliers(
+    data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
+) -> list[int]:
+    """
+    Detect outliers using modified Z-scores based on the median absolute
+    deviation (MAD) within rolling windows.
+
+    This method is robust to existing outliers within the window.
+
+    Args:
+        data: DataFrame containing sensor data.
+        value_col: Name of the value column to analyze.
+        window_size: Size of the moving window for calculating statistics.
+        threshold: Threshold for detecting outliers (modified Z-scores).
+                     A common value is 3.5 for ~3 sigma equivalent with MAD.
+
+    Returns:
+        List of indices where outliers are detected. Returns an empty list if
+        fewer than window_size data points exist or no outliers are found.
+    """
+    n = len(data)
+    if n < window_size:
+        log.debug(
+            "Not enough data points (< %d) for outlier detection with window size %d.",
+            n,
+            window_size,
+        )
+        return []
+
+    outliers = []
+    values = data[value_col]
+    values_np = values.to_numpy()
+
+    # Calculate rolling median
+    rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
+
+    rolling_mad = _calculate_rolling_mad(values_np, window_size, n)
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
@@ -305,6 +309,41 @@ def detect_outliers(
     return outliers
 
 
+def _calculate_normal_step(
+    time_col_arr: np.ndarray,
+    idx_before: int,
+    idx_after: int,
+    n: int,
+    time_before: Any,
+    time_after: Any,
+) -> Any:
+    """Helper function to calculate and validate normal time step to reduce complexity."""
+    normal_step = (
+        time_before - time_col_arr[idx_before - 1]
+        if idx_before > 0
+        else (time_col_arr[idx_after + 1] - time_after if n > idx_after + 1 else None)
+    )
+
+    if normal_step is None:
+        return None
+
+    # Check for invalid step compactly
+    if (
+        (isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0)
+        or (
+            isinstance(normal_step, np.timedelta64)
+            and normal_step <= np.timedelta64(0, "ns")
+        )
+        or (
+            not isinstance(normal_step, (pd.Timedelta, np.timedelta64))
+            and normal_step <= 0
+        )
+    ):
+        return None
+
+    return normal_step
+
+
 def _build_gaps_dataframe(
     result_df: pd.DataFrame, gap_indices: list[int], time_col: str
 ) -> Any:
@@ -320,40 +359,12 @@ def _build_gaps_dataframe(
         idx_before, idx_after = gap_idx - 1, gap_idx
         time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
 
-        # Calculate step compactly but readably
-        normal_step = (
-            time_before - time_col_arr[idx_before - 1]
-            if idx_before > 0
-            else (
-                time_col_arr[idx_after + 1] - time_after
-                if len(result_df) > idx_after + 1
-                else None
-            )
+        normal_step = _calculate_normal_step(
+            time_col_arr, idx_before, idx_after, len(result_df), time_before, time_after
         )
-
         if normal_step is None:
             log.warning(
-                "Cannot determine normal time step for gap at index %d. Skipping.",
-                gap_idx,
-            )
-            continue
-
-        # Check for invalid step compactly
-        invalid_td = (
-            isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
-        )
-        invalid_np = isinstance(
-            normal_step, np.timedelta64
-        ) and normal_step <= np.timedelta64(0, "ns")
-        invalid_num = (
-            not isinstance(normal_step, (pd.Timedelta, np.timedelta64))
-            and normal_step <= 0
-        )
-
-        if invalid_td or invalid_np or invalid_num:
-            log.warning(
-                "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
-                normal_step,
+                "Skipping gap at index %d: invalid or non-positive normal step.",
                 gap_idx,
             )
             continue
