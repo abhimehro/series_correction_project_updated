@@ -14,3 +14,7 @@
 **Vulnerability:** Malicious formulas were not escaped in Pandas `category` columns during spreadsheet sanitization.
 **Learning:** `dataframe.select_dtypes(include=["object", "string"])` misses `category` types. A standard `.map()` on a category column throws an error or silently fails; one must use `.cat.rename_categories()` to safely escape categorical values without breaking their properties.
 **Prevention:** Always include `category` in `select_dtypes` for sanitization, and handle `CategoricalDtype` uniquely using its built-in `.cat` accessor methods.
+## 2024-06-12 - Prevent CSV/Formula Injection via unescaped DataFrame exports
+**Vulnerability:** Calling `to_csv()` directly on Pandas DataFrames containing untrusted string or categorical columns allows malicious actors to inject Excel formulas (e.g., values starting with `=`, `+`, `-`, `@`) which execute when the CSV is opened in spreadsheet software.
+**Learning:** While `to_excel()` was explicitly protected by `write_excel_safely` in this codebase, exports to CSV via `to_csv()` were overlooked in scripts like `apply_refined_corrections.py` and `generate_overview_table.py`.
+**Prevention:** Always apply the existing `sanitize_dataframe_for_spreadsheet()` utility to DataFrames before any export (CSV or Excel) that might be opened in spreadsheet software. Created a centralized `write_csv_safely` utility alongside `write_excel_safely` to enforce this consistently.
