@@ -161,22 +161,6 @@ def detect_jumps(
     return jumps
 
 
-def _calculate_z_score(
-    current_value: float, median_i: float, scaled_mad_i: float, threshold: float
-) -> float:
-    """Helper function to calculate the modified Z-score for outlier detection."""
-    if scaled_mad_i < 1e-6:
-        if abs(current_value - median_i) > 1e-6:
-            if abs(current_value - median_i) > threshold * 1e-6:
-                return np.inf
-            else:
-                return 0.0
-        else:
-            return 0.0
-    else:
-        return abs(current_value - median_i) / scaled_mad_i
-
-
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -213,94 +197,51 @@ def detect_outliers(
     # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
-    # Calculate rolling MAD using sliding_window_view
     from numpy.lib.stride_tricks import sliding_window_view
-
-    # ⚡ Bolt: Use sliding_window_view to vectorize MAD calculation instead of pandas rolling.apply
-    # This avoids Python function call overhead and provides ~80x speedup for this specific computation.
-    # To prevent Memory Errors on huge arrays, we process the MAD calculation in chunks.
     chunk_size = 50000
     mads_list = []
     num_windows = n - window_size + 1
-
     for start_idx in range(0, num_windows, chunk_size):
         end_idx = min(start_idx + chunk_size, num_windows)
-        # Add window_size - 1 to end_idx to get the slice of original array needed to form the windows
         chunk = values_np[start_idx : end_idx + window_size - 1]
-
         chunk_windows = sliding_window_view(chunk, window_shape=window_size)
-
-        # Calculate nan count per window to mimic pandas min_periods=window_size behavior
-        nan_counts = np.isnan(chunk_windows).sum(axis=1)
-        invalid_mask = nan_counts > 0
-
+        invalid_mask = np.isnan(chunk_windows).sum(axis=1) > 0
         chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
-        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
-        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
-
-        # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
+        chunk_mads = np.nanmedian(np.abs(chunk_windows - chunk_medians), axis=1)
         chunk_mads[invalid_mask] = np.nan
         mads_list.append(chunk_mads)
 
-    if mads_list:
-        mads = np.concatenate(mads_list)
-    else:
-        mads = np.array([])
+    mads = np.concatenate(mads_list) if mads_list else np.array([])
+    pad_left = window_size // 2
+    rolling_mad = np.pad(mads, (pad_left, n - len(mads) - pad_left), mode='constant', constant_values=np.nan)
+    rolling_scaled_mad = rolling_mad * 1.4826
 
-    # Pad the mads array with NaNs to match pandas center=True behavior
-    pad_width = window_size // 2
-
-    # Ensure the length matches by computing padding for left and right
-    pad_left = pad_width
-    pad_right = n - len(mads) - pad_left
-    rolling_mad = np.pad(
-        mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
-    )
-
-    mad_scale_factor = 1.4826
-    rolling_scaled_mad = rolling_mad * mad_scale_factor
-
-    # ⚡ Bolt: Vectorized outlier detection replacing python for loop (~16x speedup)
-    with np.errstate(invalid="ignore", divide="ignore"):
+    with np.errstate(invalid='ignore', divide='ignore'):
         abs_diff = np.abs(values_np - rolling_median)
         z_scores = abs_diff / rolling_scaled_mad
+        zero_mad_mask = rolling_scaled_mad < 1e-6
+        z_scores[zero_mad_mask] = np.where(abs_diff[zero_mad_mask] > threshold * 1e-6, np.inf, 0.0)
+        valid_mask = pd.notna(rolling_median) & pd.notna(rolling_scaled_mad)
+        outlier_indices = np.where((z_scores > threshold) & valid_mask)[0].tolist()
 
-        # Handle zero MAD exactly like _calculate_z_score
-        zero_mad_mask = rolling_scaled_mad == 0.0
-        z_scores[zero_mad_mask] = np.where(
-            values_np[zero_mad_mask] != rolling_median[zero_mad_mask],
-            threshold + 1.0,
-            0.0,
-        )
-
-        outlier_mask = z_scores > threshold
-        valid_mask = ~np.isnan(rolling_median) & ~np.isnan(rolling_scaled_mad)
-
-        outliers = np.where(outlier_mask & valid_mask)[0].tolist()
-
-        # We drop the log.debug per item inside the loop as it defeats the purpose of vectorization
-        # and is mentioned in the memory: "removing per-item logging (e.g., log.debug inside the loop)
-        # is a necessary and acceptable tradeoff".
-
-    if outliers:
+    if outlier_indices:
+        outliers.extend(outlier_indices)
+        for i in outlier_indices:
+            log.debug(
+                "Outlier detected at index %d (Value: %s, Median: %s, Scaled MAD: %s, Z: %s > Threshold: %s)",
+                i, values_np[i], rolling_median[i], rolling_scaled_mad[i], z_scores[i], threshold
+            )
         log.info(
             "Detected %d potential outlier(s) with window %d, threshold %s. Indices: %s",
-            len(outliers),
-            window_size,
-            threshold,
-            outliers,
+            len(outliers), window_size, threshold, outliers,
         )
     else:
-        log.debug(
-            "No outliers detected with window %d, threshold %s.", window_size, threshold
-        )
+        log.debug("No outliers detected with window %d, threshold %s.", window_size, threshold)
 
     return outliers
 
 
-def _build_gaps_dataframe(
-    result_df: pd.DataFrame, gap_indices: list[int], time_col: str
-) -> Any:
+def _build_gaps_dataframe(result_df: pd.DataFrame, gap_indices: list[int], time_col: str) -> Any:
     """Helper to isolate gap generation logic and reduce correct_gaps complexity."""
     processed_gap_indices = set()
     all_new_rows = []
@@ -314,77 +255,38 @@ def _build_gaps_dataframe(
         time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
 
         # Calculate step compactly but readably
-        normal_step = (
-            time_before - time_col_arr[idx_before - 1]
-            if idx_before > 0
-            else (
-                time_col_arr[idx_after + 1] - time_after
-                if len(result_df) > idx_after + 1
-                else None
-            )
-        )
+        normal_step = time_before - time_col_arr[idx_before - 1] if idx_before > 0 else (
+            time_col_arr[idx_after + 1] - time_after if len(result_df) > idx_after + 1 else None)
 
         if normal_step is None:
-            log.warning(
-                "Cannot determine normal time step for gap at index %d. Skipping.",
-                gap_idx,
-            )
+            log.warning("Cannot determine normal time step for gap at index %d. Skipping.", gap_idx)
             continue
 
         # Check for invalid step compactly
-        invalid_td = (
-            isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
-        )
-        invalid_np = isinstance(
-            normal_step, np.timedelta64
-        ) and normal_step <= np.timedelta64(0, "ns")
-        invalid_num = (
-            not isinstance(normal_step, (pd.Timedelta, np.timedelta64))
-            and normal_step <= 0
-        )
+        invalid_td = isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
+        invalid_np = isinstance(normal_step, np.timedelta64) and normal_step <= np.timedelta64(0, 'ns')
+        invalid_num = not isinstance(normal_step, (pd.Timedelta, np.timedelta64)) and normal_step <= 0
 
         if invalid_td or invalid_np or invalid_num:
-            log.warning(
-                "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
-                normal_step,
-                gap_idx,
-            )
+            log.warning("Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.", normal_step, gap_idx)
             continue
 
         num_missing_points = round((time_after - time_before) / normal_step) - 1
 
         if num_missing_points <= 0:
-            log.debug(
-                "Calculated 0 or negative missing points for gap at index %d. Skipping.",
-                gap_idx,
-            )
+            log.debug("Calculated 0 or negative missing points for gap at index %d. Skipping.", gap_idx)
             continue
 
-        log.info(
-            "Filling gap at index %d: %d points missing between %s and %s (step: %s).",
-            gap_idx,
-            num_missing_points,
-            time_before,
-            time_after,
-            normal_step,
-        )
+        log.info("Filling gap at index %d: %d points missing between %s and %s (step: %s).", gap_idx, num_missing_points, time_before, time_after, normal_step)
 
         start_time, end_time = time_before + normal_step, time_after - normal_step
 
         if isinstance(start_time, (pd.Timestamp, np.datetime64)):
-            new_times = pd.date_range(
-                start=pd.Timestamp(start_time),
-                end=pd.Timestamp(end_time),
-                periods=num_missing_points,
-            )
+            new_times = pd.date_range(start=pd.Timestamp(start_time), end=pd.Timestamp(end_time), periods=num_missing_points)
         elif hasattr(start_time, "value"):
-            new_times = pd.to_datetime(
-                np.linspace(start_time.value, end_time.value, num=num_missing_points)
-            )
+            new_times = pd.to_datetime(np.linspace(start_time.value, end_time.value, num=num_missing_points))
         else:
-            new_times = np.linspace(
-                start_time, end_time, num=num_missing_points, dtype=type(time_before)
-            )
+            new_times = np.linspace(start_time, end_time, num=num_missing_points, dtype=type(time_before))
 
         # ⚡ Bolt: Accumulate raw times instead of building pd.DataFrames incrementally
         all_new_rows.append(new_times)
@@ -394,9 +296,7 @@ def _build_gaps_dataframe(
         return None
 
     concatenated_times = np.concatenate(all_new_rows)
-    gaps_df = pd.DataFrame(
-        np.nan, index=range(len(concatenated_times)), columns=result_df.columns
-    )
+    gaps_df = pd.DataFrame(np.nan, index=range(len(concatenated_times)), columns=result_df.columns)
     gaps_df[time_col] = concatenated_times
     return gaps_df
 
