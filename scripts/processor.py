@@ -196,6 +196,38 @@ def _calculate_rolling_mad(
     return np.array([])
 
 
+def _calculate_vectorized_z_scores(
+    values_np: np.ndarray,
+    rolling_median: np.ndarray,
+    rolling_scaled_mad: np.ndarray,
+    threshold: float,
+    n: int,
+) -> np.ndarray:
+    """Helper to vectorize row-by-row Z-score calculation."""
+    # ⚡ Bolt: Vectorize row-by-row Z-score calculation to eliminate Python for loop overhead
+    valid_mask = ~(np.isnan(rolling_median) | np.isnan(rolling_scaled_mad))
+
+    # Calculate absolute differences from median
+    abs_diffs = np.abs(values_np - rolling_median)
+
+    # Initialize z_scores with zeros
+    z_scores = np.zeros(n)
+
+    # Condition 1: scaled_mad_i >= 1e-6
+    mask_normal = valid_mask & (rolling_scaled_mad >= 1e-6)
+    if np.any(mask_normal):
+        z_scores[mask_normal] = abs_diffs[mask_normal] / rolling_scaled_mad[mask_normal]
+
+    # Condition 2: scaled_mad_i < 1e-6
+    mask_small_mad = valid_mask & (rolling_scaled_mad < 1e-6)
+    if np.any(mask_small_mad):
+        mask_large_diff = mask_small_mad & (abs_diffs > threshold * 1e-6)
+        z_scores[mask_large_diff] = np.inf
+        # The other cases return 0.0 which is the default
+
+    return z_scores
+
+
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -248,26 +280,9 @@ def detect_outliers(
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
 
-    # ⚡ Bolt: Vectorize row-by-row Z-score calculation to eliminate Python for loop overhead
-    valid_mask = ~(np.isnan(rolling_median) | np.isnan(rolling_scaled_mad))
-
-    # Calculate absolute differences from median
-    abs_diffs = np.abs(values_np - rolling_median)
-
-    # Initialize z_scores with zeros
-    z_scores = np.zeros(n)
-
-    # Condition 1: scaled_mad_i >= 1e-6
-    mask_normal = valid_mask & (rolling_scaled_mad >= 1e-6)
-    if np.any(mask_normal):
-        z_scores[mask_normal] = abs_diffs[mask_normal] / rolling_scaled_mad[mask_normal]
-
-    # Condition 2: scaled_mad_i < 1e-6
-    mask_small_mad = valid_mask & (rolling_scaled_mad < 1e-6)
-    if np.any(mask_small_mad):
-        mask_large_diff = mask_small_mad & (abs_diffs > threshold * 1e-6)
-        z_scores[mask_large_diff] = np.inf
-        # The other cases return 0.0 which is the default
+    z_scores = _calculate_vectorized_z_scores(
+        values_np, rolling_median, rolling_scaled_mad, threshold, n
+    )
 
     outlier_mask = z_scores > threshold
     outliers = np.where(outlier_mask)[0].tolist()
