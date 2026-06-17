@@ -441,6 +441,31 @@ def _build_gaps_dataframe(
     return gaps_df
 
 
+def _interpolate_gap_values(
+    result_df: pd.DataFrame, value_cols: list[str], time_col: str, method: str
+) -> pd.DataFrame:
+    """Helper to interpolate missing values after gaps are filled with timestamps."""
+    if method == "time" and isinstance(result_df.index, pd.DatetimeIndex):
+        result_df_indexed = result_df.set_index(time_col)
+        result_df_indexed[value_cols] = result_df_indexed[value_cols].interpolate(
+            method=method, limit_direction="both"
+        )
+        return result_df_indexed.reset_index()
+    elif method == "time":
+        log.warning(
+            "Cannot use 'time' interpolation without a valid time column index. Falling back to 'linear'."
+        )
+        result_df[value_cols] = result_df[value_cols].interpolate(
+            method="linear", limit_direction="both"
+        )
+        return result_df
+    else:
+        result_df[value_cols] = result_df[value_cols].interpolate(
+            method=method, limit_direction="both"
+        )
+        return result_df
+
+
 def correct_gaps(
     data: pd.DataFrame,
     gap_indices: list[int],
@@ -494,23 +519,7 @@ def correct_gaps(
     log.info(
         "Interpolating values for columns %s using method '%s'.", value_cols, method
     )
-    if method == "time" and isinstance(result_df.index, pd.DatetimeIndex):
-        result_df_indexed = result_df.set_index(time_col)
-        result_df_indexed[value_cols] = result_df_indexed[value_cols].interpolate(
-            method=method, limit_direction="both"
-        )
-        result_df = result_df_indexed.reset_index()
-    elif method == "time":
-        log.warning(
-            "Cannot use 'time' interpolation without a valid time column index. Falling back to 'linear'."
-        )
-        result_df[value_cols] = result_df[value_cols].interpolate(
-            method="linear", limit_direction="both"
-        )
-    else:
-        result_df[value_cols] = result_df[value_cols].interpolate(
-            method=method, limit_direction="both"
-        )
+    result_df = _interpolate_gap_values(result_df, value_cols, time_col, method)
 
     log.info(
         "Gap correction complete. DataFrame size changed from %d to %d.",
