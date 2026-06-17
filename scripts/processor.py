@@ -593,6 +593,53 @@ def correct_jumps(
     return result_df
 
 
+def _calculate_outlier_replacements(
+    result_df, value_col, outlier_indices, window_size, method, n, outlier_indices_set
+):
+    """Helper to calculate outlier replacement values."""
+    values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+    for outlier_idx in outlier_indices:
+        start_idx = max(0, outlier_idx - window_size // 2)
+        end_idx = min(n, outlier_idx + window_size // 2 + 1)
+        window_indices = range(start_idx, end_idx)
+        valid_indices_in_window = [
+            idx
+            for idx in window_indices
+            if idx != outlier_idx and idx not in outlier_indices_set
+        ]
+        if not valid_indices_in_window:
+            log.warning(
+                "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
+                outlier_idx,
+            )
+            continue
+
+        surrounding_values = values_np[valid_indices_in_window]
+
+        if method == "median":
+            replacement_value = np.nanmedian(surrounding_values)
+        else:
+            replacement_value = np.nanmean(surrounding_values)
+
+        if pd.notna(replacement_value):
+            original_value = values_np[outlier_idx]
+            values_np[outlier_idx] = replacement_value
+            log.debug(
+                "Replaced outlier at index %d (Original: %s) with %s value: %s",
+                outlier_idx,
+                original_value,
+                method,
+                replacement_value,
+            )
+        else:
+            log.warning(
+                "Could not compute valid %s replacement for outlier at index %d.",
+                method,
+                outlier_idx,
+            )
+    return values_np
+
+
 def correct_outliers(
     data: pd.DataFrame,
     outlier_indices: list[int],
@@ -640,48 +687,15 @@ def correct_outliers(
         log.info("Outliers replaced with NaN.")
 
     elif method in ["median", "mean"]:
-        values_np = result_df[value_col].astype(float).to_numpy(copy=True)
-        for outlier_idx in outlier_indices:
-            start_idx = max(0, outlier_idx - window_size // 2)
-            end_idx = min(n, outlier_idx + window_size // 2 + 1)
-            window_indices = range(start_idx, end_idx)
-            valid_indices_in_window = [
-                idx
-                for idx in window_indices
-                if idx != outlier_idx and idx not in outlier_indices_set
-            ]
-            if not valid_indices_in_window:
-                log.warning(
-                    "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
-                    outlier_idx,
-                )
-                continue
-
-            surrounding_values = values_np[valid_indices_in_window]
-
-            if method == "median":
-                replacement_value = np.nanmedian(surrounding_values)
-            else:
-                replacement_value = np.nanmean(surrounding_values)
-
-            if pd.notna(replacement_value):
-                original_value = values_np[outlier_idx]
-                values_np[outlier_idx] = replacement_value
-                log.debug(
-                    "Replaced outlier at index %d (Original: %s) with %s value: %s",
-                    outlier_idx,
-                    original_value,
-                    method,
-                    replacement_value,
-                )
-            else:
-                log.warning(
-                    "Could not compute valid %s replacement for outlier at index %d.",
-                    method,
-                    outlier_idx,
-                )
-
-        result_df[value_col] = values_np
+        result_df[value_col] = _calculate_outlier_replacements(
+            result_df,
+            value_col,
+            outlier_indices,
+            window_size,
+            method,
+            n,
+            outlier_indices_set,
+        )
     else:
         log.error(
             "Invalid outlier correction method specified: '%s'. No correction applied.",
