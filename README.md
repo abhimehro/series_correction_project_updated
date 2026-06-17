@@ -2,6 +2,7 @@
 
 [![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/80827)
 [![Code Coverage](https://codecov.io/gh/abhimehro/series_correction_project_updated/branch/main/graph/badge.svg)](https://codecov.io/gh/abhimehro/series_correction_project_updated) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Changelog Status](https://github.com/abhimehro/series_correction_project_updated/actions/workflows/changelog.yml/badge.svg)]
 
 [![CodeScene Average Code Health](https://codescene.io/projects/80827/status-badges/average-code-health)](https://codescene.io/projects/80827)
 [![CodeScene Hotspot Code Health](https://codescene.io/projects/80827/status-badges/hotspot-code-health)](https://codescene.io/projects/80827)
