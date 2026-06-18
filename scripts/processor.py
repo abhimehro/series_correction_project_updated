@@ -385,13 +385,10 @@ def _generate_gap_times(start_time, end_time, num_missing_points, time_before):
         )
 
 
-def _build_gaps_dataframe(
-    result_df: pd.DataFrame, gap_indices: list[int], time_col: str
-) -> Any:
-    """Helper to isolate gap generation logic and reduce correct_gaps complexity."""
+def _process_gap_indices(result_df, gap_indices, time_col_arr):
+    """Helper to process gap indices and return new time rows."""
     processed_gap_indices = set()
     all_new_rows = []
-    time_col_arr = result_df[time_col].to_numpy()
 
     for gap_idx in sorted(gap_indices, reverse=True):
         if gap_idx in processed_gap_indices or gap_idx == 0:
@@ -439,6 +436,15 @@ def _build_gaps_dataframe(
         all_new_rows.append(new_times)
         processed_gap_indices.add(gap_idx)
 
+    return all_new_rows
+
+
+def _build_gaps_dataframe(
+    result_df: pd.DataFrame, gap_indices: list[int], time_col: str
+) -> Any:
+    """Helper to isolate gap generation logic and reduce correct_gaps complexity."""
+    time_col_arr = result_df[time_col].to_numpy()
+    all_new_rows = _process_gap_indices(result_df, gap_indices, time_col_arr)
     if not all_new_rows:
         return None
 
@@ -473,6 +479,28 @@ def _interpolate_gap_values(
             method=method, limit_direction="both"
         )
         return result_df
+
+
+def _apply_gap_correction(data, result_df, value_cols, time_col, method, gap_indices):
+    """Helper to apply gap correction to the dataframe."""
+    result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
+
+    gaps_df = _build_gaps_dataframe(result_df, gap_indices, time_col)
+    if gaps_df is not None:
+        result_df = pd.concat([result_df, gaps_df], ignore_index=True)
+        result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
+
+    log.info(
+        "Interpolating values for columns %s using method '%s'.", value_cols, method
+    )
+    result_df = _interpolate_gap_values(result_df, value_cols, time_col, method)
+
+    log.info(
+        "Gap correction complete. DataFrame size changed from %d to %d.",
+        len(data),
+        len(result_df),
+    )
+    return result_df
 
 
 def correct_gaps(
@@ -517,25 +545,9 @@ def correct_gaps(
     if not value_cols:
         log.warning("No numeric value columns found to interpolate for gap correction.")
         return result_df
-
-    result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
-
-    gaps_df = _build_gaps_dataframe(result_df, gap_indices, time_col)
-    if gaps_df is not None:
-        result_df = pd.concat([result_df, gaps_df], ignore_index=True)
-        result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
-
-    log.info(
-        "Interpolating values for columns %s using method '%s'.", value_cols, method
+    return _apply_gap_correction(
+        data, result_df, value_cols, time_col, method, gap_indices
     )
-    result_df = _interpolate_gap_values(result_df, value_cols, time_col, method)
-
-    log.info(
-        "Gap correction complete. DataFrame size changed from %d to %d.",
-        len(data),
-        len(result_df),
-    )
-    return result_df
 
 
 def _apply_jump_offsets(result_df, value_col, sorted_jump_indices, window_size, n):
