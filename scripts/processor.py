@@ -665,6 +665,39 @@ def _calculate_outlier_replacements(
     return values_np
 
 
+def _apply_outlier_correction_method(
+    result_df, outlier_indices, value_col, window_size, method, n, outlier_indices_set
+):
+    """Helper to apply the specified outlier correction method."""
+    if method == "interpolate":
+        result_df.loc[outlier_indices, value_col] = np.nan
+        result_df[value_col] = result_df[value_col].interpolate(
+            method="linear", limit_direction="both"
+        )
+        log.info("Outliers replaced via linear interpolation.")
+
+    elif method == "remove":
+        result_df.loc[outlier_indices, value_col] = np.nan
+        log.info("Outliers replaced with NaN.")
+
+    elif method in ["median", "mean"]:
+        result_df[value_col] = _calculate_outlier_replacements(
+            result_df,
+            value_col,
+            outlier_indices,
+            window_size,
+            method,
+            n,
+            outlier_indices_set,
+        )
+    else:
+        log.error(
+            "Invalid outlier correction method specified: '%s'. No correction applied.",
+            method,
+        )
+    return result_df
+
+
 def correct_outliers(
     data: pd.DataFrame,
     outlier_indices: list[int],
@@ -700,33 +733,15 @@ def correct_outliers(
         method,
     )
 
-    if method == "interpolate":
-        result_df.loc[outlier_indices, value_col] = np.nan
-        result_df[value_col] = result_df[value_col].interpolate(
-            method="linear", limit_direction="both"
-        )
-        log.info("Outliers replaced via linear interpolation.")
-
-    elif method == "remove":
-        result_df.loc[outlier_indices, value_col] = np.nan
-        log.info("Outliers replaced with NaN.")
-
-    elif method in ["median", "mean"]:
-        result_df[value_col] = _calculate_outlier_replacements(
-            result_df,
-            value_col,
-            outlier_indices,
-            window_size,
-            method,
-            n,
-            outlier_indices_set,
-        )
-    else:
-        log.error(
-            "Invalid outlier correction method specified: '%s'. No correction applied.",
-            method,
-        )
-        return result_df
+    result_df = _apply_outlier_correction_method(
+        result_df,
+        outlier_indices,
+        value_col,
+        window_size,
+        method,
+        n,
+        outlier_indices_set,
+    )
 
     log.info("Outlier correction complete for column '%s'.", value_col)
     return result_df
