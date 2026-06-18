@@ -17,6 +17,26 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 
+def _identify_gap_indices(time_diffs, gap_threshold, median_diff):
+    """Helper to identify gap indices based on threshold."""
+    # Identify indices where the time difference exceeds the threshold
+    # The index corresponds to the row *after* the gap.
+    gap_indices = time_diffs[time_diffs > gap_threshold].index.tolist()
+
+    if gap_indices:
+        log.info(
+            "Detected %d potential gap(s) with threshold %s (median diff: %s). Indices: %s",
+            len(gap_indices),
+            gap_threshold,
+            median_diff,
+            gap_indices,
+        )
+    else:
+        log.debug("No gaps detected with threshold %s.", gap_threshold)
+
+    return gap_indices
+
+
 def detect_gaps(
     data: pd.DataFrame, time_col: str = "Time (Seconds)", threshold_factor: float = 3.0
 ) -> list[int]:
@@ -64,22 +84,24 @@ def detect_gaps(
     # Define the gap threshold
     gap_threshold = threshold_factor * median_diff
 
-    # Identify indices where the time difference exceeds the threshold
-    # The index corresponds to the row *after* the gap.
-    gap_indices = time_diffs[time_diffs > gap_threshold].index.tolist()
+    return _identify_gap_indices(time_diffs, gap_threshold, median_diff)
 
-    if gap_indices:
+
+def _log_and_return_jumps(jumps, window_size, threshold):
+    """Helper to log and return jump indices."""
+    if jumps:
         log.info(
-            "Detected %d potential gap(s) with threshold %s (median diff: %s). Indices: %s",
-            len(gap_indices),
-            gap_threshold,
-            median_diff,
-            gap_indices,
+            "Detected %d potential jump(s) with window %d, threshold %s. Indices: %s",
+            len(jumps),
+            window_size,
+            threshold,
+            jumps,
         )
     else:
-        log.debug("No gaps detected with threshold %s.", gap_threshold)
-
-    return gap_indices
+        log.debug(
+            "No jumps detected with window %d, threshold %s.", window_size, threshold
+        )
+    return jumps
 
 
 def detect_jumps(
@@ -143,20 +165,7 @@ def detect_jumps(
                 "Jump detected at index %d (CUSUM exceeded threshold %s)", i, threshold
             )
 
-    if jumps:
-        log.info(
-            "Detected %d potential jump(s) with window %d, threshold %s. Indices: %s",
-            len(jumps),
-            window_size,
-            threshold,
-            jumps,
-        )
-    else:
-        log.debug(
-            "No jumps detected with window %d, threshold %s.", window_size, threshold
-        )
-
-    return jumps
+    return _log_and_return_jumps(jumps, window_size, threshold)
 
 
 def _calculate_rolling_mad(
@@ -529,34 +538,8 @@ def correct_gaps(
     return result_df
 
 
-def correct_jumps(
-    data: pd.DataFrame, jump_indices: list[int], value_col: str, window_size: int = 5
-) -> pd.DataFrame:
-    """
-    Correct jumps/shifts in sensor values by applying an offset.
-
-    The offset is calculated as the difference between the median values
-    in windows immediately before and after the detected jump point.
-    This offset is then added to all data points from the jump point onwards.
-
-    Args:
-        data: DataFrame containing sensor data.
-        jump_indices: List of indices where jumps are detected.
-        value_col: Name of the value column to correct.
-        window_size: Size of the window before and after the jump for
-                     calculating the median offset.
-
-    Returns:
-        DataFrame with jumps corrected. Returns a copy of the original if no jumps.
-    """
-    if not jump_indices:
-        return data.copy()
-
-    result_df = data.copy()
-    n = len(result_df)
-
-    sorted_jump_indices = sorted(jump_indices)
-
+def _apply_jump_offsets(result_df, value_col, sorted_jump_indices, window_size, n):
+    """Helper to apply jump offsets to values."""
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
@@ -596,7 +579,40 @@ def correct_jumps(
             "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
         )
 
-    result_df[value_col] = values_np
+    return values_np
+
+
+def correct_jumps(
+    data: pd.DataFrame, jump_indices: list[int], value_col: str, window_size: int = 5
+) -> pd.DataFrame:
+    """
+    Correct jumps/shifts in sensor values by applying an offset.
+
+    The offset is calculated as the difference between the median values
+    in windows immediately before and after the detected jump point.
+    This offset is then added to all data points from the jump point onwards.
+
+    Args:
+        data: DataFrame containing sensor data.
+        jump_indices: List of indices where jumps are detected.
+        value_col: Name of the value column to correct.
+        window_size: Size of the window before and after the jump for
+                     calculating the median offset.
+
+    Returns:
+        DataFrame with jumps corrected. Returns a copy of the original if no jumps.
+    """
+    if not jump_indices:
+        return data.copy()
+
+    result_df = data.copy()
+    n = len(result_df)
+
+    sorted_jump_indices = sorted(jump_indices)
+
+    result_df[value_col] = _apply_jump_offsets(
+        result_df, value_col, sorted_jump_indices, window_size, n
+    )
 
     log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
