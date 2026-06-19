@@ -810,18 +810,8 @@ def _validate_and_detect_value_col(processed_data, time_col, value_col):
     return value_col
 
 
-def process_data(
-    data: pd.DataFrame, config: dict[str, Any] | None = None
-) -> pd.DataFrame:
-    """
-    Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
-
-    Applies detection and correction functions sequentially based on configuration.
-
-    Args:
-        data: DataFrame containing sensor data.
-        config: Configuration dictionary with processing parameters.
-    """
+def _build_default_config(config):
+    """Helper to build default config."""
     default_config = {
         "window_size": 5,
         "threshold": 3.0,
@@ -837,6 +827,22 @@ def process_data(
         config = {}
     merged_config = {**default_config, **(config or {})}
     log.info("Processing data with configuration: %s", merged_config)
+    return merged_config
+
+
+def process_data(
+    data: pd.DataFrame, config: dict[str, Any] | None = None
+) -> pd.DataFrame:
+    """
+    Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
+
+    Applies detection and correction functions sequentially based on configuration.
+
+    Args:
+        data: DataFrame containing sensor data.
+        config: Configuration dictionary with processing parameters.
+    """
+    merged_config = _build_default_config(config)
 
     processed_data = data.copy()
 
