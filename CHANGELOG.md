@@ -40,6 +40,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump codecov/codecov-action from 4 to 7 [\#127](https://github.com/abhimehro/series_correction_project_updated/pull/127) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore: apply code formatting and clean up imports [\#117](https://github.com/abhimehro/series_correction_project_updated/pull/117) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Fix CSV Injection in `to_csv` exports [\#115](https://github.com/abhimehro/series_correction_project_updated/pull/115) ([abhimehro](https://github.com/abhimehro))
 - test\(processor\): add missing error path test for process\_data \(salvages \#109\) [\#112](https://github.com/abhimehro/series_correction_project_updated/pull/112) ([abhimehro](https://github.com/abhimehro))
