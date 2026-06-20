@@ -161,20 +161,63 @@ def detect_jumps(
     return jumps
 
 
-def _calculate_z_score(
-    current_value: float, median_i: float, scaled_mad_i: float, threshold: float
-) -> float:
-    """Helper function to calculate the modified Z-score for outlier detection."""
-    if scaled_mad_i < 1e-6:
-        if abs(current_value - median_i) > 1e-6:
-            if abs(current_value - median_i) > threshold * 1e-6:
-                return np.inf
-            else:
-                return 0.0
-        else:
-            return 0.0
+def _calculate_rolling_mad(values_np: np.ndarray, window_size: int) -> np.ndarray:
+    """Helper function to calculate chunked rolling median absolute deviation (MAD)."""
+    from numpy.lib.stride_tricks import sliding_window_view
+
+    n = len(values_np)
+    chunk_size = 50000
+    mads_list = []
+    num_windows = n - window_size + 1
+
+    for start_idx in range(0, num_windows, chunk_size):
+        end_idx = min(start_idx + chunk_size, num_windows)
+        chunk = values_np[start_idx : end_idx + window_size - 1]
+
+        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
+        nan_counts = np.isnan(chunk_windows).sum(axis=1)
+        invalid_mask = nan_counts > 0
+
+        chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
+        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
+        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
+
+        chunk_mads[invalid_mask] = np.nan
+        mads_list.append(chunk_mads)
+
+    if mads_list:
+        mads = np.concatenate(mads_list)
     else:
-        return abs(current_value - median_i) / scaled_mad_i
+        mads = np.array([])
+
+    pad_width = window_size // 2
+    pad_left = pad_width
+    pad_right = n - len(mads) - pad_left
+    return np.pad(mads, (pad_left, pad_right), mode="constant", constant_values=np.nan)
+
+
+def _calculate_vectorized_z_scores(
+    values_np: np.ndarray,
+    rolling_median: np.ndarray,
+    rolling_scaled_mad: np.ndarray,
+    threshold: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Helper function to calculate vectorized modified Z-scores and return valid mask and z-scores."""
+    n = len(values_np)
+    valid_mask = ~(np.isnan(rolling_median) | np.isnan(rolling_scaled_mad))
+    z_scores = np.zeros(n)
+    abs_diff = np.abs(values_np - rolling_median)
+
+    mask_normal = valid_mask & (rolling_scaled_mad >= 1e-6)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        z_scores[mask_normal] = abs_diff[mask_normal] / rolling_scaled_mad[mask_normal]
+
+    mask_small_mad = valid_mask & (rolling_scaled_mad < 1e-6)
+    mask_large_diff = mask_small_mad & (abs_diff > 1e-6)
+    mask_inf = mask_large_diff & (abs_diff > threshold * 1e-6)
+    z_scores[mask_inf] = np.inf
+
+    return valid_mask, z_scores
 
 
 def detect_outliers(
@@ -213,66 +256,15 @@ def detect_outliers(
     # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
-    # Calculate rolling MAD using sliding_window_view
-    from numpy.lib.stride_tricks import sliding_window_view
-
-    # ⚡ Bolt: Use sliding_window_view to vectorize MAD calculation instead of pandas rolling.apply
-    # This avoids Python function call overhead and provides ~80x speedup for this specific computation.
-    # To prevent Memory Errors on huge arrays, we process the MAD calculation in chunks.
-    chunk_size = 50000
-    mads_list = []
-    num_windows = n - window_size + 1
-
-    for start_idx in range(0, num_windows, chunk_size):
-        end_idx = min(start_idx + chunk_size, num_windows)
-        # Add window_size - 1 to end_idx to get the slice of original array needed to form the windows
-        chunk = values_np[start_idx : end_idx + window_size - 1]
-
-        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
-
-        # Calculate nan count per window to mimic pandas min_periods=window_size behavior
-        nan_counts = np.isnan(chunk_windows).sum(axis=1)
-        invalid_mask = nan_counts > 0
-
-        chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
-        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
-        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
-
-        # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
-        chunk_mads[invalid_mask] = np.nan
-        mads_list.append(chunk_mads)
-
-    if mads_list:
-        mads = np.concatenate(mads_list)
-    else:
-        mads = np.array([])
-
-    # Pad the mads array with NaNs to match pandas center=True behavior
-    pad_width = window_size // 2
-
-    # Ensure the length matches by computing padding for left and right
-    pad_left = pad_width
-    pad_right = n - len(mads) - pad_left
-    rolling_mad = np.pad(
-        mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
-    )
-
+    # Calculate rolling MAD using chunked vectorized helper
+    rolling_mad = _calculate_rolling_mad(values_np, window_size)
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
 
-    # ⚡ Bolt: Vectorize outlier detection loop
-    valid_mask = ~(np.isnan(rolling_median) | np.isnan(rolling_scaled_mad))
-    z_scores = np.zeros(n)
-    abs_diff = np.abs(values_np - rolling_median)
-
-    mask_normal = valid_mask & (rolling_scaled_mad >= 1e-6)
-    with np.errstate(invalid="ignore", divide="ignore"):
-        z_scores[mask_normal] = abs_diff[mask_normal] / rolling_scaled_mad[mask_normal]
-
-    mask_small_mad = valid_mask & (rolling_scaled_mad < 1e-6)
-    mask_large_diff = mask_small_mad & (abs_diff > 1e-6)
-    mask_inf = mask_large_diff & (abs_diff > threshold * 1e-6)
-    z_scores[mask_inf] = np.inf
+    # Vectorize outlier detection using helper
+    valid_mask, z_scores = _calculate_vectorized_z_scores(
+        values_np, rolling_median, rolling_scaled_mad, threshold
+    )
 
     outlier_mask = valid_mask & (z_scores > threshold)
     outliers = np.where(outlier_mask)[0].tolist()
@@ -534,40 +526,25 @@ def correct_jumps(
         # Calculate offsets
         offsets = medians_before - medians_after
 
-        # Handle NaNs
+        # Handle NaNs and log summary
         nan_mask = np.isnan(offsets)
-        for i, is_nan in enumerate(nan_mask):
-            if is_nan:
-                log.warning(
-                    "Skipping jump correction at index %d: NaN median in window.",
-                    valid_jumps[i],
-                )
-                offsets[i] = 0.0
-
-        # Log successful jumps
-        for j, offset, mb, ma, is_nan in zip(
-            valid_jumps, offsets, medians_before, medians_after, nan_mask
-        ):
-            if not is_nan:
-                log.info(
-                    "Correcting jump at index %d: Median before=%s, Median after=%s, Offset=%s",
-                    j,
-                    mb,
-                    ma,
-                    offset,
-                )
+        if nan_mask.any():
+            log.warning(
+                "Skipped jump correction for %d jumps due to NaN medians.",
+                nan_mask.sum(),
+            )
+        offsets[nan_mask] = 0.0
 
         # Apply offsets cumulatively
         offset_array = np.zeros(n)
-        # Using np.add.at correctly maps offsets to the starting index of the jump
         np.add.at(offset_array, valid_jumps, offsets)
-
         cum_offset = np.cumsum(offset_array)
         values_np += cum_offset
 
-        for j, offset in zip(valid_jumps, offsets):
-            if offset != 0.0:
-                log.info("Applied offset %s to data from index %d onwards.", offset, j)
+        log.info(
+            "Applied calculated offsets to %d valid jumps.",
+            len(valid_jumps) - nan_mask.sum(),
+        )
 
     result_df[value_col] = values_np
 
