@@ -500,13 +500,12 @@ def correct_jumps(
 
     # Filter valid jumps
     valid_jumps = [j for j in sorted_jump_indices if window_size <= j < n - window_size]
-    for j in sorted_jump_indices:
-        if j not in valid_jumps:
-            log.warning(
-                "Skipping jump correction at index %d: insufficient data for window size %d.",
-                j,
-                window_size,
-            )
+    if len(valid_jumps) < len(sorted_jump_indices):
+        log.warning(
+            "Skipped jump correction for %d jumps due to insufficient data for window size %d.",
+            len(sorted_jump_indices) - len(valid_jumps),
+            window_size,
+        )
 
     if valid_jumps:
         # ⚡ Bolt: Vectorize jump offsets by extracting all windows and cumulatively applying offsets
