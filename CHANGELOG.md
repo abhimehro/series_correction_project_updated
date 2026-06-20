@@ -1,8 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/abhimehro/series_correction_project_updated/tree/HEAD)
+## [v0.1.0](https://github.com/abhimehro/series_correction_project_updated/tree/v0.1.0) (2026-06-20)
 
-[Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/072d9f846c0991930f25c6afcf466140970d072a...HEAD)
+[Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/072d9f846c0991930f25c6afcf466140970d072a...v0.1.0)
 
 **Closed issues:**
 
