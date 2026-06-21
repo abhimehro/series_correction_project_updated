@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/abhimehro/series_correction_project_updated/tree/HEAD)
+
+[Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/v0.1.0...HEAD)
+
+**Closed issues:**
+
+- Daily QA & Agentic Review — 2026-06-20 [\#133](https://github.com/abhimehro/series_correction_project_updated/issues/133)
+
+**Merged pull requests:**
+
+- Format scripts/processor.py with black [\#134](https://github.com/abhimehro/series_correction_project_updated/pull/134) ([abhimehro](https://github.com/abhimehro))
+
 ## [v0.1.0](https://github.com/abhimehro/series_correction_project_updated/tree/v0.1.0) (2026-06-20)
 
 [Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/072d9f846c0991930f25c6afcf466140970d072a...v0.1.0)
