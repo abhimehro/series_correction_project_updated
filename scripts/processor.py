@@ -169,7 +169,7 @@ def detect_jumps(
 
 
 def _calculate_rolling_mad(
-    values_np: np.ndarray, n: int, window_size: int
+    values_np: np.ndarray, window_size: int
 ) -> np.ndarray:
     """Helper to calculate rolling MAD using sliding_window_view in chunks."""
     from numpy.lib.stride_tricks import sliding_window_view
@@ -177,6 +177,7 @@ def _calculate_rolling_mad(
     # ⚡ Bolt: Use sliding_window_view to vectorize MAD calculation instead of pandas rolling.apply
     # This avoids Python function call overhead and provides ~80x speedup for this specific computation.
     # To prevent Memory Errors on huge arrays, we process the MAD calculation in chunks.
+    n = len(values_np)
     chunk_size = 50000
     mads_list = []
     num_windows = n - window_size + 1
@@ -210,10 +211,10 @@ def _calculate_vectorized_z_scores(
     rolling_median: np.ndarray,
     rolling_scaled_mad: np.ndarray,
     threshold: float,
-    n: int,
 ) -> np.ndarray:
     """Helper to vectorize row-by-row Z-score calculation."""
     # ⚡ Bolt: Vectorize row-by-row Z-score calculation to eliminate Python for loop overhead
+    n = len(values_np)
     valid_mask = ~(np.isnan(rolling_median) | np.isnan(rolling_scaled_mad))
 
     # Calculate absolute differences from median
@@ -274,7 +275,7 @@ def detect_outliers(
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
     # Calculate rolling MAD using sliding_window_view
-    mads = _calculate_rolling_mad(values_np, n, window_size)
+    mads = _calculate_rolling_mad(values_np, window_size)
 
     # Pad the mads array with NaNs to match pandas center=True behavior
     pad_width = window_size // 2
@@ -290,7 +291,7 @@ def detect_outliers(
     rolling_scaled_mad = rolling_mad * mad_scale_factor
 
     z_scores = _calculate_vectorized_z_scores(
-        values_np, rolling_median, rolling_scaled_mad, threshold, n
+        values_np, rolling_median, rolling_scaled_mad, threshold
     )
 
     outlier_mask = z_scores > threshold
@@ -324,16 +325,28 @@ def detect_outliers(
     return outliers
 
 
-def _calculate_normal_step(
-    result_df, time_col_arr, idx_before, idx_after, time_before, time_after, gap_idx
-):
+def _is_invalid_normal_step(normal_step) -> bool:
+    """Helper to check if normal step is non-positive across numeric/timedelta formats."""
+    if isinstance(normal_step, pd.Timedelta):
+        return normal_step.total_seconds() <= 0
+    if isinstance(normal_step, np.timedelta64):
+        return normal_step <= np.timedelta64(0, "ns")
+    return normal_step <= 0
+
+
+def _calculate_normal_step(time_col_arr: np.ndarray, gap_idx: int):
     """Calculate and validate normal time step for gap filling."""
+    idx_before = gap_idx - 1
+    idx_after = gap_idx
+    time_before = time_col_arr[idx_before]
+    time_after = time_col_arr[idx_after]
+
     normal_step = (
         time_before - time_col_arr[idx_before - 1]
         if idx_before > 0
         else (
             time_col_arr[idx_after + 1] - time_after
-            if len(result_df) > idx_after + 1
+            if len(time_col_arr) > idx_after + 1
             else None
         )
     )
@@ -345,18 +358,7 @@ def _calculate_normal_step(
         )
         return None
 
-    # Check for invalid step compactly
-    invalid_td = (
-        isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
-    )
-    invalid_np = isinstance(
-        normal_step, np.timedelta64
-    ) and normal_step <= np.timedelta64(0, "ns")
-    invalid_num = (
-        not isinstance(normal_step, (pd.Timedelta, np.timedelta64)) and normal_step <= 0
-    )
-
-    if invalid_td or invalid_np or invalid_num:
+    if _is_invalid_normal_step(normal_step):
         log.warning(
             "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
             normal_step,
@@ -397,15 +399,7 @@ def _process_gap_indices(result_df, gap_indices, time_col_arr):
         idx_before, idx_after = gap_idx - 1, gap_idx
         time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
 
-        normal_step = _calculate_normal_step(
-            result_df,
-            time_col_arr,
-            idx_before,
-            idx_after,
-            time_before,
-            time_after,
-            gap_idx,
-        )
+        normal_step = _calculate_normal_step(time_col_arr, gap_idx)
         if normal_step is None:
             continue
 
@@ -481,8 +475,15 @@ def _interpolate_gap_values(
         return result_df
 
 
-def _apply_gap_correction(data, result_df, value_cols, time_col, method, gap_indices):
+def _apply_gap_correction(
+    result_df: pd.DataFrame, gap_indices: list[int], params: dict[str, Any]
+) -> pd.DataFrame:
     """Helper to apply gap correction to the dataframe."""
+    time_col = params["time_col"]
+    value_cols = params["value_cols"]
+    method = params["method"]
+    len_before = len(result_df)
+
     result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
 
     gaps_df = _build_gaps_dataframe(result_df, gap_indices, time_col)
@@ -497,7 +498,7 @@ def _apply_gap_correction(data, result_df, value_cols, time_col, method, gap_ind
 
     log.info(
         "Gap correction complete. DataFrame size changed from %d to %d.",
-        len(data),
+        len_before,
         len(result_df),
     )
     return result_df
@@ -545,15 +546,20 @@ def correct_gaps(
     if not value_cols:
         log.warning("No numeric value columns found to interpolate for gap correction.")
         return result_df
-    return _apply_gap_correction(
-        data, result_df, value_cols, time_col, method, gap_indices
-    )
+
+    params = {
+        "time_col": time_col,
+        "value_cols": value_cols,
+        "method": method,
+    }
+    return _apply_gap_correction(result_df, gap_indices, params)
 
 
-def _apply_jump_offsets(result_df, value_col, sorted_jump_indices, window_size, n):
+def _apply_jump_offsets(result_df, value_col, sorted_jump_indices, window_size):
     """Helper to apply jump offsets to values."""
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+    n = len(result_df)
 
     for jump_idx in sorted_jump_indices:
         if jump_idx < window_size or jump_idx >= n - window_size:
@@ -618,69 +624,96 @@ def correct_jumps(
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
 
     sorted_jump_indices = sorted(jump_indices)
 
     result_df[value_col] = _apply_jump_offsets(
-        result_df, value_col, sorted_jump_indices, window_size, n
+        result_df, value_col, sorted_jump_indices, window_size
     )
 
     log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
 
 
+def _calculate_single_outlier_replacement(
+    values_np: np.ndarray,
+    outlier_idx: int,
+    outlier_indices_set: set[int],
+    params: dict[str, Any],
+) -> float | None:
+    """Helper to calculate a single outlier replacement value."""
+    n = len(values_np)
+    window_size = params["window_size"]
+    method = params["method"]
+
+    start_idx = max(0, outlier_idx - window_size // 2)
+    end_idx = min(n, outlier_idx + window_size // 2 + 1)
+    window_indices = range(start_idx, end_idx)
+    valid_indices_in_window = [
+        idx
+        for idx in window_indices
+        if idx != outlier_idx and idx not in outlier_indices_set
+    ]
+    if not valid_indices_in_window:
+        log.warning(
+            "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
+            outlier_idx,
+        )
+        return None
+
+    surrounding_values = values_np[valid_indices_in_window]
+
+    if method == "median":
+        replacement_value = np.nanmedian(surrounding_values)
+    else:
+        replacement_value = np.nanmean(surrounding_values)
+
+    if pd.notna(replacement_value):
+        return replacement_value
+
+    log.warning(
+        "Could not compute valid %s replacement for outlier at index %d.",
+        method,
+        outlier_idx,
+    )
+    return None
+
+
 def _calculate_outlier_replacements(
-    result_df, value_col, outlier_indices, window_size, method, n, outlier_indices_set
-):
+    result_df: pd.DataFrame,
+    value_col: str,
+    outlier_indices: list[int],
+    params: dict[str, Any],
+) -> np.ndarray:
     """Helper to calculate outlier replacement values."""
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+    outlier_indices_set = set(outlier_indices)
+
     for outlier_idx in outlier_indices:
-        start_idx = max(0, outlier_idx - window_size // 2)
-        end_idx = min(n, outlier_idx + window_size // 2 + 1)
-        window_indices = range(start_idx, end_idx)
-        valid_indices_in_window = [
-            idx
-            for idx in window_indices
-            if idx != outlier_idx and idx not in outlier_indices_set
-        ]
-        if not valid_indices_in_window:
-            log.warning(
-                "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
-                outlier_idx,
-            )
-            continue
-
-        surrounding_values = values_np[valid_indices_in_window]
-
-        if method == "median":
-            replacement_value = np.nanmedian(surrounding_values)
-        else:
-            replacement_value = np.nanmean(surrounding_values)
-
-        if pd.notna(replacement_value):
+        replacement_value = _calculate_single_outlier_replacement(
+            values_np, outlier_idx, outlier_indices_set, params
+        )
+        if replacement_value is not None:
             original_value = values_np[outlier_idx]
             values_np[outlier_idx] = replacement_value
             log.debug(
                 "Replaced outlier at index %d (Original: %s) with %s value: %s",
                 outlier_idx,
                 original_value,
-                method,
+                params["method"],
                 replacement_value,
-            )
-        else:
-            log.warning(
-                "Could not compute valid %s replacement for outlier at index %d.",
-                method,
-                outlier_idx,
             )
     return values_np
 
 
 def _apply_outlier_correction_method(
-    result_df, outlier_indices, value_col, window_size, method, n, outlier_indices_set
-):
+    result_df: pd.DataFrame,
+    outlier_indices: list[int],
+    value_col: str,
+    params: dict[str, Any],
+) -> pd.DataFrame:
     """Helper to apply the specified outlier correction method."""
+    method = params["method"]
     if method == "interpolate":
         result_df.loc[outlier_indices, value_col] = np.nan
         result_df[value_col] = result_df[value_col].interpolate(
@@ -697,10 +730,7 @@ def _apply_outlier_correction_method(
             result_df,
             value_col,
             outlier_indices,
-            window_size,
-            method,
-            n,
-            outlier_indices_set,
+            params,
         )
     else:
         log.error(
@@ -735,8 +765,6 @@ def correct_outliers(
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
-    outlier_indices_set = set(outlier_indices)
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -745,14 +773,12 @@ def correct_outliers(
         method,
     )
 
+    params = {"window_size": window_size, "method": method}
     result_df = _apply_outlier_correction_method(
         result_df,
         outlier_indices,
         value_col,
-        window_size,
-        method,
-        n,
-        outlier_indices_set,
+        params,
     )
 
     log.info("Outlier correction complete for column '%s'.", value_col)
@@ -787,26 +813,37 @@ def _validate_and_convert_time_col(processed_data, time_col):
     return processed_data
 
 
-def _validate_and_detect_value_col(processed_data, time_col, value_col):
-    if value_col is None:
-        numeric_cols = processed_data.select_dtypes(include=np.number).columns
-        potential_value_cols = [col for col in numeric_cols if col != time_col]
-        if not potential_value_cols:
-            log.warning(
-                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
-                time_col,
-            )
-            raise ValueError("No numeric value columns found in the data")
-        value_col = potential_value_cols[0]
-        log.info("Auto-detected value column: '%s'", value_col)
-    elif value_col not in processed_data.columns:
+def _detect_value_col(processed_data, time_col):
+    """Helper to detect a numeric value column from data."""
+    numeric_cols = processed_data.select_dtypes(include=np.number).columns
+    potential_value_cols = [col for col in numeric_cols if col != time_col]
+    if not potential_value_cols:
+        log.warning(
+            "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
+            time_col,
+        )
+        raise ValueError("No numeric value columns found in the data")
+    value_col = potential_value_cols[0]
+    log.info("Auto-detected value column: '%s'", value_col)
+    return value_col
+
+
+def _validate_value_col(processed_data, value_col):
+    """Helper to validate specified value column exists and is numeric."""
+    if value_col not in processed_data.columns:
         log.warning(
             f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
         )
         raise ValueError("Specified value column not found in data columns")
-    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
+    if not pd.api.types.is_numeric_dtype(processed_data[value_col]):
         log.warning(f"Specified value column '{value_col}' is not numeric.")
         raise ValueError("Specified value column is not numeric.")
+
+
+def _validate_and_detect_value_col(processed_data, time_col, value_col):
+    if value_col is None:
+        return _detect_value_col(processed_data, time_col)
+    _validate_value_col(processed_data, value_col)
     return value_col
 
 
@@ -861,22 +898,21 @@ def process_data(
     log.debug("Sorting data by time column: '%s'", time_col)
     processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
 
-    processed_data = _process_gaps(
-        processed_data, time_col, value_col, gap_threshold_factor, gap_method
-    )
-    processed_data = _process_outliers(
-        processed_data, value_col, window_size, threshold, outlier_method
-    )
-    processed_data = _process_jumps(processed_data, value_col, window_size, threshold)
+    processed_data = _process_gaps(processed_data, merged_config)
+    processed_data = _process_outliers(processed_data, merged_config)
+    processed_data = _process_jumps(processed_data, merged_config)
 
     log.info("Data processing complete for value column '%s'.", value_col)
     return processed_data
 
 
-def _process_gaps(
-    processed_data, time_col, value_col, gap_threshold_factor, gap_method
-):
+def _process_gaps(processed_data, config):
     log.info("--- Step 1: Detecting and Correcting Gaps ---")
+    time_col = config["time_col"]
+    gap_threshold_factor = config["gap_threshold_factor"]
+    gap_method = config["gap_method"]
+    value_col = config["value_col"]
+
     gap_indices = detect_gaps(
         processed_data, time_col=time_col, threshold_factor=gap_threshold_factor
     )
@@ -894,10 +930,13 @@ def _process_gaps(
     return processed_data
 
 
-def _process_outliers(
-    processed_data, value_col, window_size, threshold, outlier_method
-):
+def _process_outliers(processed_data, config):
     log.info("--- Step 2: Detecting and Correcting Outliers ---")
+    value_col = config["value_col"]
+    window_size = config["window_size"]
+    threshold = config["threshold"]
+    outlier_method = config["outlier_method"]
+
     outlier_indices = detect_outliers(
         processed_data,
         value_col=value_col,
@@ -917,8 +956,12 @@ def _process_outliers(
     return processed_data
 
 
-def _process_jumps(processed_data, value_col, window_size, threshold):
+def _process_jumps(processed_data, config):
     log.info("--- Step 3: Detecting and Correcting Jumps ---")
+    value_col = config["value_col"]
+    window_size = config["window_size"]
+    threshold = config["threshold"]
+
     jump_indices = detect_jumps(
         processed_data,
         value_col=value_col,
