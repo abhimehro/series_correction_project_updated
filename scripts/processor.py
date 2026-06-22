@@ -131,19 +131,17 @@ def detect_jumps(
         deviation = values[i] - mean_prev_window
 
         # Normalize by previous window's standard deviation
-        if pd.notna(std_prev_window) and std_prev_window > 1e-6:
-            normalized_dev = deviation / std_prev_window
-        else:
-            normalized_dev = 0.0
+        normalized_dev = (
+            deviation / std_prev_window
+            if pd.notna(std_prev_window) and std_prev_window > 1e-6
+            else 0.0
+        )
 
         cusum += normalized_dev
 
         if abs(cusum) > threshold:
             jumps.append(i)
             cusum = 0.0
-            log.debug(
-                "Jump detected at index %d (CUSUM exceeded threshold %s)", i, threshold
-            )
 
     if jumps:
         log.info(
@@ -274,7 +272,7 @@ def detect_outliers(
 def _build_gaps_dataframe(
     result_df: pd.DataFrame, gap_indices: list[int], time_col: str
 ) -> Any:
-    """Helper to isolate gap generation logic and reduce correct_gaps complexity."""
+    """Helper to isolate gap generation logic."""
     processed_gap_indices = set()
     all_new_rows = []
     time_col_arr = result_df[time_col].to_numpy()
@@ -282,11 +280,9 @@ def _build_gaps_dataframe(
     for gap_idx in sorted(gap_indices, reverse=True):
         if gap_idx in processed_gap_indices or gap_idx == 0:
             continue
-
         idx_before, idx_after = gap_idx - 1, gap_idx
         time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
 
-        # Calculate step compactly but readably
         normal_step = (
             time_before - time_col_arr[idx_before - 1]
             if idx_before > 0
@@ -493,32 +489,14 @@ def correct_jumps(
             )
             continue
 
-        window_before = values_np[jump_idx - window_size : jump_idx]
-        window_after = values_np[jump_idx : jump_idx + window_size]
-
-        median_before = np.nanmedian(window_before)
-        median_after = np.nanmedian(window_after)
+        median_before = np.nanmedian(values_np[jump_idx - window_size : jump_idx])
+        median_after = np.nanmedian(values_np[jump_idx : jump_idx + window_size])
 
         if pd.isna(median_before) or pd.isna(median_after):
-            log.warning(
-                "Skipping jump correction at index %d: NaN median in window.", jump_idx
-            )
             continue
 
         local_offset = median_before - median_after
-
-        log.info(
-            "Correcting jump at index %d: Median before=%s, Median after=%s, Offset=%s",
-            jump_idx,
-            median_before,
-            median_after,
-            local_offset,
-        )
-
         values_np[jump_idx:] += local_offset
-        log.info(
-            "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
-        )
 
     result_df[value_col] = values_np
 
@@ -592,21 +570,13 @@ def correct_outliers(
 
             surrounding_values = values_np[valid_indices_in_window]
 
-            if method == "median":
-                replacement_value = np.nanmedian(surrounding_values)
-            else:
-                replacement_value = np.nanmean(surrounding_values)
-
+            replacement_value = (
+                np.nanmedian(surrounding_values)
+                if method == "median"
+                else np.nanmean(surrounding_values)
+            )
             if pd.notna(replacement_value):
-                original_value = values_np[outlier_idx]
                 values_np[outlier_idx] = replacement_value
-                log.debug(
-                    "Replaced outlier at index %d (Original: %s) with %s value: %s",
-                    outlier_idx,
-                    original_value,
-                    method,
-                    replacement_value,
-                )
             else:
                 log.warning(
                     "Could not compute valid %s replacement for outlier at index %d.",
