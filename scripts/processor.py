@@ -449,6 +449,28 @@ def correct_gaps(
     return result_df
 
 
+def _get_jump_offset(
+    values_np: np.ndarray, jump_idx: int, window_size: int
+) -> float | None:
+    """Helper to calculate the local jump offset."""
+    n = len(values_np)
+    if jump_idx < window_size or jump_idx >= n - window_size:
+        log.warning(
+            "Skipping jump correction at index %d: insufficient data for window size %d.",
+            jump_idx,
+            window_size,
+        )
+        return None
+
+    median_before = np.nanmedian(values_np[jump_idx - window_size : jump_idx])
+    median_after = np.nanmedian(values_np[jump_idx : jump_idx + window_size])
+
+    if pd.isna(median_before) or pd.isna(median_after):
+        return None
+
+    return median_before - median_after
+
+
 def correct_jumps(
     data: pd.DataFrame, jump_indices: list[int], value_col: str, window_size: int = 5
 ) -> pd.DataFrame:
@@ -473,35 +495,61 @@ def correct_jumps(
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
-
     sorted_jump_indices = sorted(jump_indices)
 
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
     for jump_idx in sorted_jump_indices:
-        if jump_idx < window_size or jump_idx >= n - window_size:
-            log.warning(
-                "Skipping jump correction at index %d: insufficient data for window size %d.",
-                jump_idx,
-                window_size,
-            )
-            continue
-
-        median_before = np.nanmedian(values_np[jump_idx - window_size : jump_idx])
-        median_after = np.nanmedian(values_np[jump_idx : jump_idx + window_size])
-
-        if pd.isna(median_before) or pd.isna(median_after):
-            continue
-
-        local_offset = median_before - median_after
-        values_np[jump_idx:] += local_offset
+        offset = _get_jump_offset(values_np, jump_idx, window_size)
+        if offset is not None:
+            values_np[jump_idx:] += offset
 
     result_df[value_col] = values_np
 
     log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
+
+
+def _get_outlier_replacement_val(
+    values_np: np.ndarray,
+    outlier_idx: int,
+    window_size: int,
+    outlier_indices_set: set[int],
+    method: str,
+) -> float | None:
+    """Helper to calculate replacement value for a single outlier."""
+    n = len(values_np)
+    start_idx = max(0, outlier_idx - window_size // 2)
+    end_idx = min(n, outlier_idx + window_size // 2 + 1)
+    window_indices = range(start_idx, end_idx)
+    valid_indices_in_window = [
+        idx
+        for idx in window_indices
+        if idx != outlier_idx and idx not in outlier_indices_set
+    ]
+    if not valid_indices_in_window:
+        log.warning(
+            "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
+            outlier_idx,
+        )
+        return None
+
+    surrounding_values = values_np[valid_indices_in_window]
+    replacement_value = (
+        np.nanmedian(surrounding_values)
+        if method == "median"
+        else np.nanmean(surrounding_values)
+    )
+    if pd.notna(replacement_value):
+        return replacement_value
+    else:
+        log.warning(
+            "Could not compute valid %s replacement for outlier at index %d.",
+            method,
+            outlier_idx,
+        )
+        return None
 
 
 def correct_outliers(
@@ -529,7 +577,6 @@ def correct_outliers(
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
     outlier_indices_set = set(outlier_indices)
 
     log.info(
@@ -553,36 +600,11 @@ def correct_outliers(
     elif method in ["median", "mean"]:
         values_np = result_df[value_col].astype(float).to_numpy(copy=True)
         for outlier_idx in outlier_indices:
-            start_idx = max(0, outlier_idx - window_size // 2)
-            end_idx = min(n, outlier_idx + window_size // 2 + 1)
-            window_indices = range(start_idx, end_idx)
-            valid_indices_in_window = [
-                idx
-                for idx in window_indices
-                if idx != outlier_idx and idx not in outlier_indices_set
-            ]
-            if not valid_indices_in_window:
-                log.warning(
-                    "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
-                    outlier_idx,
-                )
-                continue
-
-            surrounding_values = values_np[valid_indices_in_window]
-
-            replacement_value = (
-                np.nanmedian(surrounding_values)
-                if method == "median"
-                else np.nanmean(surrounding_values)
+            rep_val = _get_outlier_replacement_val(
+                values_np, outlier_idx, window_size, outlier_indices_set, method
             )
-            if pd.notna(replacement_value):
-                values_np[outlier_idx] = replacement_value
-            else:
-                log.warning(
-                    "Could not compute valid %s replacement for outlier at index %d.",
-                    method,
-                    outlier_idx,
-                )
+            if rep_val is not None:
+                values_np[outlier_idx] = rep_val
 
         result_df[value_col] = values_np
     else:
@@ -596,18 +618,10 @@ def correct_outliers(
     return result_df
 
 
-def process_data(
-    data: pd.DataFrame, config: dict[str, Any] | None = None
-) -> pd.DataFrame:
-    """
-    Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
-
-    Applies detection and correction functions sequentially based on configuration.
-
-    Args:
-        data: DataFrame containing sensor data.
-        config: Configuration dictionary with processing parameters.
-    """
+def _parse_and_validate_config(
+    data: pd.DataFrame, config: dict[str, Any] | None
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Helper to parse and validate configuration, returning the prepared DataFrame and merged config."""
     default_config = {
         "window_size": 5,
         "threshold": 3.0,
@@ -673,6 +687,25 @@ def process_data(
         log.warning(f"Specified value column '{value_col}' is not numeric.")
         raise ValueError("Specified value column is not numeric.")
 
+    return processed_data, merged_config
+
+
+def process_data(
+    data: pd.DataFrame, config: dict[str, Any] | None = None
+) -> pd.DataFrame:
+    """
+    Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
+
+    Applies detection and correction functions sequentially based on configuration.
+
+    Args:
+        data: DataFrame containing sensor data.
+        config: Configuration dictionary with processing parameters.
+    """
+    processed_data, merged_config = _parse_and_validate_config(data, config)
+
+    time_col = merged_config["time_col"]
+    value_col = merged_config["value_col"]
     window_size = merged_config["window_size"]
     threshold = merged_config["threshold"]
     gap_threshold_factor = merged_config["gap_threshold_factor"]
