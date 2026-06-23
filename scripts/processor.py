@@ -233,19 +233,15 @@ def detect_outliers(
     # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
-    # ⚡ Bolt: Use sliding_window_view to vectorize MAD calculation instead of pandas rolling.apply
+    # Calculate rolling MAD using _calculate_rolling_mad helper
     rolling_mad = _calculate_rolling_mad(values_np, n, window_size)
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
 
     # ⚡ Bolt: Vectorized Z-score calculation to replace Python `for` loop
-    # Calculates modified Z-scores for all points simultaneously using NumPy boolean indexing.
-    # Yields significant speedup compared to row-by-row iteration.
     with np.errstate(invalid="ignore", divide="ignore"):
         abs_diff = np.abs(values_np - rolling_median)
-
-        # Calculate Z-score where MAD is valid
         z_scores = np.where(
             rolling_scaled_mad < 1e-6,
             np.where(
@@ -253,8 +249,6 @@ def detect_outliers(
             ),
             abs_diff / rolling_scaled_mad,
         )
-
-        # Identify outliers (ignoring NaNs)
         valid_mask = ~np.isnan(rolling_median) & ~np.isnan(rolling_scaled_mad)
         outlier_mask = valid_mask & (z_scores > threshold)
         outliers = np.where(outlier_mask)[0].tolist()
@@ -489,27 +483,17 @@ def correct_jumps(
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
     # ⚡ Bolt: Vectorize sequential offset application using cumulative sum array.
-    # This evaluates offsets on original data and applies them globally without sequential Python iteration
-    # over large array slices `values_np[jump_idx:] += local_offset`, significantly reducing code size
-    # and preventing O(N*M) modification performance costs.
     offsets = np.zeros(n)
-
     for jump_idx in sorted_jump_indices:
         if jump_idx < window_size or jump_idx >= n - window_size:
             continue
-
-        # Using original unmodified data (since sequential overlaps cancel out mathematically)
         window_before = values_np[jump_idx - window_size : jump_idx]
         window_after = values_np[jump_idx : jump_idx + window_size]
-
         median_before = np.nanmedian(window_before)
         median_after = np.nanmedian(window_after)
-
         if np.isnan(median_before) or np.isnan(median_after):
             continue
-
         offsets[jump_idx] += median_before - median_after
-
     result_df[value_col] = values_np + np.cumsum(offsets)
 
     log.info("Jump correction complete for column '%s'.", value_col)
