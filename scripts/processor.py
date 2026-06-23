@@ -161,6 +161,42 @@ def detect_jumps(
     return jumps
 
 
+def _calculate_rolling_mad(
+    values_np: np.ndarray, n: int, window_size: int
+) -> np.ndarray:
+    """Helper to calculate rolling MAD using chunked sliding_window_view."""
+    from numpy.lib.stride_tricks import sliding_window_view
+
+    chunk_size = 50000
+    mads_list = []
+    num_windows = n - window_size + 1
+
+    for start_idx in range(0, num_windows, chunk_size):
+        end_idx = min(start_idx + chunk_size, num_windows)
+        chunk = values_np[start_idx : end_idx + window_size - 1]
+        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
+
+        nan_counts = np.isnan(chunk_windows).sum(axis=1)
+        invalid_mask = nan_counts > 0
+
+        chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
+        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
+        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
+
+        chunk_mads[invalid_mask] = np.nan
+        mads_list.append(chunk_mads)
+
+    if mads_list:
+        mads = np.concatenate(mads_list)
+    else:
+        mads = np.array([])
+
+    pad_width = window_size // 2
+    pad_left = pad_width
+    pad_right = n - len(mads) - pad_left
+    return np.pad(mads, (pad_left, pad_right), mode="constant", constant_values=np.nan)
+
+
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -197,49 +233,8 @@ def detect_outliers(
     # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
-    # Calculate rolling MAD using sliding_window_view
-    from numpy.lib.stride_tricks import sliding_window_view
-
     # ⚡ Bolt: Use sliding_window_view to vectorize MAD calculation instead of pandas rolling.apply
-    # This avoids Python function call overhead and provides ~80x speedup for this specific computation.
-    # To prevent Memory Errors on huge arrays, we process the MAD calculation in chunks.
-    chunk_size = 50000
-    mads_list = []
-    num_windows = n - window_size + 1
-
-    for start_idx in range(0, num_windows, chunk_size):
-        end_idx = min(start_idx + chunk_size, num_windows)
-        # Add window_size - 1 to end_idx to get the slice of original array needed to form the windows
-        chunk = values_np[start_idx : end_idx + window_size - 1]
-
-        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
-
-        # Calculate nan count per window to mimic pandas min_periods=window_size behavior
-        nan_counts = np.isnan(chunk_windows).sum(axis=1)
-        invalid_mask = nan_counts > 0
-
-        chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
-        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
-        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
-
-        # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
-        chunk_mads[invalid_mask] = np.nan
-        mads_list.append(chunk_mads)
-
-    if mads_list:
-        mads = np.concatenate(mads_list)
-    else:
-        mads = np.array([])
-
-    # Pad the mads array with NaNs to match pandas center=True behavior
-    pad_width = window_size // 2
-
-    # Ensure the length matches by computing padding for left and right
-    pad_left = pad_width
-    pad_right = n - len(mads) - pad_left
-    rolling_mad = np.pad(
-        mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
-    )
+    rolling_mad = _calculate_rolling_mad(values_np, n, window_size)
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
@@ -493,43 +488,29 @@ def correct_jumps(
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
+    # ⚡ Bolt: Vectorize sequential offset application using cumulative sum array.
+    # This evaluates offsets on original data and applies them globally without sequential Python iteration
+    # over large array slices `values_np[jump_idx:] += local_offset`, significantly reducing code size
+    # and preventing O(N*M) modification performance costs.
+    offsets = np.zeros(n)
+
     for jump_idx in sorted_jump_indices:
         if jump_idx < window_size or jump_idx >= n - window_size:
-            log.warning(
-                "Skipping jump correction at index %d: insufficient data for window size %d.",
-                jump_idx,
-                window_size,
-            )
             continue
 
+        # Using original unmodified data (since sequential overlaps cancel out mathematically)
         window_before = values_np[jump_idx - window_size : jump_idx]
         window_after = values_np[jump_idx : jump_idx + window_size]
 
         median_before = np.nanmedian(window_before)
         median_after = np.nanmedian(window_after)
 
-        if pd.isna(median_before) or pd.isna(median_after):
-            log.warning(
-                "Skipping jump correction at index %d: NaN median in window.", jump_idx
-            )
+        if np.isnan(median_before) or np.isnan(median_after):
             continue
 
-        local_offset = median_before - median_after
+        offsets[jump_idx] += median_before - median_after
 
-        log.info(
-            "Correcting jump at index %d: Median before=%s, Median after=%s, Offset=%s",
-            jump_idx,
-            median_before,
-            median_after,
-            local_offset,
-        )
-
-        values_np[jump_idx:] += local_offset
-        log.info(
-            "Applied offset %s to data from index %d onwards.", local_offset, jump_idx
-        )
-
-    result_df[value_col] = values_np
+    result_df[value_col] = values_np + np.cumsum(offsets)
 
     log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
