@@ -151,7 +151,7 @@ def _get_data_directory(
             log.exception(
                 f"Cannot create default data directory {default_data_dir!r}: {e}"
             )
-            raise FileNotFoundError("Cannot create default data directory")
+            raise FileNotFoundError("Cannot create default data directory") from None
     elif not os.path.isdir(default_data_dir):
         raise FileNotFoundError("Default data directory not found")
 
