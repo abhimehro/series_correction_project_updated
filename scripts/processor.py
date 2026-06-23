@@ -141,60 +141,26 @@ def detect_jumps(
         if abs(cusum) > threshold:
             jumps.append(i)
             cusum = 0.0
-            log.debug(
-                "Jump detected at index %d (CUSUM exceeded threshold %s)", i, threshold
-            )
 
     if jumps:
-        log.info(
-            "Detected %d potential jump(s) with window %d, threshold %s. Indices: %s",
-            len(jumps),
-            window_size,
-            threshold,
-            jumps,
-        )
-    else:
-        log.debug(
-            "No jumps detected with window %d, threshold %s.", window_size, threshold
-        )
+        log.info("Detected %d jump(s)", len(jumps))
 
     return jumps
 
 
-def _calculate_rolling_mad(
-    values_np: np.ndarray, n: int, window_size: int
-) -> np.ndarray:
-    """Helper to calculate rolling MAD using chunked sliding_window_view."""
+def _calc_mad(v: np.ndarray, n: int, w: int) -> np.ndarray:
     from numpy.lib.stride_tricks import sliding_window_view
 
-    chunk_size = 50000
-    mads_list = []
-    num_windows = n - window_size + 1
-
-    for start_idx in range(0, num_windows, chunk_size):
-        end_idx = min(start_idx + chunk_size, num_windows)
-        chunk = values_np[start_idx : end_idx + window_size - 1]
-        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
-
-        nan_counts = np.isnan(chunk_windows).sum(axis=1)
-        invalid_mask = nan_counts > 0
-
-        chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
-        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
-        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
-
-        chunk_mads[invalid_mask] = np.nan
-        mads_list.append(chunk_mads)
-
-    if mads_list:
-        mads = np.concatenate(mads_list)
-    else:
-        mads = np.array([])
-
-    pad_width = window_size // 2
-    pad_left = pad_width
-    pad_right = n - len(mads) - pad_left
-    return np.pad(mads, (pad_left, pad_right), mode="constant", constant_values=np.nan)
+    mads, nw = [], n - w + 1
+    for s in range(0, nw, 50000):
+        e = min(s + 50000, nw)
+        cw = sliding_window_view(v[s : e + w - 1], window_shape=w)
+        cm = np.nanmedian(cw, axis=1, keepdims=True)
+        cmads = np.nanmedian(np.abs(cw - cm), axis=1)
+        cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
+        mads.append(cmads)
+    m = np.concatenate(mads) if mads else np.array([])
+    return np.pad(m, (w // 2, n - len(m) - w // 2), constant_values=np.nan)
 
 
 def detect_outliers(
@@ -233,8 +199,8 @@ def detect_outliers(
     # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
-    # Calculate rolling MAD using _calculate_rolling_mad helper
-    rolling_mad = _calculate_rolling_mad(values_np, n, window_size)
+    # Calculate rolling MAD using _calc_mad helper
+    rolling_mad = _calc_mad(values_np, n, window_size)
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
@@ -482,18 +448,15 @@ def correct_jumps(
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
-    # ⚡ Bolt: Vectorize sequential offset application using cumulative sum array.
     offsets = np.zeros(n)
-    for jump_idx in sorted_jump_indices:
-        if jump_idx < window_size or jump_idx >= n - window_size:
+    for j in sorted_jump_indices:
+        if j < window_size or j >= n - window_size:
             continue
-        window_before = values_np[jump_idx - window_size : jump_idx]
-        window_after = values_np[jump_idx : jump_idx + window_size]
-        median_before = np.nanmedian(window_before)
-        median_after = np.nanmedian(window_after)
-        if np.isnan(median_before) or np.isnan(median_after):
-            continue
-        offsets[jump_idx] += median_before - median_after
+        mb, ma = np.nanmedian(values_np[j - window_size : j]), np.nanmedian(
+            values_np[j : j + window_size]
+        )
+        if not (np.isnan(mb) or np.isnan(ma)):
+            offsets[j] += mb - ma
     result_df[value_col] = values_np + np.cumsum(offsets)
 
     log.info("Jump correction complete for column '%s'.", value_col)
