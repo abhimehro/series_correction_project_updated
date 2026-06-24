@@ -116,27 +116,32 @@ def detect_jumps(
     rolling_std = data[value_col].rolling(window=window_size).std().to_numpy()
     values = data[value_col].to_numpy()
 
+    # ⚡ Bolt: Vectorize normalized deviation calculation before CUSUM loop
+    mean_prev_window = np.roll(rolling_mean, 1)
+    std_prev_window = np.roll(rolling_std, 1)
+
+    valid_mask = np.arange(n) >= window_size
+
+    deviations = np.zeros(n)
+    np.subtract(values, mean_prev_window, out=deviations, where=valid_mask)
+
+    normalized_dev = np.zeros(n)
+
+    with np.errstate(invalid="ignore"):
+        std_mask = (std_prev_window > 1e-6) & valid_mask & ~np.isnan(std_prev_window)
+
+    np.divide(deviations, std_prev_window, out=normalized_dev, where=std_mask)
+
     # Initialize CUSUM variables and list for jump indices
     jumps = []
     cusum = 0.0
+
     # Start after the first window is filled
     start_idx = window_size
 
     # Process each point from the end of the first window
     for i in range(start_idx, n):
-        mean_prev_window = rolling_mean[i - 1]
-        std_prev_window = rolling_std[i - 1]
-
-        # Current deviation from the previous window's mean
-        deviation = values[i] - mean_prev_window
-
-        # Normalize by previous window's standard deviation
-        if pd.notna(std_prev_window) and std_prev_window > 1e-6:
-            normalized_dev = deviation / std_prev_window
-        else:
-            normalized_dev = 0.0
-
-        cusum += normalized_dev
+        cusum += normalized_dev[i]
 
         if abs(cusum) > threshold:
             jumps.append(i)
