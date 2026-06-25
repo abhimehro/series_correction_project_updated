@@ -12,6 +12,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy.lib.stride_tricks import sliding_window_view
 
 # Configure logging for this module
 log = logging.getLogger(__name__)
@@ -448,20 +449,37 @@ def correct_jumps(
     result_df = data.copy()
     n = len(result_df)
 
-    sorted_jump_indices = sorted(jump_indices)
+    sorted_jump_indices = sorted(
+        [j for j in jump_indices if window_size <= j < n - window_size]
+    )
+    if not sorted_jump_indices:
+        return result_df
 
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
+    # ⚡ Bolt: Vectorized offset calculation for all jumps
+    valid_jumps = np.array(sorted_jump_indices)
+
+    # Build a 2D array of windows before and after the jump indices
+    before_windows = np.array([values_np[j - window_size : j] for j in valid_jumps])
+    after_windows = np.array([values_np[j : j + window_size] for j in valid_jumps])
+
+    # Calculate medians in bulk
+    mb = np.nanmedian(before_windows, axis=1)
+    ma = np.nanmedian(after_windows, axis=1)
+
+    # Find valid medians (not NaN)
+    valid_medians_mask = ~(np.isnan(mb) | np.isnan(ma))
+
+    # Calculate differences for valid medians
+    diffs = mb[valid_medians_mask] - ma[valid_medians_mask]
+
+    # Place differences in a zero-initialized array at respective indices
     offsets = np.zeros(n)
-    for j in sorted_jump_indices:
-        if j < window_size or j >= n - window_size:
-            continue
-        mb, ma = np.nanmedian(values_np[j - window_size : j]), np.nanmedian(
-            values_np[j : j + window_size]
-        )
-        if not (np.isnan(mb) or np.isnan(ma)):
-            offsets[j] += mb - ma
+    np.add.at(offsets, valid_jumps[valid_medians_mask], diffs)
+
+    # Apply globally across the entire sequence
     result_df[value_col] = values_np + np.cumsum(offsets)
 
     log.info("Jump correction complete for column '%s'.", value_col)
@@ -494,7 +512,6 @@ def correct_outliers(
 
     result_df = data.copy()
     n = len(result_df)
-    outlier_indices_set = set(outlier_indices)
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -516,45 +533,66 @@ def correct_outliers(
 
     elif method in ["median", "mean"]:
         values_np = result_df[value_col].astype(float).to_numpy(copy=True)
-        for outlier_idx in outlier_indices:
-            start_idx = max(0, outlier_idx - window_size // 2)
-            end_idx = min(n, outlier_idx + window_size // 2 + 1)
-            window_indices = range(start_idx, end_idx)
-            valid_indices_in_window = [
-                idx
-                for idx in window_indices
-                if idx != outlier_idx and idx not in outlier_indices_set
-            ]
-            if not valid_indices_in_window:
-                log.warning(
-                    "Cannot calculate replacement for outlier at index %d: no valid surrounding points.",
-                    outlier_idx,
-                )
-                continue
 
-            surrounding_values = values_np[valid_indices_in_window]
+        # ⚡ Bolt: Vectorized replacement calculation for all outliers
+        # Create a boolean mask of valid data (not outliers)
+        outlier_mask = np.zeros(n, dtype=bool)
+        outlier_mask[outlier_indices] = True
 
-            if method == "median":
-                replacement_value = np.nanmedian(surrounding_values)
-            else:
-                replacement_value = np.nanmean(surrounding_values)
+        # We replace outliers with NaNs for the calculation
+        calc_values = values_np.copy()
+        calc_values[outlier_mask] = np.nan
 
-            if pd.notna(replacement_value):
-                original_value = values_np[outlier_idx]
-                values_np[outlier_idx] = replacement_value
-                log.debug(
-                    "Replaced outlier at index %d (Original: %s) with %s value: %s",
-                    outlier_idx,
-                    original_value,
-                    method,
-                    replacement_value,
-                )
-            else:
-                log.warning(
-                    "Could not compute valid %s replacement for outlier at index %d.",
-                    method,
-                    outlier_idx,
-                )
+        # Calculate padding to ensure all elements can be centered in a window
+        pad_width = window_size // 2
+
+        # The original code grabbed exactly window_size//2 to the left and right
+        # For an even window size (e.g. 4), this means it looked at [i-2, i-1, i+1, i+2]
+        # To mimic this with sliding_window_view, we need a window shape of window_size + 1 (for even window_size)
+        # or window_size (for odd). The padding is symmetrical.
+        actual_window_shape = pad_width * 2 + 1
+        pad_right = pad_width
+
+        padded_values = np.pad(calc_values, (pad_width, pad_right), mode='constant', constant_values=np.nan)
+
+        # Get all windows
+        windows = sliding_window_view(padded_values, window_shape=actual_window_shape)
+
+        # We only care about windows centered at outlier indices
+        outlier_windows = windows[outlier_indices]
+
+        if method == "median":
+            with np.errstate(invalid="ignore"):
+                replacements = np.nanmedian(outlier_windows, axis=1)
+        else:
+            with np.errstate(invalid="ignore"):
+                replacements = np.nanmean(outlier_windows, axis=1)
+
+        # Only replace if we have a valid replacement
+        valid_replacements = ~np.isnan(replacements)
+
+        invalid_indices = np.array(outlier_indices)[~valid_replacements]
+        for idx in invalid_indices:
+            log.warning(
+                "Could not compute valid %s replacement for outlier at index %d.",
+                method,
+                idx,
+            )
+
+        valid_indices = np.array(outlier_indices)[valid_replacements]
+
+        for idx, orig_val, repl_val in zip(
+            valid_indices, values_np[valid_indices], replacements[valid_replacements]
+        ):
+            log.debug(
+                "Replaced outlier at index %d (Original: %s) with %s value: %s",
+                idx,
+                orig_val,
+                method,
+                repl_val,
+            )
+
+        values_np[valid_indices] = replacements[valid_replacements]
 
         result_df[value_col] = values_np
     else:

@@ -5,3 +5,11 @@
 ## 2025-02-28 - Safely Vectorizing CUSUM Rolling Operations
 **Learning:** Pure vectorization of CUSUM-style algorithms (like `detect_jumps`) is not possible due to the stateful reset condition (where `cusum` drops to 0.0 when a threshold is breached). However, extracting all array math (offsets, subtractions, array masking, and divisions) into pre-calculated NumPy operations before the sequential loop reduces per-iteration overhead dramatically, yielding ~66% speedup.
 **Action:** When vectorizing stateful loops, extract the non-stateful calculations into vectorized NumPy operations (`np.subtract`, `np.divide`, `np.roll`) before the loop. Use `with np.errstate(invalid="ignore"):` to cleanly suppress `RuntimeWarning`s caused by initial `NaN` values in the vectorized arrays.
+
+## 2025-02-28 - Vectorizing Symmetric Windows with sliding_window_view
+**Learning:** When vectorizing custom symmetric window logic (e.g. grabbing `radius` elements on both sides of a given index) using `sliding_window_view`, using the original `window_size` for `window_shape` can introduce a mathematical bug for even window sizes because Pandas `rolling(center=True)` drops the rightmost element (e.g. radius 2 left, 1 right). `sliding_window_view` cannot mimic this asymmetric behavior inherently.
+**Action:** When migrating iterative window algorithms to `sliding_window_view`, calculate padding carefully (`pad_width = window_size // 2`) and set `window_shape = pad_width * 2 + 1` to ensure symmetric bounds matching the original explicit iteration logic.
+
+## 2025-02-28 - Vectorizing Accumulating Offsets
+**Learning:** In jump correction logic (`offsets[j] += diff`), simply translating this to `offsets[valid_indices] = diffs` causes a regression when `valid_indices` contains duplicates, effectively overwriting previous offsets rather than accumulating them.
+**Action:** Use `np.add.at(offsets, indices, diffs)` to safely apply operations (like addition) over an array using a list of potentially repeating indices.
