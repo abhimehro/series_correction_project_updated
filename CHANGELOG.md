@@ -15,6 +15,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump release-drafter/release-drafter from 7.4.0 to 7.5.1 [\#154](https://github.com/abhimehro/series_correction_project_updated/pull/154) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Vectorize processing loops in jumps and outliers correction [\#152](https://github.com/abhimehro/series_correction_project_updated/pull/152) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] Vectorize non-stateful operations in `detect_jumps` [\#150](https://github.com/abhimehro/series_correction_project_updated/pull/150) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/cache from 5.0.5 to 6.0.0 [\#149](https://github.com/abhimehro/series_correction_project_updated/pull/149) ([dependabot[bot]](https://github.com/apps/dependabot))
