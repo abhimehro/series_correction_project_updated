@@ -647,7 +647,7 @@ def process_data(
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
         try:
-            processed_data[time_col] = pd.to_datetime(processed_data[time_col])
+            processed_data[time_col] = pd.to_datetime(processed_data[time_col], format='mixed')
             processed_data[time_col] = (
                 processed_data[time_col] - pd.Timestamp("1970-01-01")
             ) // pd.Timedelta("1s")
