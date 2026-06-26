@@ -13,3 +13,7 @@
 ## 2025-02-28 - Vectorizing Accumulating Offsets
 **Learning:** In jump correction logic (`offsets[j] += diff`), simply translating this to `offsets[valid_indices] = diffs` causes a regression when `valid_indices` contains duplicates, effectively overwriting previous offsets rather than accumulating them.
 **Action:** Use `np.add.at(offsets, indices, diffs)` to safely apply operations (like addition) over an array using a list of potentially repeating indices.
+
+## 2025-03-01 - DataFrame-wide pd.to_numeric Optimization
+**Learning:** In Pandas 2+, `pd.to_numeric(errors='ignore')` no longer works on entire DataFrames. Using a Python `for` loop to iteratively assign converted columns back to the DataFrame (`df[col] = pd.to_numeric(df[col])`) is slow due to DataFrame fragmentation and assignment overhead.
+**Action:** When applying `to_numeric` across an entire DataFrame, use a dictionary comprehension to reconstruct the DataFrame directly: `pd.DataFrame({col: safe_numeric_func(df[col]) for col in df.columns})`. This provides a significant speedup by avoiding iterative assignment.

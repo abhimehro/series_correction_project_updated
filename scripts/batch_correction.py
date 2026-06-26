@@ -321,12 +321,17 @@ def _load_raw_data(file_path):
             skip_blank_lines=True,
         )
         log.debug(f"Loaded file: {file_path} with shape {df.shape}")
+
         # Best-effort numeric conversion (pandas 2+ removed errors="ignore"; try/except preserves columns)
-        for col in df.columns:
+        # ⚡ Bolt: Use a dictionary comprehension to reconstruct the DataFrame directly
+        # instead of iterative column assignment, which is significantly faster.
+        def _safe_numeric(series):
             try:
-                df[col] = pd.to_numeric(df[col])
+                return pd.to_numeric(series)
             except (ValueError, TypeError):
-                pass
+                return series
+
+        df = pd.DataFrame({col: _safe_numeric(df[col]) for col in df.columns})
 
         # Nice column names: first col is time, rest ValueX
         if all(isinstance(c, int) for c in df.columns):
