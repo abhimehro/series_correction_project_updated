@@ -106,9 +106,7 @@ def test_multiple_corrections_to_same_file_are_preserved(tmp_path):
 
     corrections = [
         apply_level_shift_correction(
-            outlier.Year_Pair,
-            outlier.Sensor,
-            outlier.Difference,
+            (outlier.Year_Pair, outlier.Sensor, outlier.Difference),
             raw_file_map,
             raw_dataframes,
         )

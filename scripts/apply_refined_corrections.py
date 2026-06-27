@@ -155,11 +155,10 @@ def output_file_name(input_file):
     return os.path.basename(input_file).replace(".txt", "_refined_corrected.csv")
 
 
-def apply_level_shift_correction(
-    year_pair_str, sensor_name, orig_diff, raw_file_map, raw_dataframes
-):
+def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
     """Calculates and applies level shift correction for a single outlier."""
 
+    year_pair_str, sensor_name, orig_diff = outlier_info
     parsed_years = parse_year_pair(year_pair_str)
     if not parsed_years:
         return None
@@ -243,7 +242,7 @@ def main():
         outliers_df["Difference"].to_numpy(),
     ):
         result = apply_level_shift_correction(
-            year_pair, sensor, diff, raw_file_map, raw_dataframes
+            (year_pair, sensor, diff), raw_file_map, raw_dataframes
         )
         if result:
             applied_corrections.append(result)
