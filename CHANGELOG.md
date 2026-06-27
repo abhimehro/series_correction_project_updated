@@ -6,6 +6,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-06-26 [\#156](https://github.com/abhimehro/series_correction_project_updated/issues/156)
 - Daily QA & Agentic Review - 2026-06-25 [\#153](https://github.com/abhimehro/series_correction_project_updated/issues/153)
 - Daily QA & Agentic Review — 2026-06-24 [\#151](https://github.com/abhimehro/series_correction_project_updated/issues/151)
 - Daily QA & Agentic Review — 2026-06-23 [\#147](https://github.com/abhimehro/series_correction_project_updated/issues/147)
@@ -15,6 +16,8 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Replace DataFrame.itertuples with zip over NumPy arrays [\#158](https://github.com/abhimehro/series_correction_project_updated/pull/158) ([abhimehro](https://github.com/abhimehro))
+- Jules Daily QA & Agentic Review: Fix pandas to\_datetime format warning [\#157](https://github.com/abhimehro/series_correction_project_updated/pull/157) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize DataFrame numeric conversion [\#155](https://github.com/abhimehro/series_correction_project_updated/pull/155) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump release-drafter/release-drafter from 7.4.0 to 7.5.1 [\#154](https://github.com/abhimehro/series_correction_project_updated/pull/154) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Vectorize processing loops in jumps and outliers correction [\#152](https://github.com/abhimehro/series_correction_project_updated/pull/152) ([abhimehro](https://github.com/abhimehro))
