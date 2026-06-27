@@ -17,3 +17,7 @@
 ## 2025-03-01 - DataFrame-wide pd.to_numeric Optimization
 **Learning:** In Pandas 2+, `pd.to_numeric(errors='ignore')` no longer works on entire DataFrames. Using a Python `for` loop to iteratively assign converted columns back to the DataFrame (`df[col] = pd.to_numeric(df[col])`) is slow due to DataFrame fragmentation and assignment overhead.
 **Action:** When applying `to_numeric` across an entire DataFrame, use a dictionary comprehension to reconstruct the DataFrame directly: `pd.DataFrame({col: safe_numeric_func(df[col]) for col in df.columns})`. This provides a significant speedup by avoiding iterative assignment.
+
+## $(date +%Y-%m-%d) - Optimizing Pandas iteration
+**Learning:** `df.itertuples()` creates namedtuple objects per row, which introduces high object overhead in large datasets.
+**Action:** Replace `itertuples()` with `zip(*[df[col].to_numpy() for col in required_columns])` to leverage NumPy arrays for a ~5x performance improvement when full vectorization isn't possible. Remember to update downstream function signatures to accept unpacked values instead of the namedtuple object.

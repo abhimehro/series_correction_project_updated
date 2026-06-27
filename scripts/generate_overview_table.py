@@ -31,22 +31,34 @@ def main(correction_log_path, updated_averages_csv_path):
 
         # Dictionary for quick lookup of averages by (Series, Year_Num_YY)
         avg_lookup = {
-            (row.Series, row.Year_Num_YY): {
-                "Beginning_Average": row.Beginning_Average,
-                "End_Average": row.End_Average,
+            (series, year_num_yy): {
+                "Beginning_Average": beg_avg,
+                "End_Average": end_avg,
             }
-            for row in df_averages.itertuples(index=False)
+            for series, year_num_yy, beg_avg, end_avg in zip(
+                df_averages["Series"].to_numpy(),
+                df_averages["Year_Num_YY"].to_numpy(),
+                df_averages["Beginning_Average"].to_numpy(),
+                df_averages["End_Average"].to_numpy(),
+            )
         }
 
         # Sort the log for deterministic output
         df_log = df_log.sort_values(by=["Series", "Year_Pair_Outlier", "Sensor"])
 
-        for row in df_log.itertuples(index=False):
-            series = row.Series
-            year_pair_outlier_str = row.Year_Pair_Outlier
-            sensor = row.Sensor
-            original_difference = row.Original_Difference_Summary
-            calculated_level_shift = row.Calculated_Level_Shift
+        for (
+            series,
+            year_pair_outlier_str,
+            sensor,
+            original_difference,
+            calculated_level_shift,
+        ) in zip(
+            df_log["Series"].to_numpy(),
+            df_log["Year_Pair_Outlier"].to_numpy(),
+            df_log["Sensor"].to_numpy(),
+            df_log["Original_Difference_Summary"].to_numpy(),
+            df_log["Calculated_Level_Shift"].to_numpy(),
+        ):
 
             # Parse year pair string
             pair_match = re.match(

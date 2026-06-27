@@ -553,7 +553,9 @@ def correct_outliers(
         actual_window_shape = pad_width * 2 + 1
         pad_right = pad_width
 
-        padded_values = np.pad(calc_values, (pad_width, pad_right), mode='constant', constant_values=np.nan)
+        padded_values = np.pad(
+            calc_values, (pad_width, pad_right), mode="constant", constant_values=np.nan
+        )
 
         # Get all windows
         windows = sliding_window_view(padded_values, window_shape=actual_window_shape)
