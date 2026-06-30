@@ -14,7 +14,6 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 # Imports
 # ---------------------------------------------------------------------------
-import glob
 import logging
 import os
 import re
@@ -264,37 +263,55 @@ def _find_files_to_process(
     if config_data and "year_index_map" in config_data:
         year_index_map = config_data["year_index_map"]
 
-    for series in series_list:
-        series_pattern = f"S{series}_Y*.txt"
-        series_files = glob.glob(os.path.join(data_dir, series_pattern))
+    # ⚡ Bolt: Optimize file discovery by using a single os.listdir call
+    # instead of globbing in a loop for each series, which requires repeated directory scans.
+    # Map string representation to the original series type for safe and fast O(1) comparison/lookup
+    series_map = {str(s): s for s in series_list}
+    all_files = os.listdir(data_dir)
 
-        for file_path in series_files:
-            file_name = os.path.basename(file_path)
+    # Store found files per series to preserve the original sorting order behavior
+    files_by_series = {s: [] for s in series_list}
 
-            # Extract Y-index from filename (e.g., Y01, Y02)
-            match = re.search(r"Y(\d+)\.txt$", file_name)
-            if not match:
+    for file_name in all_files:
+        if not (file_name.startswith("S") and file_name.endswith(".txt")):
+            continue
+
+        # Extract series and Y-index from filename (e.g., S26_Y01.txt)
+        # Using `.+?` instead of `\d+` to support alphanumeric series names as the original glob did
+        match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
+        if not match:
+            continue
+
+        series_str = match.group(1)
+        if series_str not in series_map:
+            continue
+
+        y_index = int(match.group(2))
+        file_path = os.path.join(data_dir, file_name)
+
+        # Determine which year this index corresponds to
+        if year_index_map:
+            # Use mapping from config if available
+            year = None
+            for y, idx in year_index_map.items():
+                if idx == y_index and int(y) in years_to_process:
+                    year = int(y)
+                    break
+        else:
+            # Use simple sequential mapping: Y01 = first year, Y02 = second year, etc.
+            if y_index <= len(years_to_process):
+                year = years_to_process[y_index - 1]
+            else:
                 continue
 
-            y_index = int(match.group(1))
+        if year is not None and year_start <= year <= year_end:
+            # Use the O(1) map to retrieve original series object and preserve ordering
+            original_series = series_map[series_str]
+            files_by_series[original_series].append((original_series, year, y_index, file_path))
 
-            # Determine which year this index corresponds to
-            if year_index_map:
-                # Use mapping from config if available
-                year = None
-                for y, idx in year_index_map.items():
-                    if idx == y_index and int(y) in years_to_process:
-                        year = int(y)
-                        break
-            else:
-                # Use simple sequential mapping: Y01 = first year, Y02 = second year, etc.
-                if y_index <= len(years_to_process):
-                    year = years_to_process[y_index - 1]
-                else:
-                    continue
-
-            if year is not None and year_start <= year <= year_end:
-                files_to_process.append((series, year, y_index, file_path))
+    # Flatten and preserve the original ordering grouping by series
+    for series in series_list:
+        files_to_process.extend(files_by_series[series])
 
     if not files_to_process:
         log.warning(
