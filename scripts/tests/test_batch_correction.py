@@ -98,21 +98,6 @@ def mock_dependencies(mocker):
     mock_isfile = mocker.patch("os.path.isfile", return_value=True)
     mock_listdir = mocker.patch("os.listdir", return_value=[])
 
-    def _glob_side_effect(pattern: str) -> list:
-        """Mirror glob from listdir mock (batch_correction uses glob, not listdir)."""
-        directory = os.path.dirname(pattern)
-        glob_pat = os.path.basename(pattern)
-        listing = mock_listdir(directory)
-        if not isinstance(listing, (list, tuple)):
-            listing = []
-        return [
-            os.path.join(directory, name)
-            for name in listing
-            if fnmatch.fnmatch(name, glob_pat)
-        ]
-
-    mocker.patch("scripts.batch_correction.glob.glob", side_effect=_glob_side_effect)
-
     mock_getsize = mocker.patch("os.path.getsize", return_value=100)
     mock_basename = mocker.patch(
         "os.path.basename", side_effect=lambda p: os.path.split(p)[1]
