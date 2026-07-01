@@ -461,9 +461,11 @@ def correct_jumps(
     # ⚡ Bolt: Vectorized offset calculation for all jumps
     valid_jumps = np.array(sorted_jump_indices)
 
-    # Build a 2D array of windows before and after the jump indices
-    before_windows = np.array([values_np[j - window_size : j] for j in valid_jumps])
-    after_windows = np.array([values_np[j : j + window_size] for j in valid_jumps])
+    # ⚡ Bolt: Optimize window extraction using sliding_window_view instead of list comprehension
+    # This avoids Python object overhead when extracting thousands of windows
+    windows = sliding_window_view(values_np, window_shape=window_size)
+    before_windows = windows[valid_jumps - window_size]
+    after_windows = windows[valid_jumps]
 
     # Calculate medians in bulk
     mb = np.nanmedian(before_windows, axis=1)
@@ -553,7 +555,9 @@ def correct_outliers(
         actual_window_shape = pad_width * 2 + 1
         pad_right = pad_width
 
-        padded_values = np.pad(calc_values, (pad_width, pad_right), mode='constant', constant_values=np.nan)
+        padded_values = np.pad(
+            calc_values, (pad_width, pad_right), mode="constant", constant_values=np.nan
+        )
 
         # Get all windows
         windows = sliding_window_view(padded_values, window_shape=actual_window_shape)
@@ -647,7 +651,9 @@ def process_data(
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
         try:
-            processed_data[time_col] = pd.to_datetime(processed_data[time_col], format='mixed')
+            processed_data[time_col] = pd.to_datetime(
+                processed_data[time_col], format="mixed"
+            )
             processed_data[time_col] = (
                 processed_data[time_col] - pd.Timestamp("1970-01-01")
             ) // pd.Timedelta("1s")
