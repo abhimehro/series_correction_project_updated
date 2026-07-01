@@ -553,7 +553,9 @@ def correct_outliers(
         actual_window_shape = pad_width * 2 + 1
         pad_right = pad_width
 
-        padded_values = np.pad(calc_values, (pad_width, pad_right), mode='constant', constant_values=np.nan)
+        padded_values = np.pad(
+            calc_values, (pad_width, pad_right), mode="constant", constant_values=np.nan
+        )
 
         # Get all windows
         windows = sliding_window_view(padded_values, window_shape=actual_window_shape)
@@ -647,7 +649,9 @@ def process_data(
 
     if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
         try:
-            processed_data[time_col] = pd.to_datetime(processed_data[time_col], format='mixed')
+            processed_data[time_col] = pd.to_datetime(
+                processed_data[time_col], format="mixed"
+            )
             processed_data[time_col] = (
                 processed_data[time_col] - pd.Timestamp("1970-01-01")
             ) // pd.Timedelta("1s")
