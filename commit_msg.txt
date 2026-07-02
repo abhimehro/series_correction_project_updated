@@ -1,0 +1,4 @@
+style: fix flake8 max-line-length violation and complex method
+
+Applied black formatting to `scripts/processor.py` to fix line length issues found during the automated daily QA review.
+Refactored `process_data` to extract time column validation/conversion and value column validation into separate helper functions to resolve CodeScene "Complex Method" violations.
