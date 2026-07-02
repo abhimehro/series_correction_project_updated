@@ -556,7 +556,9 @@ def correct_outliers(
         actual_window_shape = pad_width * 2 + 1
         pad_right = pad_width
 
-        padded_values = np.pad(calc_values, (pad_width, pad_right), mode='constant', constant_values=np.nan)
+        padded_values = np.pad(
+            calc_values, (pad_width, pad_right), mode="constant", constant_values=np.nan
+        )
 
         # Get all windows
         windows = sliding_window_view(padded_values, window_shape=actual_window_shape)
@@ -609,6 +611,59 @@ def correct_outliers(
     return result_df
 
 
+def _validate_and_convert_time_col(processed_data, time_col):
+    if time_col not in processed_data.columns:
+        log.warning(
+            "Time column '%s' not found in data columns: %s",
+            time_col,
+            list(processed_data.columns),
+        )
+        raise ValueError("Time column not found in data columns")
+
+    if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
+        try:
+            processed_data[time_col] = pd.to_datetime(
+                processed_data[time_col], format="mixed"
+            )
+            processed_data[time_col] = (
+                processed_data[time_col] - pd.Timestamp("1970-01-01")
+            ) // pd.Timedelta("1s")
+            log.info(
+                "Converted time column '%s' to numeric (Unix timestamp).", time_col
+            )
+        except Exception as exc:
+            log.exception(
+                f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
+            )
+            raise ValueError(
+                "Time column is not numeric and could not be converted"
+            ) from None
+    return processed_data
+
+
+def _validate_value_col(processed_data, value_col, time_col):
+    if value_col is None:
+        numeric_cols = processed_data.select_dtypes(include=np.number).columns
+        potential_value_cols = [col for col in numeric_cols if col != time_col]
+        if not potential_value_cols:
+            log.warning(
+                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
+                time_col,
+            )
+            raise ValueError("No numeric value columns found in the data")
+        value_col = potential_value_cols[0]
+        log.info("Auto-detected value column: '%s'", value_col)
+    elif value_col not in processed_data.columns:
+        log.warning(
+            f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
+        )
+        raise ValueError("Specified value column not found in data columns")
+    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
+        log.warning(f"Specified value column '{value_col}' is not numeric.")
+        raise ValueError("Specified value column is not numeric.")
+    return value_col
+
+
 def process_data(
     data: pd.DataFrame, config: dict[str, Any] | None = None
 ) -> pd.DataFrame:
@@ -640,51 +695,11 @@ def process_data(
     processed_data = data.copy()
 
     time_col = merged_config["time_col"]
-    if time_col not in processed_data.columns:
-        log.warning(
-            "Time column '%s' not found in data columns: %s",
-            time_col,
-            list(processed_data.columns),
-        )
-        raise ValueError("Time column not found in data columns")
+    processed_data = _validate_and_convert_time_col(processed_data, time_col)
 
-    if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
-        try:
-            processed_data[time_col] = pd.to_datetime(processed_data[time_col], format='mixed')
-            processed_data[time_col] = (
-                processed_data[time_col] - pd.Timestamp("1970-01-01")
-            ) // pd.Timedelta("1s")
-            log.info(
-                "Converted time column '%s' to numeric (Unix timestamp).", time_col
-            )
-        except Exception as exc:
-            log.exception(
-                f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
-            )
-            raise ValueError(
-                "Time column is not numeric and could not be converted"
-            ) from None
     value_col = merged_config["value_col"]
-    if value_col is None:
-        numeric_cols = processed_data.select_dtypes(include=np.number).columns
-        potential_value_cols = [col for col in numeric_cols if col != time_col]
-        if not potential_value_cols:
-            log.warning(
-                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
-                time_col,
-            )
-            raise ValueError("No numeric value columns found in the data")
-        value_col = potential_value_cols[0]
-        merged_config["value_col"] = value_col
-        log.info("Auto-detected value column: '%s'", value_col)
-    elif value_col not in processed_data.columns:
-        log.warning(
-            f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
-        )
-        raise ValueError("Specified value column not found in data columns")
-    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
-        log.warning(f"Specified value column '{value_col}' is not numeric.")
-        raise ValueError("Specified value column is not numeric.")
+    value_col = _validate_value_col(processed_data, value_col, time_col)
+    merged_config["value_col"] = value_col
 
     window_size = merged_config["window_size"]
     threshold = merged_config["threshold"]
