@@ -22,6 +22,7 @@
 **Merged pull requests:**
 
 - ⚡ Bolt: Optimize jump correction window extraction [\#169](https://github.com/abhimehro/series_correction_project_updated/pull/169) ([abhimehro](https://github.com/abhimehro))
+- style: fix black formatting in processor.py [\#168](https://github.com/abhimehro/series_correction_project_updated/pull/168) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.314.0 to 1.315.0 [\#165](https://github.com/abhimehro/series_correction_project_updated/pull/165) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Optimize file discovery in batch process [\#163](https://github.com/abhimehro/series_correction_project_updated/pull/163) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/cache from 6.0.0 to 6.1.0 [\#161](https://github.com/abhimehro/series_correction_project_updated/pull/161) ([dependabot[bot]](https://github.com/apps/dependabot))
