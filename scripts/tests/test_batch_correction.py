@@ -264,7 +264,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
         assert all(status in valid_statuses for status in summary_df["Status"].tolist())
         assert (summary_df["Records"] == 5).all()
         # Output assertions
-        for year, yi, series in [
+        for year, yi, _series in [
             (1995, "Y01", 26),
             (1996, "Y02", 26),
             (1995, "Y01", 27),

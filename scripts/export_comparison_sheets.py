@@ -135,7 +135,7 @@ def export_comparisons():
                 if cols:
                     cols[0] = "Time (Seconds)"
                 raw_df.columns = cols
-        except (IOError, ValueError, FileNotFoundError) as e:
+        except (IOError, ValueError) as e:
             print(f"[WARN] Could not load raw file {raw_file}: {e}")
             continue
         except Exception as e:
@@ -145,7 +145,7 @@ def export_comparisons():
             continue
         try:
             proc_df = read_excel(proc_file)
-        except (IOError, ValueError, FileNotFoundError) as e:
+        except (IOError, ValueError) as e:
             print(f"[WARN] Could not load processed file {proc_file}: {e}")
             continue
         except Exception as e:
