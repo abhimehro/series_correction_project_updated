@@ -486,6 +486,77 @@ def correct_jumps(
     return result_df
 
 
+def _correct_outliers_window(
+    values_np: np.ndarray,
+    outlier_indices: list[int],
+    window_size: int,
+    method: str,
+) -> np.ndarray:
+    """Helper to calculate window-based replacement for outliers."""
+    n = len(values_np)
+    # Create a boolean mask of valid data (not outliers)
+    outlier_mask = np.zeros(n, dtype=bool)
+    outlier_mask[outlier_indices] = True
+
+    # We replace outliers with NaNs for the calculation
+    calc_values = values_np.copy()
+    calc_values[outlier_mask] = np.nan
+
+    # Calculate padding to ensure all elements can be centered in a window
+    pad_width = window_size // 2
+
+    # The original code grabbed exactly window_size//2 to the left and right
+    # For an even window size (e.g. 4), this means it looked at [i-2, i-1, i+1, i+2]
+    # To mimic this with sliding_window_view, we need a window shape of window_size + 1 (for even window_size)
+    # or window_size (for odd). The padding is symmetrical.
+    actual_window_shape = pad_width * 2 + 1
+    pad_right = pad_width
+
+    padded_values = np.pad(
+        calc_values, (pad_width, pad_right), mode="constant", constant_values=np.nan
+    )
+
+    # Get all windows
+    windows = sliding_window_view(padded_values, window_shape=actual_window_shape)
+
+    # We only care about windows centered at outlier indices
+    outlier_windows = windows[outlier_indices]
+
+    if method == "median":
+        with np.errstate(invalid="ignore"):
+            replacements = np.nanmedian(outlier_windows, axis=1)
+    else:
+        with np.errstate(invalid="ignore"):
+            replacements = np.nanmean(outlier_windows, axis=1)
+
+    # Only replace if we have a valid replacement
+    valid_replacements = ~np.isnan(replacements)
+
+    invalid_indices = np.array(outlier_indices)[~valid_replacements]
+    for idx in invalid_indices:
+        log.warning(
+            "Could not compute valid %s replacement for outlier at index %d.",
+            method,
+            idx,
+        )
+
+    valid_indices = np.array(outlier_indices)[valid_replacements]
+
+    for idx, orig_val, repl_val in zip(
+        valid_indices, values_np[valid_indices], replacements[valid_replacements]
+    ):
+        log.debug(
+            "Replaced outlier at index %d (Original: %s) with %s value: %s",
+            idx,
+            orig_val,
+            method,
+            repl_val,
+        )
+
+    values_np[valid_indices] = replacements[valid_replacements]
+    return values_np
+
+
 def correct_outliers(
     data: pd.DataFrame,
     outlier_indices: list[int],
@@ -511,7 +582,6 @@ def correct_outliers(
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -533,69 +603,7 @@ def correct_outliers(
 
     elif method in ["median", "mean"]:
         values_np = result_df[value_col].astype(float).to_numpy(copy=True)
-
-        # ⚡ Bolt: Vectorized replacement calculation for all outliers
-        # Create a boolean mask of valid data (not outliers)
-        outlier_mask = np.zeros(n, dtype=bool)
-        outlier_mask[outlier_indices] = True
-
-        # We replace outliers with NaNs for the calculation
-        calc_values = values_np.copy()
-        calc_values[outlier_mask] = np.nan
-
-        # Calculate padding to ensure all elements can be centered in a window
-        pad_width = window_size // 2
-
-        # The original code grabbed exactly window_size//2 to the left and right
-        # For an even window size (e.g. 4), this means it looked at [i-2, i-1, i+1, i+2]
-        # To mimic this with sliding_window_view, we need a window shape of window_size + 1 (for even window_size)
-        # or window_size (for odd). The padding is symmetrical.
-        actual_window_shape = pad_width * 2 + 1
-        pad_right = pad_width
-
-        padded_values = np.pad(
-            calc_values, (pad_width, pad_right), mode="constant", constant_values=np.nan
-        )
-
-        # Get all windows
-        windows = sliding_window_view(padded_values, window_shape=actual_window_shape)
-
-        # We only care about windows centered at outlier indices
-        outlier_windows = windows[outlier_indices]
-
-        if method == "median":
-            with np.errstate(invalid="ignore"):
-                replacements = np.nanmedian(outlier_windows, axis=1)
-        else:
-            with np.errstate(invalid="ignore"):
-                replacements = np.nanmean(outlier_windows, axis=1)
-
-        # Only replace if we have a valid replacement
-        valid_replacements = ~np.isnan(replacements)
-
-        invalid_indices = np.array(outlier_indices)[~valid_replacements]
-        for idx in invalid_indices:
-            log.warning(
-                "Could not compute valid %s replacement for outlier at index %d.",
-                method,
-                idx,
-            )
-
-        valid_indices = np.array(outlier_indices)[valid_replacements]
-
-        for idx, orig_val, repl_val in zip(
-            valid_indices, values_np[valid_indices], replacements[valid_replacements]
-        ):
-            log.debug(
-                "Replaced outlier at index %d (Original: %s) with %s value: %s",
-                idx,
-                orig_val,
-                method,
-                repl_val,
-            )
-
-        values_np[valid_indices] = replacements[valid_replacements]
-
+        values_np = _correct_outliers_window(values_np, outlier_indices, window_size, method)
         result_df[value_col] = values_np
     else:
         log.error(
@@ -606,6 +614,63 @@ def correct_outliers(
 
     log.info("Outlier correction complete for column '%s'.", value_col)
     return result_df
+
+
+def _validate_time_column(processed_data: pd.DataFrame, time_col: str) -> pd.DataFrame:
+    """Validate and ensure the time column is numeric (convert if possible)."""
+    if time_col not in processed_data.columns:
+        log.warning(
+            "Time column '%s' not found in data columns: %s",
+            time_col,
+            list(processed_data.columns),
+        )
+        raise ValueError("Time column not found in data columns")
+
+    if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
+        try:
+            processed_data[time_col] = pd.to_datetime(
+                processed_data[time_col], format="mixed"
+            )
+            processed_data[time_col] = (
+                processed_data[time_col] - pd.Timestamp("1970-01-01")
+            ) // pd.Timedelta("1s")
+            log.info(
+                "Converted time column '%s' to numeric (Unix timestamp).", time_col
+            )
+        except Exception as exc:
+            log.exception(
+                f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
+            )
+            raise ValueError(
+                "Time column is not numeric and could not be converted"
+            ) from None
+    return processed_data
+
+
+def _resolve_value_column(
+    processed_data: pd.DataFrame, value_col: str | None, time_col: str
+) -> str:
+    """Resolve, auto-detect, and validate the numeric value column."""
+    if value_col is None:
+        numeric_cols = processed_data.select_dtypes(include=np.number).columns
+        potential_value_cols = [col for col in numeric_cols if col != time_col]
+        if not potential_value_cols:
+            log.warning(
+                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
+                time_col,
+            )
+            raise ValueError("No numeric value columns found in the data")
+        value_col = potential_value_cols[0]
+        log.info("Auto-detected value column: '%s'", value_col)
+    elif value_col not in processed_data.columns:
+        log.warning(
+            f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
+        )
+        raise ValueError("Specified value column not found in data columns")
+    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
+        log.warning(f"Specified value column '{value_col}' is not numeric.")
+        raise ValueError("Specified value column is not numeric.")
+    return value_col
 
 
 def process_data(
@@ -639,53 +704,10 @@ def process_data(
     processed_data = data.copy()
 
     time_col = merged_config["time_col"]
-    if time_col not in processed_data.columns:
-        log.warning(
-            "Time column '%s' not found in data columns: %s",
-            time_col,
-            list(processed_data.columns),
-        )
-        raise ValueError("Time column not found in data columns")
+    processed_data = _validate_time_column(processed_data, time_col)
 
-    if not pd.api.types.is_numeric_dtype(processed_data[time_col]):
-        try:
-            processed_data[time_col] = pd.to_datetime(
-                processed_data[time_col], format="mixed"
-            )
-            processed_data[time_col] = (
-                processed_data[time_col] - pd.Timestamp("1970-01-01")
-            ) // pd.Timedelta("1s")
-            log.info(
-                "Converted time column '%s' to numeric (Unix timestamp).", time_col
-            )
-        except Exception as exc:
-            log.exception(
-                f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
-            )
-            raise ValueError(
-                "Time column is not numeric and could not be converted"
-            ) from None
-    value_col = merged_config["value_col"]
-    if value_col is None:
-        numeric_cols = processed_data.select_dtypes(include=np.number).columns
-        potential_value_cols = [col for col in numeric_cols if col != time_col]
-        if not potential_value_cols:
-            log.warning(
-                "No numeric value columns found in the data (excluding time column '%s'). Please specify a valid value column in the configuration.",
-                time_col,
-            )
-            raise ValueError("No numeric value columns found in the data")
-        value_col = potential_value_cols[0]
-        merged_config["value_col"] = value_col
-        log.info("Auto-detected value column: '%s'", value_col)
-    elif value_col not in processed_data.columns:
-        log.warning(
-            f"Specified value column '{value_col}' not found in data columns: {list(processed_data.columns)}"
-        )
-        raise ValueError("Specified value column not found in data columns")
-    elif not pd.api.types.is_numeric_dtype(processed_data[value_col]):
-        log.warning(f"Specified value column '{value_col}' is not numeric.")
-        raise ValueError("Specified value column is not numeric.")
+    value_col = _resolve_value_column(processed_data, merged_config["value_col"], time_col)
+    merged_config["value_col"] = value_col
 
     window_size = merged_config["window_size"]
     threshold = merged_config["threshold"]
