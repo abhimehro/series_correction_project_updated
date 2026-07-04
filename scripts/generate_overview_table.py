@@ -110,6 +110,10 @@ def main(correction_log_path, updated_averages_csv_path):
         print(
             "Please ensure the required input files are present, or update the file paths."
         )
+    except pd.errors.EmptyDataError as e:
+        print(f"\nError: One of the input CSV files is empty: {e}")
+    except ValueError as e:
+        print(f"\nError: Value error encountered during processing: {e}")
     except Exception as e:
         print(f"\nAn error occurred while generating Overview table content: {e}")
 
