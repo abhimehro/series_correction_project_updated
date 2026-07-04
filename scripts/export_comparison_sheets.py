@@ -191,10 +191,5 @@ def export_comparisons():
         process_comparison_file(proc_file)
 
 
-# Initialize these variables at module level to avoid undefined variable warnings
-# They will be properly set during execution
-raw_df = None
-processed_df = None
-
 if __name__ == "__main__":
     export_comparisons()
