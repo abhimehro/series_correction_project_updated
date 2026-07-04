@@ -200,7 +200,7 @@ def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
             "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
         }
 
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         print(f"Error processing outlier {year_pair_str}, {sensor_name}: {e}")
         return None
 
