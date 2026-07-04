@@ -6,6 +6,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-03 [\#173](https://github.com/abhimehro/series_correction_project_updated/issues/173)
 - Daily QA & Agentic Review - 2026-07-02 [\#170](https://github.com/abhimehro/series_correction_project_updated/issues/170)
 - Daily QA & Agentic Review - 2026-07-01 [\#167](https://github.com/abhimehro/series_correction_project_updated/issues/167)
 - Daily QA & Agentic Review - 2026-06-30 [\#164](https://github.com/abhimehro/series_correction_project_updated/issues/164)
@@ -22,6 +23,7 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[MEDIUM\] Fix Raw Exception Data Exposure [\#191](https://github.com/abhimehro/series_correction_project_updated/pull/191) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.315.0 to 1.316.0 [\#172](https://github.com/abhimehro/series_correction_project_updated/pull/172) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Agentic QA: Minor linting and code quality fixes [\#171](https://github.com/abhimehro/series_correction_project_updated/pull/171) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize jump correction window extraction [\#169](https://github.com/abhimehro/series_correction_project_updated/pull/169) ([abhimehro](https://github.com/abhimehro))
