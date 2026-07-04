@@ -79,59 +79,37 @@ def test_correct_outliers_empty_indices():
     pd.testing.assert_frame_equal(result, data)
 
 
-def test_correct_outliers_remove():
-    """Test removing outliers (replaced with NaN)."""
-    data = pd.DataFrame({"value": [1.0, 100.0, 3.0]})
+@pytest.mark.parametrize(
+    "method, window_size, data_vals, outlier_indices, expected_val, check_nan",
+    [
+        ("remove", 3, [1.0, 100.0, 3.0], [1], None, True),
+        ("interpolate", 3, [1.0, 100.0, 3.0], [1], 2.0, False),
+        ("median", 3, [1.0, 2.0, 100.0, 4.0, 5.0], [2], 3.0, False),
+        ("median", 5, [1.0, 2.0, 100.0, 4.0, 5.0], [2], 3.0, False),
+        ("mean", 3, [1.0, 2.0, 100.0, 4.0, 5.0], [2], 3.0, False),
+        ("mean", 3, [1.0, 2.0, 100.0, 10.0, 5.0], [2], 6.0, False),
+    ],
+)
+def test_correct_outliers_methods(
+    method, window_size, data_vals, outlier_indices, expected_val, check_nan
+):
+    """Test correcting outliers using various methods."""
+    data = pd.DataFrame({"value": data_vals})
     result = correct_outliers(
-        data, outlier_indices=[1], value_col="value", method="remove"
+        data,
+        outlier_indices=outlier_indices,
+        value_col="value",
+        window_size=window_size,
+        method=method,
     )
-    assert pd.isna(result.loc[1, "value"])
-    assert result.loc[0, "value"] == 1.0
-    assert result.loc[2, "value"] == 3.0
 
+    idx = outlier_indices[0]
+    if check_nan:
+        assert pd.isna(result.loc[idx, "value"])
+    else:
+        assert result.loc[idx, "value"] == expected_val
 
-def test_correct_outliers_interpolate():
-    """Test interpolating outliers."""
-    data = pd.DataFrame({"value": [1.0, 100.0, 3.0]})
-    result = correct_outliers(
-        data, outlier_indices=[1], value_col="value", method="interpolate"
-    )
-    assert result.loc[1, "value"] == 2.0  # (1.0 + 3.0) / 2
-    assert result.loc[0, "value"] == 1.0
-    assert result.loc[2, "value"] == 3.0
-
-
-def test_correct_outliers_median():
-    """Test replacing outliers with the median of the window."""
-    # window_size = 3 (padding = 1 on each side)
-    # Outlier at index 2 (100.0). Window is [2.0, NaN, 4.0] -> Median 3.0
-    data = pd.DataFrame({"value": [1.0, 2.0, 100.0, 4.0, 5.0]})
-    result = correct_outliers(
-        data, outlier_indices=[2], value_col="value", window_size=3, method="median"
-    )
-    assert result.loc[2, "value"] == 3.0
-
-    # window_size = 5 (padding = 2 on each side)
-    # Window is [1.0, 2.0, NaN, 4.0, 5.0] -> Median 3.0
-    result2 = correct_outliers(
-        data, outlier_indices=[2], value_col="value", window_size=5, method="median"
-    )
-    assert result2.loc[2, "value"] == 3.0
-
-
-def test_correct_outliers_mean():
-    """Test replacing outliers with the mean of the window."""
-    # window_size = 3 (padding = 1 on each side)
-    # Outlier at index 2. Window is [2.0, NaN, 4.0] -> Mean 3.0
-    data = pd.DataFrame({"value": [1.0, 2.0, 100.0, 4.0, 5.0]})
-    result = correct_outliers(
-        data, outlier_indices=[2], value_col="value", window_size=3, method="mean"
-    )
-    assert result.loc[2, "value"] == 3.0
-
-    # window_size = 3. Window [2.0, NaN, 10.0] -> Mean 6.0
-    data2 = pd.DataFrame({"value": [1.0, 2.0, 100.0, 10.0, 5.0]})
-    result3 = correct_outliers(
-        data2, outlier_indices=[2], value_col="value", window_size=3, method="mean"
-    )
-    assert result3.loc[2, "value"] == 6.0
+    # Verify that non-outlier values are unchanged
+    for i, original_val in enumerate(data_vals):
+        if i not in outlier_indices:
+            assert result.loc[i, "value"] == original_val
