@@ -663,3 +663,29 @@ def test_minimal_happy_path(monkeypatch):
     assert len(summary_df) == 2
     assert all(summary_df["Status"] == "Processed")
     assert set(summary_df["Filename"]) == set(file_list)
+
+
+def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, caplog):
+    """
+    Test scenario where config file is not found.
+    """
+    mock_config_loader.side_effect = FileNotFoundError()
+
+    series_selection = 26
+    river_miles = None
+    years = (1995, 1995)
+    dry_run = True
+
+    # Act
+    from scripts.batch_correction import batch_process
+
+    batch_process(series_selection, river_miles, years, dry_run=dry_run)
+
+    # Assert
+    assert mock_config_loader.called
+    warning_logged = any(
+        "not found – continuing with empty config." in record.message
+        for record in caplog.records
+        if record.levelname == "WARNING"
+    )
+    assert warning_logged
