@@ -6,6 +6,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-03 [\#173](https://github.com/abhimehro/series_correction_project_updated/issues/173)
 - Daily QA & Agentic Review - 2026-07-02 [\#170](https://github.com/abhimehro/series_correction_project_updated/issues/170)
 - Daily QA & Agentic Review - 2026-07-01 [\#167](https://github.com/abhimehro/series_correction_project_updated/issues/167)
 - Daily QA & Agentic Review - 2026-06-30 [\#164](https://github.com/abhimehro/series_correction_project_updated/issues/164)
@@ -22,6 +23,18 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: cache listdir to optimize redundant disk reads [\#194](https://github.com/abhimehro/series_correction_project_updated/pull/194) ([abhimehro](https://github.com/abhimehro))
+- Parse roots from payload for multi-root workspace support [\#193](https://github.com/abhimehro/series_correction_project_updated/pull/193) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add test for batch\_correction config load FileNotFoundError [\#192](https://github.com/abhimehro/series_correction_project_updated/pull/192) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Raw Exception Data Exposure [\#191](https://github.com/abhimehro/series_correction_project_updated/pull/191) ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing\] add comprehensive unit tests for correct\_jumps [\#190](https://github.com/abhimehro/series_correction_project_updated/pull/190) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[Code Health\] Extract complex loop body in export\_comparisons [\#188](https://github.com/abhimehro/series_correction_project_updated/pull/188) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add tests for load\_identified\_outliers error paths [\#185](https://github.com/abhimehro/series_correction_project_updated/pull/185) ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[test\] Add test coverage for export\_comparison\_sheets.py [\#182](https://github.com/abhimehro/series_correction_project_updated/pull/182) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Catch specific exceptions in generate\_overview\_table [\#181](https://github.com/abhimehro/series_correction_project_updated/pull/181) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor `batch_process` by extracting setup logic [\#179](https://github.com/abhimehro/series_correction_project_updated/pull/179) ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing improvement\] Add test suite for generate\_overview\_table.py [\#176](https://github.com/abhimehro/series_correction_project_updated/pull/176) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Remove unnecessary global variables in export\_comparison\_sheets.py [\#174](https://github.com/abhimehro/series_correction_project_updated/pull/174) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.315.0 to 1.316.0 [\#172](https://github.com/abhimehro/series_correction_project_updated/pull/172) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Agentic QA: Minor linting and code quality fixes [\#171](https://github.com/abhimehro/series_correction_project_updated/pull/171) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize jump correction window extraction [\#169](https://github.com/abhimehro/series_correction_project_updated/pull/169) ([abhimehro](https://github.com/abhimehro))

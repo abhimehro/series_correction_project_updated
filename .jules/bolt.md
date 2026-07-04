@@ -5,3 +5,7 @@
 ## 2025-07-02 - Vectorize list comprehension window extraction
 **Learning:** Using Python list comprehensions to extract multiple sliding windows from a NumPy array (e.g. `[arr[i:i+w] for i in valid_jumps]`) has significant Python iteration overhead.
 **Action:** When extracting multiple offset windows from a sequence, use `numpy.lib.stride_tricks.sliding_window_view(arr, window_shape=w)` to create a memory-efficient view and then index into it directly (e.g., `windows[indices]`). This replaces Python loops with fast C-level operations and provides a substantial (~3x) speedup.
+
+## 2025-03-05 - Optimize redundant directory listings
+**Learning:** Calling `os.listdir()` repeatedly inside loops (like searching for matches file by file) causes significant I/O overhead.
+**Action:** When searching a directory that remains static during execution, cache the `os.listdir()` results in memory (e.g., using a function attribute or module-level variable) on the first call to avoid redundant I/O operations and substantially improve performance.
