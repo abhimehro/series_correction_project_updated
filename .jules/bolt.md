@@ -5,3 +5,6 @@
 ## 2025-07-02 - Vectorize list comprehension window extraction
 **Learning:** Using Python list comprehensions to extract multiple sliding windows from a NumPy array (e.g. `[arr[i:i+w] for i in valid_jumps]`) has significant Python iteration overhead.
 **Action:** When extracting multiple offset windows from a sequence, use `numpy.lib.stride_tricks.sliding_window_view(arr, window_shape=w)` to create a memory-efficient view and then index into it directly (e.g., `windows[indices]`). This replaces Python loops with fast C-level operations and provides a substantial (~3x) speedup.
+## 2024-07-04 - Remove per-element logging in vectorized outlier correction
+**Learning:** Even if calculations are vectorized efficiently using NumPy, iterating through the resulting arrays to log individual item operations can become a significant bottleneck for dense anomaly sets.
+**Action:** When vectorizing tight loops, replace per-item logging with aggregated logging (e.g., `log.info("Processed %d items", len(items))`) to ensure logging overhead does not negate the performance benefits of array vectorization.

@@ -586,16 +586,12 @@ def correct_outliers(
 
         valid_indices = np.array(outlier_indices)[valid_replacements]
 
-        for idx, orig_val, repl_val in zip(
-            valid_indices, values_np[valid_indices], replacements[valid_replacements]
-        ):
-            log.debug(
-                "Replaced outlier at index %d (Original: %s) with %s value: %s",
-                idx,
-                orig_val,
-                method,
-                repl_val,
-            )
+        log.debug(
+            "Successfully replaced %d outliers in column '%s' using %s.",
+            len(valid_indices),
+            value_col,
+            method,
+        )
 
         values_np[valid_indices] = replacements[valid_replacements]
 
