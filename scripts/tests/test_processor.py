@@ -80,36 +80,76 @@ def test_correct_outliers_empty_indices():
 
 
 @pytest.mark.parametrize(
-    "method, window_size, data_vals, outlier_indices, expected_val, check_nan",
+    "test_case",
     [
-        ("remove", 3, [1.0, 100.0, 3.0], [1], None, True),
-        ("interpolate", 3, [1.0, 100.0, 3.0], [1], 2.0, False),
-        ("median", 3, [1.0, 2.0, 100.0, 4.0, 5.0], [2], 3.0, False),
-        ("median", 5, [1.0, 2.0, 100.0, 4.0, 5.0], [2], 3.0, False),
-        ("mean", 3, [1.0, 2.0, 100.0, 4.0, 5.0], [2], 3.0, False),
-        ("mean", 3, [1.0, 2.0, 100.0, 10.0, 5.0], [2], 6.0, False),
+        {
+            "method": "remove",
+            "window_size": 3,
+            "data_vals": [1.0, 100.0, 3.0],
+            "outlier_indices": [1],
+            "expected_val": None,
+            "check_nan": True,
+        },
+        {
+            "method": "interpolate",
+            "window_size": 3,
+            "data_vals": [1.0, 100.0, 3.0],
+            "outlier_indices": [1],
+            "expected_val": 2.0,
+            "check_nan": False,
+        },
+        {
+            "method": "median",
+            "window_size": 3,
+            "data_vals": [1.0, 2.0, 100.0, 4.0, 5.0],
+            "outlier_indices": [2],
+            "expected_val": 3.0,
+            "check_nan": False,
+        },
+        {
+            "method": "median",
+            "window_size": 5,
+            "data_vals": [1.0, 2.0, 100.0, 4.0, 5.0],
+            "outlier_indices": [2],
+            "expected_val": 3.0,
+            "check_nan": False,
+        },
+        {
+            "method": "mean",
+            "window_size": 3,
+            "data_vals": [1.0, 2.0, 100.0, 4.0, 5.0],
+            "outlier_indices": [2],
+            "expected_val": 3.0,
+            "check_nan": False,
+        },
+        {
+            "method": "mean",
+            "window_size": 3,
+            "data_vals": [1.0, 2.0, 100.0, 10.0, 5.0],
+            "outlier_indices": [2],
+            "expected_val": 6.0,
+            "check_nan": False,
+        },
     ],
 )
-def test_correct_outliers_methods(
-    method, window_size, data_vals, outlier_indices, expected_val, check_nan
-):
+def test_correct_outliers_methods(test_case):
     """Test correcting outliers using various methods."""
-    data = pd.DataFrame({"value": data_vals})
+    data = pd.DataFrame({"value": test_case["data_vals"]})
     result = correct_outliers(
         data,
-        outlier_indices=outlier_indices,
+        outlier_indices=test_case["outlier_indices"],
         value_col="value",
-        window_size=window_size,
-        method=method,
+        window_size=test_case["window_size"],
+        method=test_case["method"],
     )
 
-    idx = outlier_indices[0]
-    if check_nan:
+    idx = test_case["outlier_indices"][0]
+    if test_case["check_nan"]:
         assert pd.isna(result.loc[idx, "value"])
     else:
-        assert result.loc[idx, "value"] == expected_val
+        assert result.loc[idx, "value"] == test_case["expected_val"]
 
     # Verify that non-outlier values are unchanged
-    for i, original_val in enumerate(data_vals):
-        if i not in outlier_indices:
+    for i, original_val in enumerate(test_case["data_vals"]):
+        if i not in test_case["outlier_indices"]:
             assert result.loc[i, "value"] == original_val
