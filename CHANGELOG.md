@@ -2,24 +2,11 @@
 
 ## [Unreleased](https://github.com/abhimehro/series_correction_project_updated/tree/HEAD)
 
-[Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/v0.1.0...HEAD)
+[Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/v0.0.1...HEAD)
 
 **Closed issues:**
 
-- Daily QA & Agentic Review - 2026-07-03 [\#173](https://github.com/abhimehro/series_correction_project_updated/issues/173)
-- Daily QA & Agentic Review - 2026-07-02 [\#170](https://github.com/abhimehro/series_correction_project_updated/issues/170)
-- Daily QA & Agentic Review - 2026-07-01 [\#167](https://github.com/abhimehro/series_correction_project_updated/issues/167)
-- Daily QA & Agentic Review - 2026-06-30 [\#164](https://github.com/abhimehro/series_correction_project_updated/issues/164)
-- Daily QA & Agentic Review - 2026-06-29 [\#162](https://github.com/abhimehro/series_correction_project_updated/issues/162)
-- Daily QA & Agentic Review - 2026-06-28 [\#160](https://github.com/abhimehro/series_correction_project_updated/issues/160)
-- Daily QA & Agentic Review - 2026-06-27 [\#159](https://github.com/abhimehro/series_correction_project_updated/issues/159)
-- Daily QA & Agentic Review - 2026-06-26 [\#156](https://github.com/abhimehro/series_correction_project_updated/issues/156)
-- Daily QA & Agentic Review - 2026-06-25 [\#153](https://github.com/abhimehro/series_correction_project_updated/issues/153)
-- Daily QA & Agentic Review — 2026-06-24 [\#151](https://github.com/abhimehro/series_correction_project_updated/issues/151)
-- Daily QA & Agentic Review — 2026-06-23 [\#147](https://github.com/abhimehro/series_correction_project_updated/issues/147)
-- Daily QA & Agentic Review — 2026-06-22 [\#143](https://github.com/abhimehro/series_correction_project_updated/issues/143)
-- Daily QA & Agentic Review — 2026-06-21 [\#136](https://github.com/abhimehro/series_correction_project_updated/issues/136)
-- Daily QA & Agentic Review — 2026-06-20 [\#133](https://github.com/abhimehro/series_correction_project_updated/issues/133)
+- Daily QA & Agentic Review - 2026-07-04 [\#196](https://github.com/abhimehro/series_correction_project_updated/issues/196)
 
 **Merged pull requests:**
 
@@ -57,6 +44,27 @@
 - chore\(deps\): bump release-drafter/release-drafter from 7.2.1 to 7.4.0 [\#138](https://github.com/abhimehro/series_correction_project_updated/pull/138) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/checkout from 4.2.2 to 7.0.0 [\#137](https://github.com/abhimehro/series_correction_project_updated/pull/137) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Format scripts/processor.py with black [\#134](https://github.com/abhimehro/series_correction_project_updated/pull/134) ([abhimehro](https://github.com/abhimehro))
+
+## [v0.0.1](https://github.com/abhimehro/series_correction_project_updated/tree/v0.0.1) (2026-07-04)
+
+[Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/v0.1.0...v0.0.1)
+
+**Closed issues:**
+
+- Daily QA & Agentic Review - 2026-07-03 [\#173](https://github.com/abhimehro/series_correction_project_updated/issues/173)
+- Daily QA & Agentic Review - 2026-07-02 [\#170](https://github.com/abhimehro/series_correction_project_updated/issues/170)
+- Daily QA & Agentic Review - 2026-07-01 [\#167](https://github.com/abhimehro/series_correction_project_updated/issues/167)
+- Daily QA & Agentic Review - 2026-06-30 [\#164](https://github.com/abhimehro/series_correction_project_updated/issues/164)
+- Daily QA & Agentic Review - 2026-06-29 [\#162](https://github.com/abhimehro/series_correction_project_updated/issues/162)
+- Daily QA & Agentic Review - 2026-06-28 [\#160](https://github.com/abhimehro/series_correction_project_updated/issues/160)
+- Daily QA & Agentic Review - 2026-06-27 [\#159](https://github.com/abhimehro/series_correction_project_updated/issues/159)
+- Daily QA & Agentic Review - 2026-06-26 [\#156](https://github.com/abhimehro/series_correction_project_updated/issues/156)
+- Daily QA & Agentic Review - 2026-06-25 [\#153](https://github.com/abhimehro/series_correction_project_updated/issues/153)
+- Daily QA & Agentic Review — 2026-06-24 [\#151](https://github.com/abhimehro/series_correction_project_updated/issues/151)
+- Daily QA & Agentic Review — 2026-06-23 [\#147](https://github.com/abhimehro/series_correction_project_updated/issues/147)
+- Daily QA & Agentic Review — 2026-06-22 [\#143](https://github.com/abhimehro/series_correction_project_updated/issues/143)
+- Daily QA & Agentic Review — 2026-06-21 [\#136](https://github.com/abhimehro/series_correction_project_updated/issues/136)
+- Daily QA & Agentic Review — 2026-06-20 [\#133](https://github.com/abhimehro/series_correction_project_updated/issues/133)
 
 ## [v0.1.0](https://github.com/abhimehro/series_correction_project_updated/tree/v0.1.0) (2026-06-20)
 
