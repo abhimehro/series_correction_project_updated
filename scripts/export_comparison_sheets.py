@@ -32,7 +32,10 @@ def find_matching_raw_file(processed_filename):
     if m2:
         yidx = int(m2.group(2))
         # Try to find S??_Y{yidx:02d}.txt
-        for f in os.listdir(RAW_DATA_DIR):
+        # Cache listdir to avoid redundant IO
+        if getattr(find_matching_raw_file, "_raw_files_cache", None) is None:
+            find_matching_raw_file._raw_files_cache = os.listdir(RAW_DATA_DIR)
+        for f in find_matching_raw_file._raw_files_cache:
             if f.endswith(f"_Y{yidx:02d}.txt"):
                 return os.path.join(RAW_DATA_DIR, f)
     return None
