@@ -5,6 +5,7 @@ from scripts.apply_refined_corrections import (
     apply_level_shift_correction,
     calculate_non_zero_average,
     save_corrected_files,
+    load_identified_outliers,
 )
 
 
@@ -117,3 +118,38 @@ def test_multiple_corrections_to_same_file_are_preserved(tmp_path):
     corrected = pd.read_csv(tmp_path / "S26_Y02_refined_corrected.csv", header=None)
     assert corrected[0].tolist() == [10, 10, 10, 10, 10]
     assert corrected[1].tolist() == [20, 20, 20, 20, 20]
+
+
+def test_load_identified_outliers_file_not_found(capsys):
+    """Test that a missing file returns an empty DataFrame and prints an error."""
+    df = load_identified_outliers("non_existent_file.csv")
+    assert df.empty
+
+    captured = capsys.readouterr()
+    assert "Error: The file 'non_existent_file.csv' was not found." in captured.out
+
+
+def test_load_identified_outliers_no_sensor_cols(tmp_path, capsys):
+    """Test that a CSV without sensor columns returns an empty DataFrame and prints an error."""
+    csv_file = tmp_path / "no_sensors.csv"
+    pd.DataFrame(
+        {"Year_Pair": ["1995 (Y01) to 1996 (Y02)"], "Other_Col": [1.0]}
+    ).to_csv(csv_file, index=False)
+
+    df = load_identified_outliers(str(csv_file))
+    assert df.empty
+
+    captured = capsys.readouterr()
+    assert f"Error: No sensor columns found in {csv_file}." in captured.out
+
+
+def test_load_identified_outliers_no_year_pair(tmp_path, capsys):
+    """Test that a CSV without a Year_Pair column returns an empty DataFrame and prints an error."""
+    csv_file = tmp_path / "no_year_pair.csv"
+    pd.DataFrame({"Sensor 01": [1.0], "Sensor 02": [2.0]}).to_csv(csv_file, index=False)
+
+    df = load_identified_outliers(str(csv_file))
+    assert df.empty
+
+    captured = capsys.readouterr()
+    assert f"Error: 'Year_Pair' column not found in {csv_file}." in captured.out
