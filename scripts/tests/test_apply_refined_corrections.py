@@ -131,25 +131,22 @@ def test_load_identified_outliers_file_not_found(capsys):
 
 
 @pytest.mark.parametrize(
-    "data, expected_error_fragment, filename",
+    "test_case",
     [
         (
             {"Year_Pair": ["1995 (Y01) to 1996 (Y02)"], "Other_Col": [1.0]},
             "Error: No sensor columns found in",
-            "no_sensors.csv",
         ),
         (
             {"Sensor 01": [1.0], "Sensor 02": [2.0]},
             "Error: 'Year_Pair' column not found in",
-            "no_year_pair.csv",
         ),
     ],
 )
-def test_load_identified_outliers_missing_columns(
-    tmp_path, capsys, data, expected_error_fragment, filename
-):
+def test_load_identified_outliers_missing_columns(tmp_path, capsys, test_case):
     """Test that a CSV with missing required columns returns an empty DataFrame."""
-    csv_file = tmp_path / filename
+    data, expected_error_fragment = test_case
+    csv_file = tmp_path / "test_data.csv"
     pd.DataFrame(data).to_csv(csv_file, index=False)
 
     df = load_identified_outliers(str(csv_file))
