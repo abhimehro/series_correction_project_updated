@@ -5,6 +5,35 @@ import pandas as pd
 from scripts.spreadsheet_safety import write_csv_safely
 
 
+def process_outlier_log(s, yps, sen, od, cls, avg_lookup):
+    pm = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", str(yps))
+    if pm:
+        y1_f, y1_yy, y2_f, y2_yy = map(int, pm.groups())
+        py, ny = (y1_yy, y2_yy) if y1_f < y2_f else (y2_yy, y1_yy)
+        ea = avg_lookup.get((s, py), {}).get("End_Average", "N/A")
+        ba = avg_lookup.get((s, ny), {}).get("Beginning_Average", "N/A")
+
+        try:
+            od_val = round(od, 3)
+        except (TypeError, ValueError):
+            od_val = od
+        try:
+            cls_val = round(cls, 3)
+        except (TypeError, ValueError):
+            cls_val = cls
+
+        return {
+            "Series": s,
+            "Year_Pair_YY": f"Y{py:02d} to Y{ny:02d}",
+            "Sensor": sen,
+            "Original_Diff_Summary": od_val,
+            "Calculated_Level_Shift_Applied": cls_val,
+            "End_Avg_Prev_Year_Corrected": ea,
+            "Begin_Avg_Next_Year_Corrected": ba,
+        }, None
+    return None, yps
+
+
 def main(correction_log_path, updated_averages_csv_path):
     """
     Generates a refined overview table summarizing level shift strategies applied
@@ -46,34 +75,6 @@ def main(correction_log_path, updated_averages_csv_path):
         # Sort the log for deterministic output
         df_log = df_log.sort_values(by=["Series", "Year_Pair_Outlier", "Sensor"])
 
-        def process_outlier_log(s, yps, sen, od, cls):
-            pm = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", str(yps))
-            if pm:
-                y1_f, y1_yy, y2_f, y2_yy = map(int, pm.groups())
-                py, ny = (y1_yy, y2_yy) if y1_f < y2_f else (y2_yy, y1_yy)
-                ea = avg_lookup.get((s, py), {}).get("End_Average", "N/A")
-                ba = avg_lookup.get((s, ny), {}).get("Beginning_Average", "N/A")
-
-                try:
-                    od_val = round(od, 3)
-                except Exception:
-                    od_val = od
-                try:
-                    cls_val = round(cls, 3)
-                except Exception:
-                    cls_val = cls
-
-                return {
-                    "Series": s,
-                    "Year_Pair_YY": f"Y{py:02d} to Y{ny:02d}",
-                    "Sensor": sen,
-                    "Original_Diff_Summary": od_val,
-                    "Calculated_Level_Shift_Applied": cls_val,
-                    "End_Avg_Prev_Year_Corrected": ea,
-                    "Begin_Avg_Next_Year_Corrected": ba,
-                }, None
-            return None, yps
-
         for s, yps, sen, od, cls in zip(
             df_log["Series"].to_numpy(),
             df_log["Year_Pair_Outlier"].to_numpy(),
@@ -81,7 +82,7 @@ def main(correction_log_path, updated_averages_csv_path):
             df_log["Original_Difference_Summary"].to_numpy(),
             df_log["Calculated_Level_Shift"].to_numpy(),
         ):
-            record, unmatched = process_outlier_log(s, yps, sen, od, cls)
+            record, unmatched = process_outlier_log(s, yps, sen, od, cls, avg_lookup)
             if record:
                 overview_data.append(record)
             if unmatched:
