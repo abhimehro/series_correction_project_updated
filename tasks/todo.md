@@ -1,0 +1,3 @@
+- [x] Extracted `_calculate_normal_step`, `_is_valid_step`, and `_generate_missing_times` helper functions from `_build_gaps_dataframe`.
+- [x] Verified tests pass locally using `pytest`.
+- [x] Verified formatting using `black` and `flake8`.

@@ -241,6 +241,50 @@ def detect_outliers(
     return outliers
 
 
+def _calculate_normal_step(time_col_arr, idx_before, idx_after, max_len):
+    return (
+        time_col_arr[idx_before] - time_col_arr[idx_before - 1]
+        if idx_before > 0
+        else (
+            time_col_arr[idx_after + 1] - time_col_arr[idx_after]
+            if max_len > idx_after + 1
+            else None
+        )
+    )
+
+
+def _is_valid_step(normal_step):
+    invalid_td = (
+        isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
+    )
+    invalid_np = isinstance(
+        normal_step, np.timedelta64
+    ) and normal_step <= np.timedelta64(0, "ns")
+    invalid_num = (
+        not isinstance(normal_step, (pd.Timedelta, np.timedelta64)) and normal_step <= 0
+    )
+    return not (invalid_td or invalid_np or invalid_num)
+
+
+def _generate_missing_times(time_before, time_after, normal_step, num_missing_points):
+    start_time, end_time = time_before + normal_step, time_after - normal_step
+
+    if isinstance(start_time, (pd.Timestamp, np.datetime64)):
+        return pd.date_range(
+            start=pd.Timestamp(start_time),
+            end=pd.Timestamp(end_time),
+            periods=num_missing_points,
+        )
+    elif hasattr(start_time, "value"):
+        return pd.to_datetime(
+            np.linspace(start_time.value, end_time.value, num=num_missing_points)
+        )
+    else:
+        return np.linspace(
+            start_time, end_time, num=num_missing_points, dtype=type(time_before)
+        )
+
+
 def _build_gaps_dataframe(
     result_df: pd.DataFrame, gap_indices: list[int], time_col: str
 ) -> Any:
@@ -248,6 +292,7 @@ def _build_gaps_dataframe(
     processed_gap_indices = set()
     all_new_rows = []
     time_col_arr = result_df[time_col].to_numpy()
+    max_len = len(result_df)
 
     for gap_idx in sorted(gap_indices, reverse=True):
         if gap_idx in processed_gap_indices or gap_idx == 0:
@@ -257,14 +302,8 @@ def _build_gaps_dataframe(
         time_before, time_after = time_col_arr[idx_before], time_col_arr[idx_after]
 
         # Calculate step compactly but readably
-        normal_step = (
-            time_before - time_col_arr[idx_before - 1]
-            if idx_before > 0
-            else (
-                time_col_arr[idx_after + 1] - time_after
-                if len(result_df) > idx_after + 1
-                else None
-            )
+        normal_step = _calculate_normal_step(
+            time_col_arr, idx_before, idx_after, max_len
         )
 
         if normal_step is None:
@@ -274,19 +313,7 @@ def _build_gaps_dataframe(
             )
             continue
 
-        # Check for invalid step compactly
-        invalid_td = (
-            isinstance(normal_step, pd.Timedelta) and normal_step.total_seconds() <= 0
-        )
-        invalid_np = isinstance(
-            normal_step, np.timedelta64
-        ) and normal_step <= np.timedelta64(0, "ns")
-        invalid_num = (
-            not isinstance(normal_step, (pd.Timedelta, np.timedelta64))
-            and normal_step <= 0
-        )
-
-        if invalid_td or invalid_np or invalid_num:
+        if not _is_valid_step(normal_step):
             log.warning(
                 "Estimated normal time step is non-positive (%s) for gap at index %d. Skipping.",
                 normal_step,
@@ -312,22 +339,9 @@ def _build_gaps_dataframe(
             normal_step,
         )
 
-        start_time, end_time = time_before + normal_step, time_after - normal_step
-
-        if isinstance(start_time, (pd.Timestamp, np.datetime64)):
-            new_times = pd.date_range(
-                start=pd.Timestamp(start_time),
-                end=pd.Timestamp(end_time),
-                periods=num_missing_points,
-            )
-        elif hasattr(start_time, "value"):
-            new_times = pd.to_datetime(
-                np.linspace(start_time.value, end_time.value, num=num_missing_points)
-            )
-        else:
-            new_times = np.linspace(
-                start_time, end_time, num=num_missing_points, dtype=type(time_before)
-            )
+        new_times = _generate_missing_times(
+            time_before, time_after, normal_step, num_missing_points
+        )
 
         # ⚡ Bolt: Accumulate raw times instead of building pd.DataFrames incrementally
         all_new_rows.append(new_times)
