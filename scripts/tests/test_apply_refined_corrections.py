@@ -3,6 +3,7 @@ import numpy as np
 
 from scripts.apply_refined_corrections import (
     apply_level_shift_correction,
+    build_year_index,
     calculate_non_zero_average,
     save_corrected_files,
 )
@@ -104,10 +105,11 @@ def test_multiple_corrections_to_same_file_are_preserved(tmp_path):
         ),
     ]
 
+    year_index = build_year_index(raw_file_map)
     corrections = [
         apply_level_shift_correction(
             (outlier.Year_Pair, outlier.Sensor, outlier.Difference),
-            raw_file_map,
+            year_index,
             raw_dataframes,
         )
         for outlier in outliers

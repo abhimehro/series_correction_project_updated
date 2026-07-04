@@ -131,13 +131,32 @@ def parse_sensor_index(sensor_name):
     return sensor_idx
 
 
-def find_year_files(raw_file_map, prev_yy, next_yy):
-    # Preserve deterministic series preference (S26 before S27) regardless of
-    # filesystem/glob ordering.
-    for series_id in sorted(raw_file_map):
-        year_files = raw_file_map.get(series_id, {})
-        if prev_yy in year_files and next_yy in year_files:
-            return series_id, year_files[prev_yy], year_files[next_yy]
+def build_year_index(raw_file_map):
+    """Creates an inverted index mapping year -> {series_id: filepath}."""
+    year_index = {}
+    for series_id, files in raw_file_map.items():
+        for year, filepath in files.items():
+            if year not in year_index:
+                year_index[year] = {}
+            year_index[year][series_id] = filepath
+    return year_index
+
+
+def find_year_files(year_index, prev_yy, next_yy):
+    prev_series = year_index.get(prev_yy, {})
+    next_series = year_index.get(next_yy, {})
+
+    # Determine the smaller set to minimize iteration
+    if len(prev_series) < len(next_series):
+        smaller, larger = prev_series, next_series
+    else:
+        smaller, larger = next_series, prev_series
+
+    # Preserve deterministic series preference (S26 before S27)
+    common = sorted(k for k in smaller if k in larger)
+    if common:
+        series_id = common[0]
+        return series_id, prev_series[series_id], next_series[series_id]
 
     return None, None, None
 
@@ -155,7 +174,7 @@ def output_file_name(input_file):
     return os.path.basename(input_file).replace(".txt", "_refined_corrected.csv")
 
 
-def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
+def apply_level_shift_correction(outlier_info, year_index, raw_dataframes):
     """Calculates and applies level shift correction for a single outlier."""
 
     year_pair_str, sensor_name, orig_diff = outlier_info
@@ -168,7 +187,7 @@ def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
         return None
 
     prev_yy, next_yy = parsed_years
-    series_id, prev_file, next_file = find_year_files(raw_file_map, prev_yy, next_yy)
+    series_id, prev_file, next_file = find_year_files(year_index, prev_yy, next_yy)
 
     if not series_id:
         return None
@@ -234,6 +253,7 @@ def main():
 
     raw_file_map = build_raw_file_map(DATA_DIR)
     raw_dataframes = load_raw_dataframes(raw_file_map)
+    year_index = build_year_index(raw_file_map)
     applied_corrections = []
 
     for year_pair, sensor, diff in zip(
@@ -242,7 +262,7 @@ def main():
         outliers_df["Difference"].to_numpy(),
     ):
         result = apply_level_shift_correction(
-            (year_pair, sensor, diff), raw_file_map, raw_dataframes
+            (year_pair, sensor, diff), year_index, raw_dataframes
         )
         if result:
             applied_corrections.append(result)
