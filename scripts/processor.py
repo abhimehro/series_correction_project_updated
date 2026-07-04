@@ -154,21 +154,6 @@ def detect_jumps(
     return jumps
 
 
-def _calc_mad(v: np.ndarray, n: int, w: int) -> np.ndarray:
-    from numpy.lib.stride_tricks import sliding_window_view
-
-    mads, nw = [], n - w + 1
-    for s in range(0, nw, 50000):
-        e = min(s + 50000, nw)
-        cw = sliding_window_view(v[s : e + w - 1], window_shape=w)
-        cm = np.nanmedian(cw, axis=1, keepdims=True)
-        cmads = np.nanmedian(np.abs(cw - cm), axis=1)
-        cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
-        mads.append(cmads)
-    m = np.concatenate(mads) if mads else np.array([])
-    return np.pad(m, (w // 2, n - len(m) - w // 2), constant_values=np.nan)
-
-
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -205,8 +190,23 @@ def detect_outliers(
     # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
-    # Calculate rolling MAD using _calc_mad helper
-    rolling_mad = _calc_mad(values_np, n, window_size)
+    # Calculate rolling MAD directly
+    from numpy.lib.stride_tricks import sliding_window_view
+
+    mads, nw = [], n - window_size + 1
+    for s in range(0, nw, 50000):
+        e = min(s + 50000, nw)
+        cw = sliding_window_view(
+            values_np[s : e + window_size - 1], window_shape=window_size
+        )
+        cm = np.nanmedian(cw, axis=1, keepdims=True)
+        cmads = np.nanmedian(np.abs(cw - cm), axis=1)
+        cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
+        mads.append(cmads)
+    m = np.concatenate(mads) if mads else np.array([])
+    rolling_mad = np.pad(
+        m, (window_size // 2, n - len(m) - window_size // 2), constant_values=np.nan
+    )
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
