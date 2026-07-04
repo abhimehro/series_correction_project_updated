@@ -106,17 +106,9 @@ def load_raw_dataframes(raw_file_map):
 
 
 def parse_year_pair(year_pair_str):
-    """Parses the Year_Pair string into previous and next year numbers."""
-    pair_match = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", year_pair_str)
-    if not pair_match:
-        return None
-
-    y1_full, y1_yy, y2_full, y2_yy = map(int, pair_match.groups())
-
-    if y1_full < y2_full:
-        return y1_yy, y2_yy
-
-    return y2_yy, y1_yy
+    if m := re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", year_pair_str):
+        y1, y1y, y2, y2y = map(int, m.groups())
+        return (y1y, y2y) if y1 < y2 else (y2y, y1y)
 
 
 def parse_sensor_index(sensor_name):
@@ -133,13 +125,11 @@ def parse_sensor_index(sensor_name):
 
 def build_year_index(raw_file_map):
     """Creates an inverted index mapping year -> {series_id: filepath}."""
-    year_index = {}
-    for series_id, files in raw_file_map.items():
-        for year, filepath in files.items():
-            if year not in year_index:
-                year_index[year] = {}
-            year_index[year][series_id] = filepath
-    return year_index
+    idx = {}
+    for sid, files in raw_file_map.items():
+        for yr, fpath in files.items():
+            idx.setdefault(yr, {})[sid] = fpath
+    return idx
 
 
 def find_year_files(year_index, prev_yy, next_yy):
