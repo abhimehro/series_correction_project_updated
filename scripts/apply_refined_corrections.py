@@ -72,8 +72,8 @@ def load_identified_outliers(csv_path):
     except FileNotFoundError:
         print(f"Error: The file '{csv_path}' was not found.")
         return pd.DataFrame()
-    except Exception as e:
-        print(f"An error occurred while loading outliers: {e}")
+    except Exception:
+        print("An unexpected error occurred while loading outliers.")
         return pd.DataFrame()
 
 
@@ -200,8 +200,10 @@ def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
             "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
         }
 
-    except Exception as e:
-        print(f"Error processing outlier {year_pair_str}, {sensor_name}: {e}")
+    except Exception:
+        print(
+            f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
+        )
         return None
 
 
