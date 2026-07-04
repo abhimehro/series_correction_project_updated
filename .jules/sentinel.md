@@ -18,3 +18,7 @@
 **Vulnerability:** Calling `to_csv()` directly on Pandas DataFrames containing untrusted string or categorical columns allows malicious actors to inject Excel formulas (e.g., values starting with `=`, `+`, `-`, `@`) which execute when the CSV is opened in spreadsheet software.
 **Learning:** While `to_excel()` was explicitly protected by `write_excel_safely` in this codebase, exports to CSV via `to_csv()` were overlooked in scripts like `apply_refined_corrections.py` and `generate_overview_table.py`.
 **Prevention:** Always apply the existing `sanitize_dataframe_for_spreadsheet()` utility to DataFrames before any export (CSV or Excel) that might be opened in spreadsheet software. Created a centralized `write_csv_safely` utility alongside `write_excel_safely` to enforce this consistently.
+## 2025-02-24 - Fix raw exception data exposure in CLI output
+**Vulnerability:** Raw Exception Data Exposure (CWE-209). Exception objects and types were directly interpolated into user-facing `print()` statements.
+**Learning:** It's common to lazily print `e` in scripts, but this violates secure coding standards by leaking system state or implementation details to terminal output.
+**Prevention:** Never include exception objects (`{e}`) in `print()` statements. Use generalized warning messages for CLI output, and structured logging (`logging.exception`) if stack traces are required.

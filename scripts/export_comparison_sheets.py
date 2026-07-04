@@ -135,23 +135,19 @@ def export_comparisons():
                 if cols:
                     cols[0] = "Time (Seconds)"
                 raw_df.columns = cols
-        except (IOError, ValueError) as e:
-            print(f"[WARN] Could not load raw file {raw_file}: {e}")
+        except (IOError, ValueError):
+            print(f"[WARN] Could not load raw file {raw_file}")
             continue
-        except Exception as e:
-            print(
-                f"[WARN] Unexpected error loading raw file {raw_file}: {type(e).__name__}: {e}"
-            )
+        except Exception:
+            print(f"[WARN] Unexpected error loading raw file {raw_file}")
             continue
         try:
             proc_df = read_excel(proc_file)
-        except (IOError, ValueError) as e:
-            print(f"[WARN] Could not load processed file {proc_file}: {e}")
+        except (IOError, ValueError):
+            print(f"[WARN] Could not load processed file {proc_file}")
             continue
-        except Exception as e:
-            print(
-                f"[WARN] Unexpected error loading processed file {proc_file}: {type(e).__name__}: {e}"
-            )
+        except Exception:
+            print(f"[WARN] Unexpected error loading processed file {proc_file}")
             continue
         # Store a reference to proc_df to show it's used in the function
         processed_df = proc_df  # Explicitly show this variable is used
