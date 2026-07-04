@@ -5,7 +5,8 @@ import pandas as pd
 from scripts.spreadsheet_safety import write_csv_safely
 
 
-def process_outlier_log(s, yps, sen, od, cls, avg_lookup):
+def process_outlier_log(row, avg_lookup):
+    s, yps, sen, od, cls = row
     pm = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", str(yps))
     if pm:
         y1_f, y1_yy, y2_f, y2_yy = map(int, pm.groups())
@@ -75,14 +76,14 @@ def main(correction_log_path, updated_averages_csv_path):
         # Sort the log for deterministic output
         df_log = df_log.sort_values(by=["Series", "Year_Pair_Outlier", "Sensor"])
 
-        for s, yps, sen, od, cls in zip(
+        for row in zip(
             df_log["Series"].to_numpy(),
             df_log["Year_Pair_Outlier"].to_numpy(),
             df_log["Sensor"].to_numpy(),
             df_log["Original_Difference_Summary"].to_numpy(),
             df_log["Calculated_Level_Shift"].to_numpy(),
         ):
-            record, unmatched = process_outlier_log(s, yps, sen, od, cls, avg_lookup)
+            record, unmatched = process_outlier_log(row, avg_lookup)
             if record:
                 overview_data.append(record)
             if unmatched:
