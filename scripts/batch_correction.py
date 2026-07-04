@@ -360,6 +360,48 @@ def _load_raw_data(file_path):
 # --------------------------------------------------------------------------- #
 # Public API
 # --------------------------------------------------------------------------- #
+def _load_and_prepare_config(config_path: str) -> Dict[str, Any]:
+    config_data = {}
+    if load_config_func:
+        try:
+            config_data = load_config_func(config_path)
+        except FileNotFoundError:
+            log.warning(
+                f"Config file {config_path} not found – continuing with empty config."
+            )
+        except Exception as exc:  # pragma: no cover
+            log.exception(f"Failed to load configuration: {exc}")
+            raise ProcessingError("Failed to load configuration") from None
+
+    # Optional river-mile lookup CSV – silently ignored when missing
+    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
+    if os.path.isfile(rm_map_path):
+        rm_df = pd.read_csv(rm_map_path)
+        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
+            "RIVER_MILE"
+        ].to_dict()
+
+        # ⚡ Bolt: Use .agg(list) instead of .apply(list) for ~5-8% performance improvement
+        # .agg() avoids the Python function call fallback overhead of .apply() when grouping
+        config_data["RIVER_TO_SENSORS"] = (
+            rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
+        )
+    return config_data
+
+
+def _prepare_output_directory(output_dir: str, data_dir: str, dry_run: bool) -> str:
+    output_dir = output_dir or data_dir  # Default discussed in tests
+
+    if not dry_run and not os.path.isdir(output_dir):
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            log.info(f"Created output directory {output_dir}")
+        except OSError as exc:
+            log.exception(f"Unable to create output directory: {exc}")
+            raise ProcessingError("Unable to create output directory") from None
+    return output_dir
+
+
 def batch_process(
     series_selection,
     river_miles,
@@ -390,45 +432,13 @@ def batch_process(
     # ------------------------------------------------------------------ #
     # Configuration
     # ------------------------------------------------------------------ #
-    config_data = {}
-    if load_config_func:
-        try:
-            config_data = load_config_func(config_path)
-        except FileNotFoundError:
-            log.warning(
-                f"Config file {config_path} not found – continuing with empty config."
-            )
-        except Exception as exc:  # pragma: no cover
-            log.exception(f"Failed to load configuration: {exc}")
-            raise ProcessingError("Failed to load configuration") from None
-
-    # Optional river-mile lookup CSV – silently ignored when missing
-    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    if os.path.isfile(rm_map_path):
-        rm_df = pd.read_csv(rm_map_path)
-        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
-            "RIVER_MILE"
-        ].to_dict()
-
-        # ⚡ Bolt: Use .agg(list) instead of .apply(list) for ~5-8% performance improvement
-        # .agg() avoids the Python function call fallback overhead of .apply() when grouping
-        config_data["RIVER_TO_SENSORS"] = (
-            rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
-        )
+    config_data = _load_and_prepare_config(config_path)
 
     # ------------------------------------------------------------------ #
     # Directories
     # ------------------------------------------------------------------ #
     data_dir = _get_data_directory(config_data)
-    output_dir = output_dir or data_dir  # Default discussed in tests
-
-    if not dry_run and not os.path.isdir(output_dir):
-        try:
-            os.makedirs(output_dir, exist_ok=True)
-            log.info(f"Created output directory {output_dir}")
-        except OSError as exc:
-            log.exception(f"Unable to create output directory: {exc}")
-            raise ProcessingError("Unable to create output directory") from None
+    output_dir = _prepare_output_directory(output_dir, data_dir, dry_run)
 
     # ------------------------------------------------------------------ #
     # Determine workloads
