@@ -154,6 +154,43 @@ def detect_jumps(
     return jumps
 
 
+def _calculate_outlier_z_scores(values_np, rolling_median, window_size, n, threshold):
+    from numpy.lib.stride_tricks import sliding_window_view
+
+    mads, nw = [], n - window_size + 1
+    for s in range(0, nw, 50000):
+        e = min(s + 50000, nw)
+        cw = sliding_window_view(
+            values_np[s : e + window_size - 1], window_shape=window_size
+        )
+        cm = np.nanmedian(cw, axis=1, keepdims=True)
+        cmads = np.nanmedian(np.abs(cw - cm), axis=1)
+        cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
+        mads.append(cmads)
+
+    m = np.concatenate(mads) if mads else np.array([])
+    rolling_mad = np.pad(
+        m, (window_size // 2, n - len(m) - window_size // 2), constant_values=np.nan
+    )
+
+    mad_scale_factor = 1.4826
+    rolling_scaled_mad = rolling_mad * mad_scale_factor
+
+    # ⚡ Bolt: Vectorized Z-score calculation to replace Python `for` loop
+    with np.errstate(invalid="ignore", divide="ignore"):
+        abs_diff = np.abs(values_np - rolling_median)
+        z_scores = np.where(
+            rolling_scaled_mad < 1e-6,
+            np.where(
+                abs_diff > 1e-6, np.where(abs_diff > threshold * 1e-6, np.inf, 0.0), 0.0
+            ),
+            abs_diff / rolling_scaled_mad,
+        )
+        valid_mask = ~np.isnan(rolling_median) & ~np.isnan(rolling_scaled_mad)
+
+    return z_scores, valid_mask
+
+
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -190,40 +227,11 @@ def detect_outliers(
     # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
-    # Calculate rolling MAD directly
-    from numpy.lib.stride_tricks import sliding_window_view
-
-    mads, nw = [], n - window_size + 1
-    for s in range(0, nw, 50000):
-        e = min(s + 50000, nw)
-        cw = sliding_window_view(
-            values_np[s : e + window_size - 1], window_shape=window_size
-        )
-        cm = np.nanmedian(cw, axis=1, keepdims=True)
-        cmads = np.nanmedian(np.abs(cw - cm), axis=1)
-        cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
-        mads.append(cmads)
-    m = np.concatenate(mads) if mads else np.array([])
-    rolling_mad = np.pad(
-        m, (window_size // 2, n - len(m) - window_size // 2), constant_values=np.nan
+    z_scores, valid_mask = _calculate_outlier_z_scores(
+        values_np, rolling_median, window_size, n, threshold
     )
-
-    mad_scale_factor = 1.4826
-    rolling_scaled_mad = rolling_mad * mad_scale_factor
-
-    # ⚡ Bolt: Vectorized Z-score calculation to replace Python `for` loop
-    with np.errstate(invalid="ignore", divide="ignore"):
-        abs_diff = np.abs(values_np - rolling_median)
-        z_scores = np.where(
-            rolling_scaled_mad < 1e-6,
-            np.where(
-                abs_diff > 1e-6, np.where(abs_diff > threshold * 1e-6, np.inf, 0.0), 0.0
-            ),
-            abs_diff / rolling_scaled_mad,
-        )
-        valid_mask = ~np.isnan(rolling_median) & ~np.isnan(rolling_scaled_mad)
-        outlier_mask = valid_mask & (z_scores > threshold)
-        outliers = np.where(outlier_mask)[0].tolist()
+    outlier_mask = valid_mask & (z_scores > threshold)
+    outliers = np.where(outlier_mask)[0].tolist()
 
     if outliers:
         log.info(
