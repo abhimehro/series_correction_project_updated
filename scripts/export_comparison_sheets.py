@@ -110,83 +110,109 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
     return np.where(outlier_mask)[0].tolist()
 
 
+def _load_raw_data_safely(raw_file):
+    """Load raw data file with error handling."""
+    try:
+        df = read_csv(
+            raw_file,
+            sep=r"\s+",
+            header=None,
+            engine="python",
+            comment="#",
+            skip_blank_lines=True,
+        )
+        if all(isinstance(c, int) for c in df.columns):
+            cols = [f"Value{i + 1}" for i in range(len(df.columns))]
+            if cols:
+                cols[0] = "Time (Seconds)"
+            df.columns = cols
+        return df
+    except (IOError, ValueError) as e:
+        print(f"[WARN] Could not load raw file {raw_file}: {e}")
+        return None
+    except Exception as e:
+        print(
+            f"[WARN] Unexpected error loading raw file {raw_file}: {type(e).__name__}: {e}"
+        )
+        return None
+
+
+def _load_processed_data_safely(proc_file):
+    """Load processed data file with error handling."""
+    try:
+        return read_excel(proc_file)
+    except (IOError, ValueError) as e:
+        print(f"[WARN] Could not load processed file {proc_file}: {e}")
+        return None
+    except Exception as e:
+        print(
+            f"[WARN] Unexpected error loading processed file {proc_file}: {type(e).__name__}: {e}"
+        )
+        return None
+
+
+def _merge_dataframes(raw_df, processed_df):
+    """Merge raw and processed dataframes by time column."""
+    if (
+        "Time (Seconds)" in raw_df.columns
+        and "Time (Seconds)" in processed_df.columns
+    ):
+        return merge(
+            raw_df,
+            processed_df,
+            on="Time (Seconds)",
+            suffixes=("_raw", "_processed"),
+            how="outer",
+        )
+    return concat([raw_df, processed_df], axis=1)
+
+
+def _add_outlier_flags(merged, raw_df):
+    """Add outlier flags to the merged dataframe."""
+    value_cols = [c for c in raw_df.columns if c.startswith("Value")]
+    if not value_cols:
+        return merged
+
+    vcol = value_cols[1] if len(value_cols) > 1 else value_cols[0]
+    outlier_indices = detect_outliers_series(raw_df[vcol])
+    merged["Outlier_Flag"] = False
+    valid_indices = [idx for idx in outlier_indices if idx < len(merged)]
+    if valid_indices:
+        merged.loc[valid_indices, "Outlier_Flag"] = True
+    return merged
+
+
+def _process_single_file(proc_file):
+    """Process a single file comparison."""
+    fname = os.path.basename(proc_file)
+    if fname.startswith("Seatek_Analysis_Summary"):
+        return
+
+    raw_file = find_matching_raw_file(fname)
+    if not raw_file:
+        print(f"[WARN] No matching raw file for {fname}")
+        return
+
+    raw_df = _load_raw_data_safely(raw_file)
+    if raw_df is None:
+        return
+
+    processed_df = _load_processed_data_safely(proc_file)
+    if processed_df is None:
+        return
+
+    merged = _merge_dataframes(raw_df, processed_df)
+    merged = _add_outlier_flags(merged, raw_df)
+
+    out_path = os.path.join(COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx"))
+    write_excel_safely(merged, out_path, index=False)
+    print(f"[INFO] Exported comparison: {out_path}")
+
+
 def export_comparisons():
     processed_files = glob(os.path.join(OUTPUT_DIR, "*.xlsx"))
     for proc_file in processed_files:
-        fname = os.path.basename(proc_file)
-        if fname.startswith("Seatek_Analysis_Summary"):  # Skip summary
-            continue
-        raw_file = find_matching_raw_file(fname)
-        if not raw_file:
-            print(f"[WARN] No matching raw file for {fname}")
-            continue
-        # Load raw and processed
-        try:
-            raw_df = read_csv(
-                raw_file,
-                sep=r"\s+",
-                header=None,
-                engine="python",
-                comment="#",
-                skip_blank_lines=True,
-            )
-            if all(isinstance(c, int) for c in raw_df.columns):
-                cols = [f"Value{i + 1}" for i in range(len(raw_df.columns))]
-                if cols:
-                    cols[0] = "Time (Seconds)"
-                raw_df.columns = cols
-        except (IOError, ValueError) as e:
-            print(f"[WARN] Could not load raw file {raw_file}: {e}")
-            continue
-        except Exception as e:
-            print(
-                f"[WARN] Unexpected error loading raw file {raw_file}: {type(e).__name__}: {e}"
-            )
-            continue
-        try:
-            proc_df = read_excel(proc_file)
-        except (IOError, ValueError) as e:
-            print(f"[WARN] Could not load processed file {proc_file}: {e}")
-            continue
-        except Exception as e:
-            print(
-                f"[WARN] Unexpected error loading processed file {proc_file}: {type(e).__name__}: {e}"
-            )
-            continue
-        # Store a reference to proc_df to show it's used in the function
-        processed_df = proc_df  # Explicitly show this variable is used
-
-        # Align by time column
-        if (
-            "Time (Seconds)" in raw_df.columns
-            and "Time (Seconds)" in processed_df.columns
-        ):
-            merged = merge(
-                raw_df,
-                processed_df,
-                on="Time (Seconds)",
-                suffixes=("_raw", "_processed"),
-                how="outer",
-            )
-        else:
-            merged = concat([raw_df, processed_df], axis=1)
-        # Outlier detection on raw data (main value col)
-        value_cols = [c for c in raw_df.columns if c.startswith("Value")]
-        if value_cols:
-            vcol = value_cols[1] if len(value_cols) > 1 else value_cols[0]
-            outlier_indices = detect_outliers_series(raw_df[vcol])
-            merged["Outlier_Flag"] = False
-            # ⚡ Bolt: Vectorize outlier flag assignment for ~26x performance improvement
-            # Replaces iterative DataFrame.at loop which has high object overhead
-            valid_indices = [idx for idx in outlier_indices if idx < len(merged)]
-            if valid_indices:
-                merged.loc[valid_indices, "Outlier_Flag"] = True
-        # Export
-        out_path = os.path.join(
-            COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx")
-        )
-        write_excel_safely(merged, out_path, index=False)
-        print(f"[INFO] Exported comparison: {out_path}")
+        _process_single_file(proc_file)
 
 
 # Initialize these variables at module level to avoid undefined variable warnings

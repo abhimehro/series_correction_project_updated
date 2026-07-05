@@ -154,9 +154,10 @@ def detect_jumps(
     return jumps
 
 
-def _calculate_outlier_z_scores(values_np, rolling_median, window_size, n, threshold):
+def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshold):
     from numpy.lib.stride_tricks import sliding_window_view
 
+    n = len(values_np)
     mads, nw = [], n - window_size + 1
     for s in range(0, nw, 50000):
         e = min(s + 50000, nw)
@@ -228,7 +229,7 @@ def detect_outliers(
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
     z_scores, valid_mask = _calculate_outlier_z_scores(
-        values_np, rolling_median, window_size, n, threshold
+        values_np, rolling_median, window_size, threshold
     )
     outlier_mask = valid_mask & (z_scores > threshold)
     outliers = np.where(outlier_mask)[0].tolist()
@@ -516,10 +517,10 @@ def _calculate_outlier_replacements(
     outlier_indices: list[int],
     window_size: int,
     method: str,
-    n: int,
 ) -> np.ndarray:
     # ⚡ Bolt: Vectorized replacement calculation for all outliers
     # Create a boolean mask of valid data (not outliers)
+    n = len(values_np)
     outlier_mask = np.zeros(n, dtype=bool)
     outlier_mask[outlier_indices] = True
 
@@ -599,7 +600,6 @@ def correct_outliers(
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -622,7 +622,7 @@ def correct_outliers(
     elif method in ["median", "mean"]:
         values_np = result_df[value_col].astype(float).to_numpy(copy=True)
         values_np = _calculate_outlier_replacements(
-            values_np, outlier_indices, window_size, method, n
+            values_np, outlier_indices, window_size, method
         )
         result_df[value_col] = values_np
     else:
