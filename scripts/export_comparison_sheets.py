@@ -14,28 +14,37 @@ COMPARISON_DIR = os.path.join(OUTPUT_DIR, "comparisons")
 os.makedirs(COMPARISON_DIR, exist_ok=True)
 
 
-def find_matching_raw_file(processed_filename):
-    # Assumes processed files are named like 'Year_1995 (Y01)_Data.xlsx' or 'Series26_File01_Processed.xlsx'
-    # Attempts to extract series and year index
+def _find_series_file_match(processed_filename):
     import re
-
     m = re.search(r"Series(\d+)_File(\d+)_Processed", processed_filename)
     if m:
         series = int(m.group(1))
         file_idx = int(m.group(2))
-        # Try S{series}_Y{file_idx:02d}.txt
         raw_candidate = f"S{series}_Y{file_idx:02d}.txt"
         raw_path = os.path.join(RAW_DATA_DIR, raw_candidate)
         if os.path.isfile(raw_path):
             return raw_path
-    m2 = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
-    if m2:
-        yidx = int(m2.group(2))
-        # Try to find S??_Y{yidx:02d}.txt
+    return None
+
+
+def _find_year_file_match(processed_filename):
+    import re
+    m = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
+    if m:
+        yidx = int(m.group(2))
         for f in os.listdir(RAW_DATA_DIR):
             if f.endswith(f"_Y{yidx:02d}.txt"):
                 return os.path.join(RAW_DATA_DIR, f)
     return None
+
+
+def find_matching_raw_file(processed_filename):
+    # Assumes processed files are named like 'Year_1995 (Y01)_Data.xlsx' or 'Series26_File01_Processed.xlsx'
+    # Attempts to extract series and year index
+    raw_path = _find_series_file_match(processed_filename)
+    if raw_path:
+        return raw_path
+    return _find_year_file_match(processed_filename)
 
 
 def detect_outliers_series(values, window_size=5, threshold=3.0):
@@ -110,6 +119,15 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
     return np.where(outlier_mask)[0].tolist()
 
 
+def _rename_raw_columns(raw_df):
+    if all(isinstance(c, int) for c in raw_df.columns):
+        cols = [f"Value{i + 1}" for i in range(len(raw_df.columns))]
+        if cols:
+            cols[0] = "Time (Seconds)"
+        raw_df.columns = cols
+    return raw_df
+
+
 def load_raw_file(raw_file):
     try:
         raw_df = read_csv(
@@ -120,12 +138,7 @@ def load_raw_file(raw_file):
             comment="#",
             skip_blank_lines=True,
         )
-        if all(isinstance(c, int) for c in raw_df.columns):
-            cols = [f"Value{i + 1}" for i in range(len(raw_df.columns))]
-            if cols:
-                cols[0] = "Time (Seconds)"
-            raw_df.columns = cols
-        return raw_df
+        return _rename_raw_columns(raw_df)
     except (IOError, ValueError):
         print(f"[WARN] Could not load raw file {raw_file}")
         return None
@@ -176,34 +189,51 @@ def add_outlier_flags(merged, raw_df):
     return merged
 
 
+def _get_output_path(proc_file):
+    fname = os.path.basename(proc_file)
+    return os.path.join(COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx"))
+
+
+def _should_skip_file(fname):
+    return fname.startswith("Seatek_Analysis_Summary")
+
+
+def _load_and_merge_data(proc_file, raw_file):
+    raw_df = load_raw_file(raw_file)
+    if raw_df is None:
+        return None
+
+    processed_df = load_processed_file(proc_file)
+    if processed_df is None:
+        return None
+
+    merged = merge_dataframes(raw_df, processed_df)
+    return add_outlier_flags(merged, raw_df)
+
+
+def _process_single_file(proc_file):
+    fname = os.path.basename(proc_file)
+    if _should_skip_file(fname):
+        return
+
+    raw_file = find_matching_raw_file(fname)
+    if not raw_file:
+        print(f"[WARN] No matching raw file for {fname}")
+        return
+
+    merged = _load_and_merge_data(proc_file, raw_file)
+    if merged is None:
+        return
+
+    out_path = _get_output_path(proc_file)
+    write_excel_safely(merged, out_path, index=False)
+    print(f"[INFO] Exported comparison: {out_path}")
+
+
 def export_comparisons():
     processed_files = glob(os.path.join(OUTPUT_DIR, "*.xlsx"))
     for proc_file in processed_files:
-        fname = os.path.basename(proc_file)
-        if fname.startswith("Seatek_Analysis_Summary"):
-            continue
-
-        raw_file = find_matching_raw_file(fname)
-        if not raw_file:
-            print(f"[WARN] No matching raw file for {fname}")
-            continue
-
-        raw_df = load_raw_file(raw_file)
-        if raw_df is None:
-            continue
-
-        processed_df = load_processed_file(proc_file)
-        if processed_df is None:
-            continue
-
-        merged = merge_dataframes(raw_df, processed_df)
-        merged = add_outlier_flags(merged, raw_df)
-
-        out_path = os.path.join(
-            COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx")
-        )
-        write_excel_safely(merged, out_path, index=False)
-        print(f"[INFO] Exported comparison: {out_path}")
+        _process_single_file(proc_file)
 
 
 # Initialize these variables at module level to avoid undefined variable warnings
