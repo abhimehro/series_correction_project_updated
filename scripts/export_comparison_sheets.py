@@ -14,89 +14,86 @@ COMPARISON_DIR = os.path.join(OUTPUT_DIR, "comparisons")
 os.makedirs(COMPARISON_DIR, exist_ok=True)
 
 
+def _find_series_file(series_num, file_idx):
+    """Find raw file for SeriesXX_FileYY pattern."""
+    raw_candidate = f"S{series_num}_Y{file_idx:02d}.txt"
+    raw_path = os.path.join(RAW_DATA_DIR, raw_candidate)
+    return raw_path if os.path.isfile(raw_path) else None
+
+
+def _find_year_file(yidx):
+    """Find raw file for Year_XXXX (YXX) pattern."""
+    for f in os.listdir(RAW_DATA_DIR):
+        if f.endswith(f"_Y{yidx:02d}.txt"):
+            return os.path.join(RAW_DATA_DIR, f)
+    return None
+
+
 def find_matching_raw_file(processed_filename):
     # Assumes processed files are named like 'Year_1995 (Y01)_Data.xlsx' or 'Series26_File01_Processed.xlsx'
     # Attempts to extract series and year index
     import re
 
+    # Try SeriesXX_FileYY_Processed pattern first
     m = re.search(r"Series(\d+)_File(\d+)_Processed", processed_filename)
     if m:
-        series = int(m.group(1))
-        file_idx = int(m.group(2))
-        # Try S{series}_Y{file_idx:02d}.txt
-        raw_candidate = f"S{series}_Y{file_idx:02d}.txt"
-        raw_path = os.path.join(RAW_DATA_DIR, raw_candidate)
-        if os.path.isfile(raw_path):
-            return raw_path
+        result = _find_series_file(m.group(1), int(m.group(2)))
+        if result:
+            return result
+
+    # Try Year_XXXX (YXX)_Data pattern
     m2 = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
     if m2:
-        yidx = int(m2.group(2))
-        # Try to find S??_Y{yidx:02d}.txt
-        for f in os.listdir(RAW_DATA_DIR):
-            if f.endswith(f"_Y{yidx:02d}.txt"):
-                return os.path.join(RAW_DATA_DIR, f)
+        return _find_year_file(int(m2.group(2)))
     return None
+
+
+def _calculate_rolling_mad(values_np, n, window_size):
+    """Calculate rolling MAD using chunked processing for performance."""
+    from numpy.lib.stride_tricks import sliding_window_view
+
+    chunk_size = 50000
+    mads_list = []
+    num_windows = n - window_size + 1
+
+    for start_idx in range(0, num_windows, chunk_size):
+        end_idx = min(start_idx + chunk_size, num_windows)
+        chunk = values_np[start_idx : end_idx + window_size - 1]
+
+        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
+        nan_counts = np.isnan(chunk_windows).sum(axis=1)
+        invalid_mask = nan_counts > 0
+
+        chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
+        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
+        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
+        chunk_mads[invalid_mask] = np.nan
+        mads_list.append(chunk_mads)
+
+    if mads_list:
+        mads = np.concatenate(mads_list)
+    else:
+        mads = np.array([])
+
+    pad_width = window_size // 2
+    pad_left = pad_width
+    pad_right = n - len(mads) - pad_left
+    return np.pad(mads, (pad_left, pad_right), mode="constant", constant_values=np.nan)
 
 
 def detect_outliers_series(values, window_size=5, threshold=3.0):
     n = len(values)
     values_np = values.astype(float).to_numpy()
-
-    # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
     if n < window_size:
-        # If array is smaller than window size, pandas rolling median returns all NaNs
         rolling_mad = np.full(n, np.nan)
     else:
-        # This avoids Python function call overhead and provides ~60x speedup for this specific computation.
-        from numpy.lib.stride_tricks import sliding_window_view
+        rolling_mad = _calculate_rolling_mad(values_np, n, window_size)
 
-        chunk_size = 50000
-        mads_list = []
-        num_windows = n - window_size + 1
-
-        for start_idx in range(0, num_windows, chunk_size):
-            end_idx = min(start_idx + chunk_size, num_windows)
-            # Add window_size - 1 to end_idx to get the slice of original array needed to form the windows
-            chunk = values_np[start_idx : end_idx + window_size - 1]
-
-            chunk_windows = sliding_window_view(chunk, window_shape=window_size)
-
-            # Calculate nan count per window to mimic pandas min_periods=window_size behavior
-            nan_counts = np.isnan(chunk_windows).sum(axis=1)
-            invalid_mask = nan_counts > 0
-
-            chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
-            chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
-            chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
-
-            # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
-            chunk_mads[invalid_mask] = np.nan
-            mads_list.append(chunk_mads)
-
-        if mads_list:
-            mads = np.concatenate(mads_list)
-        else:
-            mads = np.array([])
-
-        # Pad the mads array with NaNs to match pandas center=True behavior
-        pad_width = window_size // 2
-
-        # Ensure the length matches by computing padding for left and right
-        pad_left = pad_width
-        pad_right = n - len(mads) - pad_left
-        rolling_mad = np.pad(
-            mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
-        )
-
-    mad_scale_factor = 1.4826
-    rolling_scaled_mad = rolling_mad * mad_scale_factor
-
-    # Calculate absolute differences
+    rolling_scaled_mad = rolling_mad * 1.4826
     abs_diff = np.abs(values_np - rolling_median)
 
-    # ⚡ Bolt: Vectorize z-score calculation and outlier detection loop using NumPy arrays
     with np.errstate(divide="ignore", invalid="ignore"):
         z_scores = np.where(
             rolling_scaled_mad < 1e-6,
@@ -214,11 +211,6 @@ def export_comparisons():
     for proc_file in processed_files:
         _process_single_file(proc_file)
 
-
-# Initialize these variables at module level to avoid undefined variable warnings
-# They will be properly set during execution
-raw_df = None
-processed_df = None
 
 if __name__ == "__main__":
     export_comparisons()
