@@ -71,15 +71,8 @@ def detect_gaps(
     # Since np.diff reduces length by 1, index i in time_diffs_np corresponds to i+1 in original array
     gap_indices_np = np.where(time_diffs_np > gap_threshold)[0] + 1
 
-    # Map back to DataFrame index if it's not a standard RangeIndex
-    if (
-        isinstance(data.index, pd.RangeIndex)
-        and data.index.start == 0
-        and data.index.step == 1
-    ):
-        gap_indices = gap_indices_np.tolist()
-    else:
-        gap_indices = data.index[gap_indices_np].tolist()
+    # Map back to original DataFrame index
+    gap_indices = data.index[gap_indices_np].tolist()
 
     if gap_indices:
         log.info(
