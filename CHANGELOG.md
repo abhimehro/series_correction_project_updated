@@ -12,6 +12,7 @@
 **Merged pull requests:**
 
 - ⚡ Bolt: Optimize detect\_gaps using NumPy [\#199](https://github.com/abhimehro/series_correction_project_updated/pull/199) ([abhimehro](https://github.com/abhimehro))
+- refactor\(processor\): extract gap-analysis helpers for code health \(salvages \#178\) [\#197](https://github.com/abhimehro/series_correction_project_updated/pull/197) ([abhimehro](https://github.com/abhimehro))
 - fix\(security\): sanitize CLI exception output in export\_comparison\_sheets \(salvages \#184\) [\#195](https://github.com/abhimehro/series_correction_project_updated/pull/195) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: cache listdir to optimize redundant disk reads [\#194](https://github.com/abhimehro/series_correction_project_updated/pull/194) ([abhimehro](https://github.com/abhimehro))
 - Parse roots from payload for multi-root workspace support [\#193](https://github.com/abhimehro/series_correction_project_updated/pull/193) ([abhimehro](https://github.com/abhimehro))
