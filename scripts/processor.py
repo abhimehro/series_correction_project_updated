@@ -42,18 +42,19 @@ def detect_gaps(
         log.debug("Not enough data points (< 2) to detect gaps.")
         return []
 
-    # Calculate time differences between consecutive points
-    time_diffs = data[time_col].diff()
+    # ⚡ Bolt: Vectorize time difference calculation using NumPy
+    # instead of pandas Series.diff() and .median() for significant performance improvement
+    time_col_np = data[time_col].to_numpy()
 
-    # Exclude the first value (which is NaN)
-    time_diffs_valid = time_diffs.iloc[1:]
+    # np.diff computes a[n+1] - a[n], returning an array of length N-1
+    time_diffs_np = np.diff(time_col_np)
 
-    if time_diffs_valid.empty:
+    if len(time_diffs_np) == 0:
         log.debug("No valid time differences to calculate median.")
         return []
 
     # Calculate the median time difference
-    median_diff = time_diffs_valid.median()
+    median_diff = np.median(time_diffs_np)
 
     if median_diff <= 0:
         log.warning(
@@ -67,7 +68,18 @@ def detect_gaps(
 
     # Identify indices where the time difference exceeds the threshold
     # The index corresponds to the row *after* the gap.
-    gap_indices = time_diffs[time_diffs > gap_threshold].index.tolist()
+    # Since np.diff reduces length by 1, index i in time_diffs_np corresponds to i+1 in original array
+    gap_indices_np = np.where(time_diffs_np > gap_threshold)[0] + 1
+
+    # Map back to DataFrame index if it's not a standard RangeIndex
+    if (
+        isinstance(data.index, pd.RangeIndex)
+        and data.index.start == 0
+        and data.index.step == 1
+    ):
+        gap_indices = gap_indices_np.tolist()
+    else:
+        gap_indices = data.index[gap_indices_np].tolist()
 
     if gap_indices:
         log.info(
