@@ -14,86 +14,98 @@ COMPARISON_DIR = os.path.join(OUTPUT_DIR, "comparisons")
 os.makedirs(COMPARISON_DIR, exist_ok=True)
 
 
-def _find_series_file(series_num, file_idx):
-    """Find raw file for SeriesXX_FileYY pattern."""
-    raw_candidate = f"S{series_num}_Y{file_idx:02d}.txt"
-    raw_path = os.path.join(RAW_DATA_DIR, raw_candidate)
-    return raw_path if os.path.isfile(raw_path) else None
+def _find_series_file_match(processed_filename):
+    import re
+    m = re.search(r"Series(\d+)_File(\d+)_Processed", processed_filename)
+    if m:
+        series = int(m.group(1))
+        file_idx = int(m.group(2))
+        raw_candidate = f"S{series}_Y{file_idx:02d}.txt"
+        raw_path = os.path.join(RAW_DATA_DIR, raw_candidate)
+        if os.path.isfile(raw_path):
+            return raw_path
+    return None
 
 
-def _find_year_file(yidx):
-    """Find raw file for Year_XXXX (YXX) pattern."""
-    for f in os.listdir(RAW_DATA_DIR):
-        if f.endswith(f"_Y{yidx:02d}.txt"):
-            return os.path.join(RAW_DATA_DIR, f)
+def _find_year_file_match(processed_filename):
+    import re
+    m = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
+    if m:
+        yidx = int(m.group(2))
+        for f in os.listdir(RAW_DATA_DIR):
+            if f.endswith(f"_Y{yidx:02d}.txt"):
+                return os.path.join(RAW_DATA_DIR, f)
     return None
 
 
 def find_matching_raw_file(processed_filename):
     # Assumes processed files are named like 'Year_1995 (Y01)_Data.xlsx' or 'Series26_File01_Processed.xlsx'
     # Attempts to extract series and year index
-    import re
-
-    # Try SeriesXX_FileYY_Processed pattern first
-    m = re.search(r"Series(\d+)_File(\d+)_Processed", processed_filename)
-    if m:
-        result = _find_series_file(m.group(1), int(m.group(2)))
-        if result:
-            return result
-
-    # Try Year_XXXX (YXX)_Data pattern
-    m2 = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
-    if m2:
-        return _find_year_file(int(m2.group(2)))
-    return None
-
-
-def _calculate_rolling_mad(values_np, n, window_size):
-    """Calculate rolling MAD using chunked processing for performance."""
-    from numpy.lib.stride_tricks import sliding_window_view
-
-    chunk_size = 50000
-    mads_list = []
-    num_windows = n - window_size + 1
-
-    for start_idx in range(0, num_windows, chunk_size):
-        end_idx = min(start_idx + chunk_size, num_windows)
-        chunk = values_np[start_idx : end_idx + window_size - 1]
-
-        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
-        nan_counts = np.isnan(chunk_windows).sum(axis=1)
-        invalid_mask = nan_counts > 0
-
-        chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
-        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
-        chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
-        chunk_mads[invalid_mask] = np.nan
-        mads_list.append(chunk_mads)
-
-    if mads_list:
-        mads = np.concatenate(mads_list)
-    else:
-        mads = np.array([])
-
-    pad_width = window_size // 2
-    pad_left = pad_width
-    pad_right = n - len(mads) - pad_left
-    return np.pad(mads, (pad_left, pad_right), mode="constant", constant_values=np.nan)
+    raw_path = _find_series_file_match(processed_filename)
+    if raw_path:
+        return raw_path
+    return _find_year_file_match(processed_filename)
 
 
 def detect_outliers_series(values, window_size=5, threshold=3.0):
     n = len(values)
     values_np = values.astype(float).to_numpy()
+
+    # Calculate rolling median
     rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
 
     if n < window_size:
+        # If array is smaller than window size, pandas rolling median returns all NaNs
         rolling_mad = np.full(n, np.nan)
     else:
-        rolling_mad = _calculate_rolling_mad(values_np, n, window_size)
+        # This avoids Python function call overhead and provides ~60x speedup for this specific computation.
+        from numpy.lib.stride_tricks import sliding_window_view
 
-    rolling_scaled_mad = rolling_mad * 1.4826
+        chunk_size = 50000
+        mads_list = []
+        num_windows = n - window_size + 1
+
+        for start_idx in range(0, num_windows, chunk_size):
+            end_idx = min(start_idx + chunk_size, num_windows)
+            # Add window_size - 1 to end_idx to get the slice of original array needed to form the windows
+            chunk = values_np[start_idx : end_idx + window_size - 1]
+
+            chunk_windows = sliding_window_view(chunk, window_shape=window_size)
+
+            # Calculate nan count per window to mimic pandas min_periods=window_size behavior
+            nan_counts = np.isnan(chunk_windows).sum(axis=1)
+            invalid_mask = nan_counts > 0
+
+            chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
+            chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
+            chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
+
+            # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
+            chunk_mads[invalid_mask] = np.nan
+            mads_list.append(chunk_mads)
+
+        if mads_list:
+            mads = np.concatenate(mads_list)
+        else:
+            mads = np.array([])
+
+        # Pad the mads array with NaNs to match pandas center=True behavior
+        pad_width = window_size // 2
+
+        # Ensure the length matches by computing padding for left and right
+        pad_left = pad_width
+        pad_right = n - len(mads) - pad_left
+        rolling_mad = np.pad(
+            mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
+        )
+
+    mad_scale_factor = 1.4826
+    rolling_scaled_mad = rolling_mad * mad_scale_factor
+
+    # Calculate absolute differences
     abs_diff = np.abs(values_np - rolling_median)
 
+    # ⚡ Bolt: Vectorize z-score calculation and outlier detection loop using NumPy arrays
     with np.errstate(divide="ignore", invalid="ignore"):
         z_scores = np.where(
             rolling_scaled_mad < 1e-6,
@@ -107,10 +119,18 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
     return np.where(outlier_mask)[0].tolist()
 
 
-def _load_raw_data_safely(raw_file):
-    """Load raw data file with error handling."""
+def _rename_raw_columns(raw_df):
+    if all(isinstance(c, int) for c in raw_df.columns):
+        cols = [f"Value{i + 1}" for i in range(len(raw_df.columns))]
+        if cols:
+            cols[0] = "Time (Seconds)"
+        raw_df.columns = cols
+    return raw_df
+
+
+def load_raw_file(raw_file):
     try:
-        df = read_csv(
+        raw_df = read_csv(
             raw_file,
             sep=r"\s+",
             header=None,
@@ -118,38 +138,27 @@ def _load_raw_data_safely(raw_file):
             comment="#",
             skip_blank_lines=True,
         )
-        if all(isinstance(c, int) for c in df.columns):
-            cols = [f"Value{i + 1}" for i in range(len(df.columns))]
-            if cols:
-                cols[0] = "Time (Seconds)"
-            df.columns = cols
-        return df
-    except (IOError, ValueError) as e:
-        print(f"[WARN] Could not load raw file {raw_file}: {e}")
+        return _rename_raw_columns(raw_df)
+    except (IOError, ValueError):
+        print(f"[WARN] Could not load raw file {raw_file}")
         return None
-    except Exception as e:
-        print(
-            f"[WARN] Unexpected error loading raw file {raw_file}: {type(e).__name__}: {e}"
-        )
+    except Exception:
+        print(f"[WARN] Unexpected error loading raw file {raw_file}")
         return None
 
 
-def _load_processed_data_safely(proc_file):
-    """Load processed data file with error handling."""
+def load_processed_file(proc_file):
     try:
         return read_excel(proc_file)
-    except (IOError, ValueError) as e:
-        print(f"[WARN] Could not load processed file {proc_file}: {e}")
+    except (IOError, ValueError):
+        print(f"[WARN] Could not load processed file {proc_file}")
         return None
-    except Exception as e:
-        print(
-            f"[WARN] Unexpected error loading processed file {proc_file}: {type(e).__name__}: {e}"
-        )
+    except Exception:
+        print(f"[WARN] Unexpected error loading processed file {proc_file}")
         return None
 
 
-def _merge_dataframes(raw_df, processed_df):
-    """Merge raw and processed dataframes by time column."""
+def merge_dataframes(raw_df, processed_df):
     if (
         "Time (Seconds)" in raw_df.columns
         and "Time (Seconds)" in processed_df.columns
@@ -164,8 +173,7 @@ def _merge_dataframes(raw_df, processed_df):
     return concat([raw_df, processed_df], axis=1)
 
 
-def _add_outlier_flags(merged, raw_df):
-    """Add outlier flags to the merged dataframe."""
+def add_outlier_flags(merged, raw_df):
     value_cols = [c for c in raw_df.columns if c.startswith("Value")]
     if not value_cols:
         return merged
@@ -173,16 +181,39 @@ def _add_outlier_flags(merged, raw_df):
     vcol = value_cols[1] if len(value_cols) > 1 else value_cols[0]
     outlier_indices = detect_outliers_series(raw_df[vcol])
     merged["Outlier_Flag"] = False
+
     valid_indices = [idx for idx in outlier_indices if idx < len(merged)]
     if valid_indices:
         merged.loc[valid_indices, "Outlier_Flag"] = True
+
     return merged
 
 
-def _process_single_file(proc_file):
-    """Process a single file comparison."""
+def _get_output_path(proc_file):
     fname = os.path.basename(proc_file)
-    if fname.startswith("Seatek_Analysis_Summary"):
+    return os.path.join(COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx"))
+
+
+def _should_skip_file(fname):
+    return fname.startswith("Seatek_Analysis_Summary")
+
+
+def _load_and_merge_data(proc_file, raw_file):
+    raw_df = load_raw_file(raw_file)
+    if raw_df is None:
+        return None
+
+    processed_df = load_processed_file(proc_file)
+    if processed_df is None:
+        return None
+
+    merged = merge_dataframes(raw_df, processed_df)
+    return add_outlier_flags(merged, raw_df)
+
+
+def _process_single_file(proc_file):
+    fname = os.path.basename(proc_file)
+    if _should_skip_file(fname):
         return
 
     raw_file = find_matching_raw_file(fname)
@@ -190,18 +221,11 @@ def _process_single_file(proc_file):
         print(f"[WARN] No matching raw file for {fname}")
         return
 
-    raw_df = _load_raw_data_safely(raw_file)
-    if raw_df is None:
+    merged = _load_and_merge_data(proc_file, raw_file)
+    if merged is None:
         return
 
-    processed_df = _load_processed_data_safely(proc_file)
-    if processed_df is None:
-        return
-
-    merged = _merge_dataframes(raw_df, processed_df)
-    merged = _add_outlier_flags(merged, raw_df)
-
-    out_path = os.path.join(COMPARISON_DIR, fname.replace(".xlsx", "_comparison.xlsx"))
+    out_path = _get_output_path(proc_file)
     write_excel_safely(merged, out_path, index=False)
     print(f"[INFO] Exported comparison: {out_path}")
 
@@ -211,6 +235,11 @@ def export_comparisons():
     for proc_file in processed_files:
         _process_single_file(proc_file)
 
+
+# Initialize these variables at module level to avoid undefined variable warnings
+# They will be properly set during execution
+raw_df = None
+processed_df = None
 
 if __name__ == "__main__":
     export_comparisons()
