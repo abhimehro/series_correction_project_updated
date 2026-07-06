@@ -360,7 +360,8 @@ def _load_raw_data(file_path):
 # --------------------------------------------------------------------------- #
 # Public API
 # --------------------------------------------------------------------------- #
-def _load_and_prepare_config(config_path: str) -> Dict[str, Any]:
+def _load_and_enrich_config(config_path):
+    """Load configuration and enrich with river mile mappings."""
     config_data = {}
     if load_config_func:
         try:
@@ -373,25 +374,25 @@ def _load_and_prepare_config(config_path: str) -> Dict[str, Any]:
             log.exception(f"Failed to load configuration: {exc}")
             raise ProcessingError("Failed to load configuration") from None
 
-    # Optional river-mile lookup CSV – silently ignored when missing
+    _enrich_config_with_river_mappings(config_data)
+    return config_data
+
+
+def _enrich_config_with_river_mappings(config_data):
+    """Enrich configuration with river mile mappings if available."""
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
     if os.path.isfile(rm_map_path):
         rm_df = pd.read_csv(rm_map_path)
         config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
             "RIVER_MILE"
         ].to_dict()
-
-        # ⚡ Bolt: Use .agg(list) instead of .apply(list) for ~5-8% performance improvement
-        # .agg() avoids the Python function call fallback overhead of .apply() when grouping
         config_data["RIVER_TO_SENSORS"] = (
             rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
         )
-    return config_data
 
 
-def _prepare_output_directory(output_dir: str, data_dir: str, dry_run: bool) -> str:
-    output_dir = output_dir or data_dir  # Default discussed in tests
-
+def _ensure_output_directory(output_dir, dry_run):
+    """Ensure output directory exists if not in dry run mode."""
     if not dry_run and not os.path.isdir(output_dir):
         try:
             os.makedirs(output_dir, exist_ok=True)
@@ -399,7 +400,6 @@ def _prepare_output_directory(output_dir: str, data_dir: str, dry_run: bool) -> 
         except OSError as exc:
             log.exception(f"Unable to create output directory: {exc}")
             raise ProcessingError("Unable to create output directory") from None
-    return output_dir
 
 
 def batch_process(
@@ -429,20 +429,11 @@ def batch_process(
         f"series={series_selection} river_miles={river_miles} years={years} dry_run={dry_run}"
     )
 
-    # ------------------------------------------------------------------ #
-    # Configuration
-    # ------------------------------------------------------------------ #
-    config_data = _load_and_prepare_config(config_path)
-
-    # ------------------------------------------------------------------ #
-    # Directories
-    # ------------------------------------------------------------------ #
+    config_data = _load_and_enrich_config(config_path)
     data_dir = _get_data_directory(config_data)
-    output_dir = _prepare_output_directory(output_dir, data_dir, dry_run)
+    output_dir = output_dir or data_dir
+    _ensure_output_directory(output_dir, dry_run)
 
-    # ------------------------------------------------------------------ #
-    # Determine workloads
-    # ------------------------------------------------------------------ #
     series_to_process = _determine_series_to_process(
         series_selection, river_miles, config_data, data_dir
     )
