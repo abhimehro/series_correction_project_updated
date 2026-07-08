@@ -16,6 +16,7 @@ os.makedirs(COMPARISON_DIR, exist_ok=True)
 
 def _find_series_file_match(processed_filename):
     import re
+
     m = re.search(r"Series(\d+)_File(\d+)_Processed", processed_filename)
     if m:
         series = int(m.group(1))
@@ -29,6 +30,7 @@ def _find_series_file_match(processed_filename):
 
 def _find_year_file_match(processed_filename):
     import re
+
     m = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
     if m:
         yidx = int(m.group(2))
@@ -159,10 +161,7 @@ def load_processed_file(proc_file):
 
 
 def merge_dataframes(raw_df, processed_df):
-    if (
-        "Time (Seconds)" in raw_df.columns
-        and "Time (Seconds)" in processed_df.columns
-    ):
+    if "Time (Seconds)" in raw_df.columns and "Time (Seconds)" in processed_df.columns:
         return merge(
             raw_df,
             processed_df,
