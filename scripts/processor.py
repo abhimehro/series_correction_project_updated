@@ -12,12 +12,10 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from numpy.lib.stride_tricks import sliding_window_view
 
 from scripts.discontinuity_utils import (
     DiscontinuityConfig,
     _build_gaps_dataframe,
-    _calculate_outlier_replacements,
     _calculate_outlier_z_scores,
     _perform_interpolation,
     _process_discontinuity,
@@ -314,43 +312,15 @@ def correct_jumps(
         return data.copy()
 
     result_df = data.copy()
-    n = len(result_df)
-
-    sorted_jump_indices = sorted(
-        [j for j in jump_indices if window_size <= j < n - window_size]
-    )
-    if not sorted_jump_indices:
-        return result_df
 
     # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
     values_np = result_df[value_col].astype(float).to_numpy(copy=True)
 
-    # ⚡ Bolt: Vectorized offset calculation for all jumps
-    valid_jumps = np.array(sorted_jump_indices)
+    from scripts.discontinuity_utils import _calculate_jump_offsets
 
-    # Build a 2D array of windows before and after the jump indices
-    # ⚡ Bolt: Use sliding_window_view for ~3x faster O(1) memory window extraction
-    # instead of list comprehensions which have high Python iteration overhead
-    all_windows = sliding_window_view(values_np, window_shape=window_size)
-    before_windows = all_windows[valid_jumps - window_size]
-    after_windows = all_windows[valid_jumps]
+    values_np = _calculate_jump_offsets(values_np, jump_indices, window_size)
 
-    # Calculate medians in bulk
-    mb = np.nanmedian(before_windows, axis=1)
-    ma = np.nanmedian(after_windows, axis=1)
-
-    # Find valid medians (not NaN)
-    valid_medians_mask = ~(np.isnan(mb) | np.isnan(ma))
-
-    # Calculate differences for valid medians
-    diffs = mb[valid_medians_mask] - ma[valid_medians_mask]
-
-    # Place differences in a zero-initialized array at respective indices
-    offsets = np.zeros(n)
-    np.add.at(offsets, valid_jumps[valid_medians_mask], diffs)
-
-    # Apply globally across the entire sequence
-    result_df[value_col] = values_np + np.cumsum(offsets)
+    result_df[value_col] = values_np
 
     log.info("Jump correction complete for column '%s'.", value_col)
     return result_df
@@ -389,29 +359,11 @@ def correct_outliers(
         method,
     )
 
-    if method == "interpolate":
-        result_df.loc[outlier_indices, value_col] = np.nan
-        result_df[value_col] = result_df[value_col].interpolate(
-            method="linear", limit_direction="both"
-        )
-        log.info("Outliers replaced via linear interpolation.")
+    from scripts.discontinuity_utils import _apply_outlier_correction_method
 
-    elif method == "remove":
-        result_df.loc[outlier_indices, value_col] = np.nan
-        log.info("Outliers replaced with NaN.")
-
-    elif method in ["median", "mean"]:
-        values_np = result_df[value_col].astype(float).to_numpy(copy=True)
-        values_np = _calculate_outlier_replacements(
-            values_np, outlier_indices, window_size, method
-        )
-        result_df[value_col] = values_np
-    else:
-        log.error(
-            "Invalid outlier correction method specified: '%s'. No correction applied.",
-            method,
-        )
-        return result_df
+    result_df = _apply_outlier_correction_method(
+        result_df, outlier_indices, value_col, window_size, method
+    )
 
     log.info("Outlier correction complete for column '%s'.", value_col)
     return result_df

@@ -330,3 +330,63 @@ def _process_discontinuity(processed_data, config: DiscontinuityConfig):
         discontinuity_type = config.step_name.split(" ")[-1].lower()
         log.info(f"No {discontinuity_type} detected or corrected.")
     return processed_data
+
+
+def _calculate_jump_offsets(
+    values_np: np.ndarray, jump_indices: list[int], window_size: int
+) -> np.ndarray:
+    n = len(values_np)
+    sorted_jump_indices = sorted(
+        [j for j in jump_indices if window_size <= j < n - window_size]
+    )
+    if not sorted_jump_indices:
+        return values_np
+
+    valid_jumps = np.array(sorted_jump_indices)
+
+    from numpy.lib.stride_tricks import sliding_window_view
+
+    all_windows = sliding_window_view(values_np, window_shape=window_size)
+    before_windows = all_windows[valid_jumps - window_size]
+    after_windows = all_windows[valid_jumps]
+
+    mb = np.nanmedian(before_windows, axis=1)
+    ma = np.nanmedian(after_windows, axis=1)
+
+    valid_medians_mask = ~(np.isnan(mb) | np.isnan(ma))
+    diffs = mb[valid_medians_mask] - ma[valid_medians_mask]
+
+    offsets = np.zeros(n)
+    np.add.at(offsets, valid_jumps[valid_medians_mask], diffs)
+
+    return values_np + np.cumsum(offsets)
+
+
+def _apply_outlier_correction_method(
+    result_df: pd.DataFrame,
+    outlier_indices: list[int],
+    value_col: str,
+    window_size: int,
+    method: str,
+) -> pd.DataFrame:
+    if method == "interpolate":
+        result_df.loc[outlier_indices, value_col] = np.nan
+        result_df[value_col] = result_df[value_col].interpolate(
+            method="linear", limit_direction="both"
+        )
+        log.info("Outliers replaced via linear interpolation.")
+    elif method == "remove":
+        result_df.loc[outlier_indices, value_col] = np.nan
+        log.info("Outliers replaced with NaN.")
+    elif method in ["median", "mean"]:
+        values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+        values_np = _calculate_outlier_replacements(
+            values_np, outlier_indices, window_size, method
+        )
+        result_df[value_col] = values_np
+    else:
+        log.error(
+            "Invalid outlier correction method specified: '%s'. No correction applied.",
+            method,
+        )
+    return result_df
