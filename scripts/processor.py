@@ -466,8 +466,7 @@ def process_data(
     log.debug("Sorting data by time column: '%s'", time_col)
     processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
 
-    processed_data = _process_discontinuity(
-        processed_data,
+    configs = [
         DiscontinuityConfig(
             step_name="Step 1: Detecting and Correcting Gaps",
             detect_func=detect_gaps,
@@ -483,9 +482,6 @@ def process_data(
             },
             sort_time_col=time_col,
         ),
-    )
-    processed_data = _process_discontinuity(
-        processed_data,
         DiscontinuityConfig(
             step_name="Step 2: Detecting and Correcting Outliers",
             detect_func=detect_outliers,
@@ -502,9 +498,6 @@ def process_data(
             },
             sort_time_col=None,
         ),
-    )
-    processed_data = _process_discontinuity(
-        processed_data,
         DiscontinuityConfig(
             step_name="Step 3: Detecting and Correcting Jumps",
             detect_func=detect_jumps,
@@ -517,7 +510,10 @@ def process_data(
             correct_kwargs={"value_col": value_col, "window_size": window_size},
             sort_time_col=None,
         ),
-    )
+    ]
+
+    for conf in configs:
+        processed_data = _process_discontinuity(processed_data, conf)
 
     log.info("Data processing complete for value column '%s'.", value_col)
     return processed_data
