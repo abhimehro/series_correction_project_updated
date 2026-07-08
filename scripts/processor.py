@@ -19,11 +19,9 @@ from scripts.discontinuity_utils import (
     _build_gaps_dataframe,
     _calculate_outlier_replacements,
     _calculate_outlier_z_scores,
-    _is_valid_step,
     _perform_interpolation,
     _process_discontinuity,
     _validate_and_convert_time_col,
-    _validate_gap_parameters,
     _validate_value_col,
 )
 
@@ -172,7 +170,6 @@ def detect_jumps(
     return jumps
 
 
-
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -229,8 +226,6 @@ def detect_outliers(
         )
 
     return outliers
-
-
 
 
 def correct_gaps(
@@ -361,7 +356,6 @@ def correct_jumps(
     return result_df
 
 
-
 def correct_outliers(
     data: pd.DataFrame,
     outlier_indices: list[int],
@@ -423,7 +417,6 @@ def correct_outliers(
     return result_df
 
 
-
 def _merge_config(config: dict[str, Any] | None) -> dict[str, Any]:
     default_config = {
         "window_size": 5,
@@ -459,7 +452,9 @@ def process_data(
     time_col = merged_config["time_col"]
     processed_data = _validate_and_convert_time_col(processed_data, time_col)
 
-    value_col = _validate_value_col(processed_data, merged_config["value_col"], time_col)
+    value_col = _validate_value_col(
+        processed_data, merged_config["value_col"], time_col
+    )
     merged_config["value_col"] = value_col
 
     window_size = merged_config["window_size"]
@@ -477,8 +472,15 @@ def process_data(
             step_name="Step 1: Detecting and Correcting Gaps",
             detect_func=detect_gaps,
             correct_func=correct_gaps,
-            detect_kwargs={"time_col": time_col, "threshold_factor": gap_threshold_factor},
-            correct_kwargs={"time_col": time_col, "value_cols": [value_col], "method": gap_method},
+            detect_kwargs={
+                "time_col": time_col,
+                "threshold_factor": gap_threshold_factor,
+            },
+            correct_kwargs={
+                "time_col": time_col,
+                "value_cols": [value_col],
+                "method": gap_method,
+            },
             sort_time_col=time_col,
         ),
     )
@@ -488,8 +490,16 @@ def process_data(
             step_name="Step 2: Detecting and Correcting Outliers",
             detect_func=detect_outliers,
             correct_func=correct_outliers,
-            detect_kwargs={"value_col": value_col, "window_size": window_size, "threshold": threshold},
-            correct_kwargs={"value_col": value_col, "window_size": window_size, "method": outlier_method},
+            detect_kwargs={
+                "value_col": value_col,
+                "window_size": window_size,
+                "threshold": threshold,
+            },
+            correct_kwargs={
+                "value_col": value_col,
+                "window_size": window_size,
+                "method": outlier_method,
+            },
             sort_time_col=None,
         ),
     )
@@ -499,7 +509,11 @@ def process_data(
             step_name="Step 3: Detecting and Correcting Jumps",
             detect_func=detect_jumps,
             correct_func=correct_jumps,
-            detect_kwargs={"value_col": value_col, "window_size": window_size, "threshold": threshold},
+            detect_kwargs={
+                "value_col": value_col,
+                "window_size": window_size,
+                "threshold": threshold,
+            },
             correct_kwargs={"value_col": value_col, "window_size": window_size},
             sort_time_col=None,
         ),
@@ -507,6 +521,3 @@ def process_data(
 
     log.info("Data processing complete for value column '%s'.", value_col)
     return processed_data
-
-
-
