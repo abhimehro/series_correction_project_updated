@@ -78,7 +78,11 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
             nan_counts = np.isnan(chunk_windows).sum(axis=1)
             invalid_mask = nan_counts > 0
 
-            chunk_medians = np.nanmedian(chunk_windows, axis=1, keepdims=True)
+            # Reuse precomputed rolling_median instead of recalculating np.nanmedian per window.
+            pad = window_size // 2
+            chunk_medians = rolling_median[
+                start_idx + pad : end_idx + pad, np.newaxis
+            ]
             chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
             chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
 
