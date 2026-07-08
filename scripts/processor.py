@@ -433,6 +433,62 @@ def _merge_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return {**default_config, **(config or {})}
 
 
+def _get_processing_steps(
+    merged_config: dict[str, Any], time_col: str, value_col: str
+) -> list[DiscontinuityConfig]:
+    window_size = merged_config["window_size"]
+    threshold = merged_config["threshold"]
+    gap_threshold_factor = merged_config["gap_threshold_factor"]
+    gap_method = merged_config["gap_method"]
+    outlier_method = merged_config["outlier_method"]
+
+    return [
+        DiscontinuityConfig(
+            step_name="Step 1: Detecting and Correcting Gaps",
+            detect_func=detect_gaps,
+            correct_func=correct_gaps,
+            detect_kwargs={
+                "time_col": time_col,
+                "threshold_factor": gap_threshold_factor,
+            },
+            correct_kwargs={
+                "time_col": time_col,
+                "value_cols": [value_col],
+                "method": gap_method,
+            },
+            sort_time_col=time_col,
+        ),
+        DiscontinuityConfig(
+            step_name="Step 2: Detecting and Correcting Outliers",
+            detect_func=detect_outliers,
+            correct_func=correct_outliers,
+            detect_kwargs={
+                "value_col": value_col,
+                "window_size": window_size,
+                "threshold": threshold,
+            },
+            correct_kwargs={
+                "value_col": value_col,
+                "window_size": window_size,
+                "method": outlier_method,
+            },
+            sort_time_col=None,
+        ),
+        DiscontinuityConfig(
+            step_name="Step 3: Detecting and Correcting Jumps",
+            detect_func=detect_jumps,
+            correct_func=correct_jumps,
+            detect_kwargs={
+                "value_col": value_col,
+                "window_size": window_size,
+                "threshold": threshold,
+            },
+            correct_kwargs={"value_col": value_col, "window_size": window_size},
+            sort_time_col=None,
+        ),
+    ]
+
+
 def process_data(
     data: pd.DataFrame, config: dict[str, Any] | None = None
 ) -> pd.DataFrame:
@@ -457,67 +513,12 @@ def process_data(
     )
     merged_config["value_col"] = value_col
 
-    window_size = merged_config["window_size"]
-    threshold = merged_config["threshold"]
-    gap_threshold_factor = merged_config["gap_threshold_factor"]
-    gap_method = merged_config["gap_method"]
-    outlier_method = merged_config["outlier_method"]
-
     log.debug("Sorting data by time column: '%s'", time_col)
     processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
 
-    processed_data = _process_discontinuity(
-        processed_data,
-        DiscontinuityConfig(
-            step_name="Step 1: Detecting and Correcting Gaps",
-            detect_func=detect_gaps,
-            correct_func=correct_gaps,
-            detect_kwargs={
-                "time_col": time_col,
-                "threshold_factor": gap_threshold_factor,
-            },
-            correct_kwargs={
-                "time_col": time_col,
-                "value_cols": [value_col],
-                "method": gap_method,
-            },
-            sort_time_col=time_col,
-        ),
-    )
-    processed_data = _process_discontinuity(
-        processed_data,
-        DiscontinuityConfig(
-            step_name="Step 2: Detecting and Correcting Outliers",
-            detect_func=detect_outliers,
-            correct_func=correct_outliers,
-            detect_kwargs={
-                "value_col": value_col,
-                "window_size": window_size,
-                "threshold": threshold,
-            },
-            correct_kwargs={
-                "value_col": value_col,
-                "window_size": window_size,
-                "method": outlier_method,
-            },
-            sort_time_col=None,
-        ),
-    )
-    processed_data = _process_discontinuity(
-        processed_data,
-        DiscontinuityConfig(
-            step_name="Step 3: Detecting and Correcting Jumps",
-            detect_func=detect_jumps,
-            correct_func=correct_jumps,
-            detect_kwargs={
-                "value_col": value_col,
-                "window_size": window_size,
-                "threshold": threshold,
-            },
-            correct_kwargs={"value_col": value_col, "window_size": window_size},
-            sort_time_col=None,
-        ),
-    )
+    steps = _get_processing_steps(merged_config, time_col, value_col)
+    for step in steps:
+        processed_data = _process_discontinuity(processed_data, step)
 
     log.info("Data processing complete for value column '%s'.", value_col)
     return processed_data
