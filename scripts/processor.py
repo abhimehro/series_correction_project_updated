@@ -433,40 +433,16 @@ def _merge_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return {**default_config, **(config or {})}
 
 
-def process_data(
-    data: pd.DataFrame, config: dict[str, Any] | None = None
-) -> pd.DataFrame:
-    """
-    Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
+def _build_discontinuity_configs(config: dict[str, Any]) -> list[DiscontinuityConfig]:
+    time_col = config["time_col"]
+    value_col = config["value_col"]
+    window_size = config["window_size"]
+    threshold = config["threshold"]
+    gap_threshold_factor = config["gap_threshold_factor"]
+    gap_method = config["gap_method"]
+    outlier_method = config["outlier_method"]
 
-    Applies detection and correction functions sequentially based on configuration.
-
-    Args:
-        data: DataFrame containing sensor data.
-        config: Configuration dictionary with processing parameters.
-    """
-    merged_config = _merge_config(config)
-    log.info("Processing data with configuration: %s", merged_config)
-
-    processed_data = data.copy()
-    time_col = merged_config["time_col"]
-    processed_data = _validate_and_convert_time_col(processed_data, time_col)
-
-    value_col = _validate_value_col(
-        processed_data, merged_config["value_col"], time_col
-    )
-    merged_config["value_col"] = value_col
-
-    window_size = merged_config["window_size"]
-    threshold = merged_config["threshold"]
-    gap_threshold_factor = merged_config["gap_threshold_factor"]
-    gap_method = merged_config["gap_method"]
-    outlier_method = merged_config["outlier_method"]
-
-    log.debug("Sorting data by time column: '%s'", time_col)
-    processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
-
-    configs = [
+    return [
         DiscontinuityConfig(
             step_name="Step 1: Detecting and Correcting Gaps",
             detect_func=detect_gaps,
@@ -511,6 +487,36 @@ def process_data(
             sort_time_col=None,
         ),
     ]
+
+
+def process_data(
+    data: pd.DataFrame, config: dict[str, Any] | None = None
+) -> pd.DataFrame:
+    """
+    Process sensor data to detect and correct discontinuities (gaps, outliers, jumps).
+
+    Applies detection and correction functions sequentially based on configuration.
+
+    Args:
+        data: DataFrame containing sensor data.
+        config: Configuration dictionary with processing parameters.
+    """
+    merged_config = _merge_config(config)
+    log.info("Processing data with configuration: %s", merged_config)
+
+    processed_data = data.copy()
+    time_col = merged_config["time_col"]
+    processed_data = _validate_and_convert_time_col(processed_data, time_col)
+
+    value_col = _validate_value_col(
+        processed_data, merged_config["value_col"], time_col
+    )
+    merged_config["value_col"] = value_col
+
+    log.debug("Sorting data by time column: '%s'", time_col)
+    processed_data = processed_data.sort_values(by=time_col).reset_index(drop=True)
+
+    configs = _build_discontinuity_configs(merged_config)
 
     for conf in configs:
         processed_data = _process_discontinuity(processed_data, conf)
