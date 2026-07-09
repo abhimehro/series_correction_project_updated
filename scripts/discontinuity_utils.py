@@ -260,9 +260,7 @@ def _convert_time_col_to_numeric(processed_data, time_col):
         processed_data[time_col] = (
             processed_data[time_col] - pd.Timestamp("1970-01-01")
         ) // pd.Timedelta("1s")
-        log.info(
-            "Converted time column '%s' to numeric (Unix timestamp).", time_col
-        )
+        log.info("Converted time column '%s' to numeric (Unix timestamp).", time_col)
     except Exception as exc:
         log.exception(
             f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
@@ -321,12 +319,14 @@ def _process_discontinuity(processed_data, config: DiscontinuityConfig):
     log.info(f"--- {config.step_name} ---")
     indices = config.detect_func(processed_data, **config.detect_kwargs)
     if indices:
-        processed_data = config.correct_func(processed_data, indices, **config.correct_kwargs)
+        processed_data = config.correct_func(
+            processed_data, indices, **config.correct_kwargs
+        )
         if config.sort_time_col:
-            processed_data = processed_data.sort_values(by=config.sort_time_col).reset_index(
-                drop=True
-            )
+            processed_data = processed_data.sort_values(
+                by=config.sort_time_col
+            ).reset_index(drop=True)
     else:
-        discontinuity_type = config.step_name.split(' ')[-1].lower()
+        discontinuity_type = config.step_name.split(" ")[-1].lower()
         log.info(f"No {discontinuity_type} detected or corrected.")
     return processed_data
