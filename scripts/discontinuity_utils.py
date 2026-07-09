@@ -167,12 +167,13 @@ def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshol
 
     n = len(values_np)
     mads, nw = [], n - window_size + 1
+    pad = window_size // 2
     for s in range(0, nw, 50000):
         e = min(s + 50000, nw)
         cw = sliding_window_view(
             values_np[s : e + window_size - 1], window_shape=window_size
         )
-        cm = np.nanmedian(cw, axis=1, keepdims=True)
+        cm = rolling_median[s + pad : e + pad, None]
         cmads = np.nanmedian(np.abs(cw - cm), axis=1)
         cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
         mads.append(cmads)
@@ -260,9 +261,7 @@ def _convert_time_col_to_numeric(processed_data, time_col):
         processed_data[time_col] = (
             processed_data[time_col] - pd.Timestamp("1970-01-01")
         ) // pd.Timedelta("1s")
-        log.info(
-            "Converted time column '%s' to numeric (Unix timestamp).", time_col
-        )
+        log.info("Converted time column '%s' to numeric (Unix timestamp).", time_col)
     except Exception as exc:
         log.exception(
             f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
@@ -321,12 +320,14 @@ def _process_discontinuity(processed_data, config: DiscontinuityConfig):
     log.info(f"--- {config.step_name} ---")
     indices = config.detect_func(processed_data, **config.detect_kwargs)
     if indices:
-        processed_data = config.correct_func(processed_data, indices, **config.correct_kwargs)
+        processed_data = config.correct_func(
+            processed_data, indices, **config.correct_kwargs
+        )
         if config.sort_time_col:
-            processed_data = processed_data.sort_values(by=config.sort_time_col).reset_index(
-                drop=True
-            )
+            processed_data = processed_data.sort_values(
+                by=config.sort_time_col
+            ).reset_index(drop=True)
     else:
-        discontinuity_type = config.step_name.split(' ')[-1].lower()
+        discontinuity_type = config.step_name.split(" ")[-1].lower()
         log.info(f"No {discontinuity_type} detected or corrected.")
     return processed_data
