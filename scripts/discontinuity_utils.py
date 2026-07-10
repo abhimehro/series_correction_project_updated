@@ -172,7 +172,8 @@ def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshol
         cw = sliding_window_view(
             values_np[s : e + window_size - 1], window_shape=window_size
         )
-        cm = np.nanmedian(cw, axis=1, keepdims=True)
+        pad = window_size // 2
+        cm = rolling_median[s + pad : e + pad, np.newaxis]
         cmads = np.nanmedian(np.abs(cw - cm), axis=1)
         cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
         mads.append(cmads)
