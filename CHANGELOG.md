@@ -16,6 +16,7 @@
 **Merged pull requests:**
 
 - 🧹 Jules Daily QA: Auto-format and clean unused imports [\#208](https://github.com/abhimehro/series_correction_project_updated/pull/208) ([abhimehro](https://github.com/abhimehro))
+- perf\(outliers\): reuse rolling\_median in MAD calculation \(salvages \#204\) [\#206](https://github.com/abhimehro/series_correction_project_updated/pull/206) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 to bbc72fbfb8e514ed2dd0a1ba2dda2e0083abac73 [\#202](https://github.com/abhimehro/series_correction_project_updated/pull/202) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🧹 Code Health: Auto-format with black [\#201](https://github.com/abhimehro/series_correction_project_updated/pull/201) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize detect\_gaps using NumPy [\#199](https://github.com/abhimehro/series_correction_project_updated/pull/199) ([abhimehro](https://github.com/abhimehro))
