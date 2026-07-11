@@ -5,6 +5,7 @@ import numpy as np
 from pandas import concat, merge, read_csv, read_excel
 
 from scripts.spreadsheet_safety import write_excel_safely
+import warnings
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
@@ -80,11 +81,12 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
 
             # Reuse precomputed rolling_median instead of recalculating np.nanmedian per window.
             pad = window_size // 2
-            chunk_medians = rolling_median[
-                start_idx + pad : end_idx + pad, np.newaxis
-            ]
+            chunk_medians = rolling_median[start_idx + pad : end_idx + pad, np.newaxis]
             chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
-            chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
 
             # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
             chunk_mads[invalid_mask] = np.nan
