@@ -32,13 +32,16 @@ def _find_year_file_match(processed_filename):
     import re
 
     m = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
-    if m:
-        yidx = int(m.group(2))
-        if not hasattr(_find_year_file_match, "_cache"):
-            _find_year_file_match._cache = os.listdir(RAW_DATA_DIR)
-        for f in _find_year_file_match._cache:
-            if f.endswith(f"_Y{yidx:02d}.txt"):
-                return os.path.join(RAW_DATA_DIR, f)
+    if not m:
+        return None
+
+    yidx = int(m.group(2))
+    if not hasattr(_find_year_file_match, "_cache"):
+        _find_year_file_match._cache = os.listdir(RAW_DATA_DIR)
+
+    for f in _find_year_file_match._cache:
+        if f.endswith(f"_Y{yidx:02d}.txt"):
+            return os.path.join(RAW_DATA_DIR, f)
     return None
 
 
