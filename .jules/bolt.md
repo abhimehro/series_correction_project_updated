@@ -16,3 +16,7 @@
 ## 2025-07-06 - Optimize redundant directory listings
 **Learning:** Calling `os.listdir()` repeatedly inside loops or repeatedly called functions (like searching for matches file by file) causes significant I/O overhead.
 **Action:** When searching a directory that remains static during execution, cache the `os.listdir()` results in memory. For clean state encapsulation, attach the cache to the function object itself (e.g., `func._cache`) on the first call to avoid redundant I/O operations and substantially improve performance without polluting the global namespace.
+
+## 2025-10-24 - Use C engine for pd.read_csv
+**Learning:** Pandas `pd.read_csv` using `engine="python"` is significantly slower (~10x) than the default C engine. The C engine natively supports regex separators like `sep=r"\s+"` and is much more efficient.
+**Action:** Remove `engine="python"` when parsing files with `pd.read_csv` unless there is a specific feature that explicitly requires the Python engine.

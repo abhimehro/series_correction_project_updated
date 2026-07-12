@@ -143,11 +143,11 @@ def _rename_raw_columns(raw_df):
 
 def load_raw_file(raw_file):
     try:
+        # Bolt: C engine natively handles sep=r"\s+" (~10x faster than python engine)
         raw_df = read_csv(
             raw_file,
             sep=r"\s+",
             header=None,
-            engine="python",
             comment="#",
             skip_blank_lines=True,
         )

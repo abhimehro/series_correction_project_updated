@@ -35,11 +35,11 @@ for i, file_path in enumerate(raw_files):
 
     try:
         # Load raw data
+        # Bolt: C engine natively handles sep=r"\s+" (~10x faster than python engine)
         df = pd.read_csv(
             file_path,
             header=None,
             sep=r"\s+",
-            engine="python",
             comment="#",
             skip_blank_lines=True,
         )
