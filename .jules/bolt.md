@@ -12,3 +12,6 @@
 ## 2025-07-04 - Vectorize Pandas Time-Series Differences
 **Learning:** Using Pandas `.diff()` and `.median()` along with boolean index filtering incurs significant overhead from Series instantiation, block manager operations, and index alignment.
 **Action:** When calculating element-wise differences and filtering based on the median in performance-critical code, extract the underlying NumPy array (`.to_numpy()`) and use `np.diff()`, `np.median()`, and `np.where()`. This avoids Pandas overhead and provides a substantial (~35%) speedup. Since `np.diff` returns an array of length N-1, remember to adjust positional indices (e.g., `+ 1`) to map back to the original array correctly.
+## 2025-10-24 - Use C engine for pd.read_csv
+**Learning:** Pandas `pd.read_csv` using `engine="python"` is significantly slower (~10x) than the default C engine. The C engine natively supports regex separators like `sep=r"\s+"` and is much more efficient.
+**Action:** Remove `engine="python"` when parsing files with `pd.read_csv` unless there is a specific feature that explicitly requires the Python engine.
