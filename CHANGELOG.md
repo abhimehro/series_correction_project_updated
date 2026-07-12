@@ -6,6 +6,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review - 2026-07-11 [\#215](https://github.com/abhimehro/series_correction_project_updated/issues/215)
+- Daily QA & Agentic Review - 2026-07-10 [\#212](https://github.com/abhimehro/series_correction_project_updated/issues/212)
 - Daily QA & Agentic Review - 2026-07-09 [\#211](https://github.com/abhimehro/series_correction_project_updated/issues/211)
 - Daily QA & Agentic Review - 2026-07-08 [\#207](https://github.com/abhimehro/series_correction_project_updated/issues/207)
 - Daily QA & Agentic Review - 2026-07-07 [\#203](https://github.com/abhimehro/series_correction_project_updated/issues/203)
@@ -15,6 +17,8 @@
 
 **Merged pull requests:**
 
+- 🧹 Suppress RuntimeWarnings for np.nanmedian when processing all-NaN slices [\#216](https://github.com/abhimehro/series_correction_project_updated/pull/216) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Cache os.listdir in \_find\_year\_file\_match [\#214](https://github.com/abhimehro/series_correction_project_updated/pull/214) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Jules Daily QA: Auto-format and clean unused imports [\#208](https://github.com/abhimehro/series_correction_project_updated/pull/208) ([abhimehro](https://github.com/abhimehro))
 - perf\(outliers\): reuse rolling\_median in MAD calculation \(salvages \#204\) [\#206](https://github.com/abhimehro/series_correction_project_updated/pull/206) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 to bbc72fbfb8e514ed2dd0a1ba2dda2e0083abac73 [\#202](https://github.com/abhimehro/series_correction_project_updated/pull/202) ([dependabot[bot]](https://github.com/apps/dependabot))
