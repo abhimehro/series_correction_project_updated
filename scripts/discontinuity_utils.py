@@ -1,3 +1,5 @@
+import warnings
+
 """
 Utility functions for discontinuity processing in the Series Correction Project.
 
@@ -174,7 +176,11 @@ def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshol
         )
         pad = window_size // 2
         cm = rolling_median[s + pad : e + pad, np.newaxis]
-        cmads = np.nanmedian(np.abs(cw - cm), axis=1)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            cmads = np.nanmedian(np.abs(cw - cm), axis=1)
+
         cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
         mads.append(cmads)
 
