@@ -32,11 +32,16 @@ def _find_year_file_match(processed_filename):
     import re
 
     m = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
-    if m:
-        yidx = int(m.group(2))
-        for f in os.listdir(RAW_DATA_DIR):
-            if f.endswith(f"_Y{yidx:02d}.txt"):
-                return os.path.join(RAW_DATA_DIR, f)
+    if not m:
+        return None
+
+    yidx = int(m.group(2))
+    if not hasattr(_find_year_file_match, "_cache"):
+        _find_year_file_match._cache = os.listdir(RAW_DATA_DIR)
+
+    for f in _find_year_file_match._cache:
+        if f.endswith(f"_Y{yidx:02d}.txt"):
+            return os.path.join(RAW_DATA_DIR, f)
     return None
 
 
@@ -80,9 +85,7 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
 
             # Reuse precomputed rolling_median instead of recalculating np.nanmedian per window.
             pad = window_size // 2
-            chunk_medians = rolling_median[
-                start_idx + pad : end_idx + pad, np.newaxis
-            ]
+            chunk_medians = rolling_median[start_idx + pad : end_idx + pad, np.newaxis]
             chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
             chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
 
