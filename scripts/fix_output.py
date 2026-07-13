@@ -39,7 +39,6 @@ for i, file_path in enumerate(raw_files):
             file_path,
             header=None,
             sep=r"\s+",
-            engine="python",
             comment="#",
             skip_blank_lines=True,
         )

@@ -147,7 +147,6 @@ def load_raw_file(raw_file):
             raw_file,
             sep=r"\s+",
             header=None,
-            engine="python",
             comment="#",
             skip_blank_lines=True,
         )
