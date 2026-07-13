@@ -16,3 +16,7 @@
 ## 2025-07-06 - Optimize redundant directory listings
 **Learning:** Calling `os.listdir()` repeatedly inside loops or repeatedly called functions (like searching for matches file by file) causes significant I/O overhead.
 **Action:** When searching a directory that remains static during execution, cache the `os.listdir()` results in memory. For clean state encapsulation, attach the cache to the function object itself (e.g., `func._cache`) on the first call to avoid redundant I/O operations and substantially improve performance without polluting the global namespace.
+
+## 2025-07-13 - Fast parsing of whitespace separated CSVs in pandas
+**Learning:** Using Pandas `pd.read_csv` with regex separators like `sep=r'\s+'` alongside explicitly specifying `engine='python'` forces pandas to use the slower Python parsing engine. However, the default C engine has built-in, highly optimized support specifically for `\s+` (and a few other simple whitespace patterns).
+**Action:** When reading whitespace-separated CSV files in performance-critical sections with `pd.read_csv` and `sep=r'\s+'`, do NOT specify `engine='python'`. Removing this argument allows the much faster C engine to handle parsing natively, yielding up to a ~10x speedup while preserving full functionality.

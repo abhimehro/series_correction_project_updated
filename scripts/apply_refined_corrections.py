@@ -99,9 +99,7 @@ def load_raw_dataframes(raw_file_map):
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
             if file_path not in dataframes:
-                dataframes[file_path] = pd.read_csv(
-                    file_path, header=None, sep=r"\s+", engine="python"
-                )
+                dataframes[file_path] = pd.read_csv(file_path, header=None, sep=r"\s+")
     return dataframes
 
 
