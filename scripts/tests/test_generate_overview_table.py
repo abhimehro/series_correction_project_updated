@@ -86,7 +86,4 @@ def test_main_generic_exception(mock_read_csv, capsys):
     captured = capsys.readouterr()
     output = captured.out
 
-    assert (
-        "An error occurred while generating Overview table content: Test exception"
-        in output
-    )
+    assert "An error occurred while generating Overview table content." in output

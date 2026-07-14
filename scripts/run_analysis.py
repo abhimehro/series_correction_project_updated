@@ -27,8 +27,8 @@ try:
         json.dump(config, f, indent=2)
 
     print("Updated threshold to 3.0 for better outlier detection")
-except Exception as e:
-    print(f"Error updating config: {e}")
+except Exception:
+    print("Error updating config")
     print("Will continue with existing config")
 
 # Run batch processing
@@ -43,7 +43,7 @@ try:
         output_dir=OUTPUT_DIR,
     )
     print(f"Successfully processed {len(summary)} files")
-except Exception as e:
-    print(f"Error during processing: {e}")
+except Exception:
+    print("Error during processing")
 
 print("Processing complete! Check the output directory for Excel files.")
