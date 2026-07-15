@@ -1,4 +1,3 @@
-import glob
 import os
 import re
 
@@ -80,7 +79,11 @@ def load_identified_outliers(csv_path):
 def build_raw_file_map(data_dir):
     """Creates a mapping of series and year number to raw data file paths."""
     raw_file_map = {}
-    all_raw_files = glob.glob(os.path.join(data_dir, "S*_Y*.txt"))
+    all_raw_files = [
+        os.path.join(data_dir, f)
+        for f in os.listdir(data_dir)
+        if f.startswith("S") and "_Y" in f and f.endswith(".txt")
+    ]
     for raw_file_path in all_raw_files:
         file_name = os.path.basename(raw_file_path)
         file_match = re.match(r"(S\d+)_Y(\d+)\.txt", file_name)
@@ -131,7 +134,7 @@ def parse_sensor_index(sensor_name):
 
 def find_year_files(raw_file_map, prev_yy, next_yy):
     # Preserve deterministic series preference (S26 before S27) regardless of
-    # filesystem/glob ordering.
+    # filesystem/os.listdir ordering.
     for series_id in sorted(raw_file_map):
         year_files = raw_file_map.get(series_id, {})
         if prev_yy in year_files and next_yy in year_files:
