@@ -74,8 +74,8 @@ for i, file_path in enumerate(raw_files):
             f"Processed {i + 1}/{len(raw_files)}: {filename} → {os.path.basename(output_path)}"
         )
 
-    except Exception as e:
-        print(f"Error processing {filename}: {e}")
+    except Exception:
+        print(f"Error processing {filename}")
 
 print(f"\nAll done! {len(raw_files)} files processed.")
 print(f"Check your files in: {NEW_OUTPUT_DIR}")

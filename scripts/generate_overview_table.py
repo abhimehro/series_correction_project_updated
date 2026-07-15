@@ -114,13 +114,13 @@ def main(correction_log_path, updated_averages_csv_path):
         df_overview = pd.DataFrame(overview_data)
         _print_results(df_overview, unmatched_year_pairs)
 
-    except FileNotFoundError as e:
-        print(f"\nError: Required file not found: {e}.")
+    except FileNotFoundError:
+        print("\nError: Required file not found.")
         print(
             "Please ensure the required input files are present, or update the file paths."
         )
-    except Exception as e:
-        print(f"\nAn error occurred while generating Overview table content: {e}")
+    except Exception:
+        print("\nAn error occurred while generating Overview table content.")
 
     print("\n--- Script Finished ---")
 

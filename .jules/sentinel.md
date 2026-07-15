@@ -23,3 +23,7 @@
 **Vulnerability:** Raw exception texts exposing sensitive underlying system details were directly printed out using `print(f"...: {e}")` strings during failure scenarios in scripts handling file corrections.
 **Learning:** Printing or returning untrusted error exception details (`Exception as e`) to users/logs can leak stack information, filesystem paths, or internal logic.
 **Prevention:** Catch generalized exceptions without capturing `as e` when only a notification is needed, and use generic fixed string messages like "An unexpected error occurred" instead of interpolating the raw exception text.
+## 2025-02-28 - [Information Exposure in CLI output]
+**Vulnerability:** Scripts were exposing raw Python exceptions (e.g., `print(f"Error processing {filename}: {e}")`) in user-facing CLI output.
+**Learning:** Exception details can expose internal system paths, dependencies, and state information (CWE-209). This is especially risky in CLI tools where the output is directly accessible by the user.
+**Prevention:** Use generic warning messages when handling errors and outputting them to the terminal. If detailed error traces are needed, write them to structured, secured log files instead of standard output.
