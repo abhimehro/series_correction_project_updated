@@ -227,6 +227,19 @@ def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, outp
                 )
 
 
+def _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections):
+    for year_pair, sensor, diff in zip(
+        outliers_df["Year_Pair"].to_numpy(),
+        outliers_df["Sensor"].to_numpy(),
+        outliers_df["Difference"].to_numpy(),
+    ):
+        result = apply_level_shift_correction(
+            (year_pair, sensor, diff), raw_file_map, raw_dataframes
+        )
+        if result:
+            applied_corrections.append(result)
+
+
 def main():
     outliers_df = load_identified_outliers(YTY_DIFF_CSV_PATH)
     if outliers_df.empty:
@@ -239,16 +252,7 @@ def main():
     raw_dataframes = load_raw_dataframes(raw_file_map)
     applied_corrections = []
 
-    for year_pair, sensor, diff in zip(
-        outliers_df["Year_Pair"].to_numpy(),
-        outliers_df["Sensor"].to_numpy(),
-        outliers_df["Difference"].to_numpy(),
-    ):
-        result = apply_level_shift_correction(
-            (year_pair, sensor, diff), raw_file_map, raw_dataframes
-        )
-        if result:
-            applied_corrections.append(result)
+    _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections)
 
     if applied_corrections:
         save_corrected_files(
