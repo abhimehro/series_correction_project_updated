@@ -20,3 +20,6 @@
 ## 2025-07-13 - Fast parsing of whitespace separated CSVs in pandas
 **Learning:** Using Pandas `pd.read_csv` with regex separators like `sep=r'\s+'` alongside explicitly specifying `engine='python'` forces pandas to use the slower Python parsing engine. However, the default C engine has built-in, highly optimized support specifically for `\s+` (and a few other simple whitespace patterns).
 **Action:** When reading whitespace-separated CSV files in performance-critical sections with `pd.read_csv` and `sep=r'\s+'`, do NOT specify `engine='python'`. Removing this argument allows the much faster C engine to handle parsing natively, yielding up to a ~10x speedup while preserving full functionality.
+## 2025-07-28 - Optimizing multiple raw script scans with os.listdir()
+**Learning:** Using `glob.glob` repeated inside short loops across simple python scripts forces continuous directory scanning. We can dramatically reduce directory I/O overhead by doing a single `os.listdir()` to a memory list and applying python list comprehensions instead.
+**Action:** Replace `glob.glob` usages with `[os.path.join(DIR, f) for f in os.listdir(DIR) if f.startswith(...) and f.endswith(...)]` for fast file filtering in simple utility scripts like `fix_output.py` and `apply_refined_corrections.py`.

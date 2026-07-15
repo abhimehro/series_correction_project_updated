@@ -1,4 +1,3 @@
-import glob
 import os
 import sys
 
@@ -17,12 +16,11 @@ NEW_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "fixed_output")
 os.makedirs(NEW_OUTPUT_DIR, exist_ok=True)
 
 # Find all raw data files
-raw_files = []
-for series in [26, 27]:
-    pattern = os.path.join(DATA_DIR, f"S{series}_Y*.txt")
-    found = glob.glob(pattern)
-    raw_files.extend(found)
-
+raw_files = [
+    os.path.join(DATA_DIR, f)
+    for f in os.listdir(DATA_DIR)
+    if f.startswith(("S26_", "S27_")) and f.endswith(".txt")
+]
 print(f"Found {len(raw_files)} raw data files")
 
 # Process them one by one
