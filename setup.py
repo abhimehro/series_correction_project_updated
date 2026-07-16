@@ -73,7 +73,7 @@ PYTHON_REQUIRES = ">=3.8"
 INSTALL_REQUIRES = parse_requirements()
 
 # Validate core deps are listed
-required_core = {"pandas", "numpy", "click", "openpyxl"}
+required_core = {"pandas", "numpy", "click", "openpyxl", "ijson"}
 missing_core = required_core - {
     ln.split("==")[0].split("<")[0].split(">")[0] for ln in INSTALL_REQUIRES
 }
