@@ -23,3 +23,6 @@
 ## 2025-07-28 - Optimizing multiple raw script scans with os.listdir()
 **Learning:** Using `glob.glob` repeated inside short loops across simple python scripts forces continuous directory scanning. We can dramatically reduce directory I/O overhead by doing a single `os.listdir()` to a memory list and applying python list comprehensions instead.
 **Action:** Replace `glob.glob` usages with `[os.path.join(DIR, f) for f in os.listdir(DIR) if f.startswith(...) and f.endswith(...)]` for fast file filtering in simple utility scripts like `fix_output.py` and `apply_refined_corrections.py`.
+## 2024-05-18 - Fast column renaming for Integer Dtype Indexes
+**Learning:** Checking for integer typed column names iterating over all elements with `all(isinstance(c, int) for c in df.columns)` is slow (especially on `pd.read_csv` DataFrames where the column index defaults to `pd.RangeIndex`).
+**Action:** Use `pd.api.types.is_integer_dtype(df.columns)` to verify the column types instead. This provides a direct path check that takes roughly O(1) time instead of O(N).
