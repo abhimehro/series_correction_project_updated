@@ -49,12 +49,9 @@ def main():
     wb = load_workbook(SUMMARY_FILE)
     ws = wb.active
 
-    # Bold headers
+    # Bold headers and adjust column widths
     for col in range(1, ws.max_column + 1):
         ws.cell(row=1, column=col).font = Font(bold=True)
-
-    # Adjust column widths
-    for col in range(1, ws.max_column + 1):
         col_letter = get_column_letter(col)
         ws.column_dimensions[col_letter].width = 25
 
