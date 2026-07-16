@@ -36,3 +36,11 @@ During automated PR review or salvage sessions, if CodeScene is red on a PR, pos
 ```
 
 Then wait for that run to complete before final defer/salvage disposition.
+
+## Learned User Preferences
+
+- Do not commit local editable-install build metadata when finishing unrelated sessions.
+
+## Learned Workspace Facts
+
+- `seatek_series_correction.egg-info/` is still tracked despite `*.egg-info/` in `.gitignore`; editable installs dirty those files—restore with `git checkout -- seatek_series_correction.egg-info/` and never stage them.
