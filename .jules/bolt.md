@@ -23,3 +23,6 @@
 ## 2025-07-28 - Optimizing multiple raw script scans with os.listdir()
 **Learning:** Using `glob.glob` repeated inside short loops across simple python scripts forces continuous directory scanning. We can dramatically reduce directory I/O overhead by doing a single `os.listdir()` to a memory list and applying python list comprehensions instead.
 **Action:** Replace `glob.glob` usages with `[os.path.join(DIR, f) for f in os.listdir(DIR) if f.startswith(...) and f.endswith(...)]` for fast file filtering in simple utility scripts like `fix_output.py` and `apply_refined_corrections.py`.
+## 2026-07-16 - Combine adjacent workbook loops
+**Learning:** Having multiple sequential loops iterate over the exact same range of workbook columns causes unnecessary Python loop overhead and repeated indexing logic.
+**Action:** When updating adjacent cell properties or dimensions for the same column range in openpyxl, merge the iterations into a single for loop to simplify the code structure and reduce duplicate iterations.
