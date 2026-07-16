@@ -8,6 +8,7 @@ in Seatek sensor time-series data based on the audit report suggestions.
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Any
 
 import numpy as np
@@ -201,10 +202,22 @@ def detect_outliers(
 
     outliers = []
     values = data[value_col]
-    values_np = values.to_numpy()
+    values_np = values.astype(float).to_numpy()
 
-    # Calculate rolling median
-    rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
+    # Calculate rolling median with NumPy sliding windows instead of Pandas
+    # rolling().median(), avoiding Series construction for large inputs.
+    pad_left = window_size // 2
+    pad_right = window_size - 1 - pad_left
+    padded_values = np.pad(
+        values_np, (pad_left, pad_right), mode="constant", constant_values=np.nan
+    )
+    windows = sliding_window_view(padded_values, window_shape=window_size)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        rolling_median = np.nanmedian(windows, axis=1)
+
+    nan_counts = np.isnan(windows).sum(axis=1)
+    rolling_median[nan_counts > 0] = np.nan
 
     z_scores, valid_mask = _calculate_outlier_z_scores(
         values_np, rolling_median, window_size, threshold
