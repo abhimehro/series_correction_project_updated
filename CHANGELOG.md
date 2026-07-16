@@ -21,7 +21,10 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Combine adjacent loops for performance improvement [\#236](https://github.com/abhimehro/series_correction_project_updated/pull/236) ([abhimehro](https://github.com/abhimehro))
+- fix\(json\): fix memory leak in JSON parsing [\#234](https://github.com/abhimehro/series_correction_project_updated/pull/234) ([abhimehro](https://github.com/abhimehro))
 - docs\(agents\): document egg-info hygiene from continual learning [\#232](https://github.com/abhimehro/series_correction_project_updated/pull/232) ([abhimehro](https://github.com/abhimehro))
+- 🧹 fix\(lint\): resolve Ruff E402 formatting issue in discontinuity\_utils.py [\#231](https://github.com/abhimehro/series_correction_project_updated/pull/231) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] optimize file discovery with os.listdir [\#229](https://github.com/abhimehro/series_correction_project_updated/pull/229) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/setup-node from 6.4.0 to 7.0.0 [\#228](https://github.com/abhimehro/series_correction_project_updated/pull/228) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0 [\#227](https://github.com/abhimehro/series_correction_project_updated/pull/227) ([dependabot[bot]](https://github.com/apps/dependabot))
