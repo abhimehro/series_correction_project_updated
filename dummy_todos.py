@@ -27,9 +27,6 @@ def parse_large_json(file_path):
         is_array = _is_json_array(f)
         f.seek(0)
 
-        if is_array:
-            for item in ijson.items(f, "item"):
-                yield item
-        else:
-            for item in ijson.items(f, "", multiple_values=True):
-                yield item
+        prefix = "item" if is_array else ""
+        for item in ijson.items(f, prefix, multiple_values=not is_array):
+            yield item
