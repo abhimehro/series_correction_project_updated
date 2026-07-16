@@ -5,7 +5,6 @@ Extracted from processor.py to reduce file size and improve maintainability.
 """
 
 import warnings
-
 import logging
 from dataclasses import dataclass
 from typing import Any
