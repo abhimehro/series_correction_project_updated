@@ -22,6 +22,7 @@
 
 **Merged pull requests:**
 
+- ⚡ Bolt: Replace np.nanmedian with np.median for faster outlier detection [\#244](https://github.com/abhimehro/series_correction_project_updated/pull/244) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.318.0 to 1.319.0 [\#243](https://github.com/abhimehro/series_correction_project_updated/pull/243) ([dependabot[bot]](https://github.com/apps/dependabot))
 - security\(deps\): raise filelock and click floors for OSV fixes [\#241](https://github.com/abhimehro/series_correction_project_updated/pull/241) ([cursor[bot]](https://github.com/apps/cursor))
 - Draft: Salvage \#238 sliding-window rolling median optimization [\#240](https://github.com/abhimehro/series_correction_project_updated/pull/240) ([abhimehro](https://github.com/abhimehro))
