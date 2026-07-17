@@ -1,11 +1,13 @@
 import os
+import re
+import warnings
 from glob import glob
 
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 from pandas import concat, merge, read_csv, read_excel
 
 from scripts.spreadsheet_safety import write_excel_safely
-import warnings
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
@@ -16,8 +18,6 @@ os.makedirs(COMPARISON_DIR, exist_ok=True)
 
 
 def _find_series_file_match(processed_filename):
-    import re
-
     m = re.search(r"Series(\d+)_File(\d+)_Processed", processed_filename)
     if m:
         series = int(m.group(1))
@@ -30,8 +30,6 @@ def _find_series_file_match(processed_filename):
 
 
 def _find_year_file_match(processed_filename):
-    import re
-
     m = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
     if not m:
         return None
@@ -59,16 +57,27 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
     n = len(values)
     values_np = values.astype(float).to_numpy()
 
-    # Calculate rolling median
-    rolling_median = values.rolling(window=window_size, center=True).median().to_numpy()
+    # Calculate rolling median with padded sliding windows instead of Pandas
+    # rolling().median(), avoiding Series construction for large inputs.
+    pad_left = window_size // 2
+    pad_right = window_size - 1 - pad_left
+    padded_values = np.pad(
+        values_np, (pad_left, pad_right), mode="constant", constant_values=np.nan
+    )
+    windows_for_median = sliding_window_view(padded_values, window_shape=window_size)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        rolling_median = np.nanmedian(windows_for_median, axis=1)
+
+    nan_counts = np.isnan(windows_for_median).sum(axis=1)
+    rolling_median[nan_counts > 0] = np.nan
 
     if n < window_size:
         # If array is smaller than window size, pandas rolling median returns all NaNs
         rolling_mad = np.full(n, np.nan)
     else:
         # This avoids Python function call overhead and provides ~60x speedup for this specific computation.
-        from numpy.lib.stride_tricks import sliding_window_view
-
         chunk_size = 50000
         mads_list = []
         num_windows = n - window_size + 1
