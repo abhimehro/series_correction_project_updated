@@ -100,7 +100,7 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                chunk_mads = np.nanmedian(chunk_abs_diffs, axis=1)
+                chunk_mads = np.median(chunk_abs_diffs, axis=1)
 
             # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
             chunk_mads[invalid_mask] = np.nan
