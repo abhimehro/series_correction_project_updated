@@ -6,6 +6,8 @@
 
 **Closed issues:**
 
+- Daily QA Check - series\_correction\_project\_updated - 2026-07-17 [\#246](https://github.com/abhimehro/series_correction_project_updated/issues/246)
+- Daily QA & Agentic Review — 2026-07-17 [\#245](https://github.com/abhimehro/series_correction_project_updated/issues/245)
 - Daily QA & Agentic Review — 2026-07-16 [\#242](https://github.com/abhimehro/series_correction_project_updated/issues/242)
 - Daily QA & Agentic Review - 2026-07-15 [\#230](https://github.com/abhimehro/series_correction_project_updated/issues/230)
 - Daily QA & Agentic Review - 2026-07-14 [\#225](https://github.com/abhimehro/series_correction_project_updated/issues/225)
