@@ -26,3 +26,7 @@
 ## 2026-07-16 - Combine adjacent workbook loops
 **Learning:** Having multiple sequential loops iterate over the exact same range of workbook columns causes unnecessary Python loop overhead and repeated indexing logic.
 **Action:** When updating adjacent cell properties or dimensions for the same column range in openpyxl, merge the iterations into a single for loop to simplify the code structure and reduce duplicate iterations.
+
+## 2025-05-16 - Avoid np.nanmedian overhead when NaNs are explicitly invalidated
+**Learning:** `np.nanmedian` creates masks and copies internally to ignore `NaN` values, which introduces significant overhead (~3x slower than `np.median`). When processing `sliding_window_view` chunks where any window containing a `NaN` is subsequently explicitly assigned `np.nan` anyway, this overhead is entirely unnecessary.
+**Action:** Replace `np.nanmedian` with `np.median` when calculating window statistics if windows containing `NaNs` will be discarded or explicitly masked afterward. Keep `np.nanmedian` only for operations where NaNs are intentionally injected as placeholders for specific elements (like outliers) and need to be actively ignored during the calculation.
