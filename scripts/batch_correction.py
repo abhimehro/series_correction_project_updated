@@ -343,11 +343,13 @@ def _load_raw_data(file_path):
         df = pd.DataFrame({col: _safe_numeric(df[col]) for col in df.columns})
 
         # Nice column names: first col is time, rest ValueX
-        if all(isinstance(c, int) for c in df.columns):
-            cols = [f"Value{i + 1}" for i in range(len(df.columns))]
-            if cols:
-                cols[0] = "Time (Seconds)"
-            df.columns = cols
+        if pd.api.types.is_integer_dtype(df.columns):
+            n = len(df.columns)
+            if n > 0:
+                df.columns = [
+                    "Time (Seconds)",
+                    *[f"Value{i}" for i in range(2, n + 1)],
+                ]
         return df
     except pd.errors.EmptyDataError:
         log.debug(f"File {file_path} empty.")
