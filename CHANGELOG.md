@@ -6,6 +6,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-19 [\#250](https://github.com/abhimehro/series_correction_project_updated/issues/250)
+- Daily QA & Agentic Review — 2026-07-18 [\#248](https://github.com/abhimehro/series_correction_project_updated/issues/248)
 - Daily QA Check - series\_correction\_project\_updated - 2026-07-17 [\#246](https://github.com/abhimehro/series_correction_project_updated/issues/246)
 - Daily QA & Agentic Review — 2026-07-17 [\#245](https://github.com/abhimehro/series_correction_project_updated/issues/245)
 - Daily QA & Agentic Review — 2026-07-16 [\#242](https://github.com/abhimehro/series_correction_project_updated/issues/242)
@@ -24,6 +26,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump release-drafter/release-drafter from 7.5.1 to 7.6.0 [\#252](https://github.com/abhimehro/series_correction_project_updated/pull/252) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Optimize rolling median calculation overhead in outlier detection [\#247](https://github.com/abhimehro/series_correction_project_updated/pull/247) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Replace np.nanmedian with np.median for faster outlier detection [\#244](https://github.com/abhimehro/series_correction_project_updated/pull/244) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.318.0 to 1.319.0 [\#243](https://github.com/abhimehro/series_correction_project_updated/pull/243) ([dependabot[bot]](https://github.com/apps/dependabot))
