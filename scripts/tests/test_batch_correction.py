@@ -691,48 +691,61 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
     assert warning_logged
 
 
-def test_optional_import_success():
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        {
+            "module_name": "os",
+            "fallback_msg": "fallback",
+            "expected_module_is_not_none": True,
+        },
+        {
+            "module_name": "non_existent_module_12345",
+            "fallback_msg": "My fallback message",
+            "expected_log_level": 20,  # logging.INFO
+            "expected_log_msg": "My fallback message",
+        },
+        {
+            "module_name": "some_module",
+            "fallback_msg": "fallback",
+            "mock_import_exception": ImportError("Mocked ImportError"),
+            "expected_log_level": 40,  # logging.ERROR
+            "expected_log_msg": "Import error while loading some_module",
+        },
+        {
+            "module_name": "some_module",
+            "fallback_msg": "fallback",
+            "mock_import_exception": SyntaxError("Mocked SyntaxError"),
+            "expected_exception": SyntaxError,
+        },
+    ],
+)
+def test_optional_import_behavior(test_case, monkeypatch, caplog):
     from scripts.batch_correction import _optional_import
 
-    module = _optional_import("os", "fallback")
-    import os
+    mock_exc = test_case.get("mock_import_exception")
+    if mock_exc:
 
-    assert module is os
+        def mock_import(*args, **kwargs):
+            raise mock_exc
 
+        monkeypatch.setattr("builtins.__import__", mock_import)
 
-def test_optional_import_module_not_found(caplog):
-    from scripts.batch_correction import _optional_import
-    import logging
+    expected_exc = test_case.get("expected_exception")
+    if expected_exc:
+        with pytest.raises(expected_exc):
+            _optional_import(test_case["module_name"], test_case["fallback_msg"])
+        return
 
-    with caplog.at_level(logging.INFO):
-        module = _optional_import("non_existent_module_12345", "My fallback message")
-    assert module is None
-    assert "My fallback message" in caplog.text
-
-
-def test_optional_import_import_error(monkeypatch, caplog):
-    from scripts.batch_correction import _optional_import
-    import logging
-
-    def mock_import(*args, **kwargs):
-        raise ImportError("Mocked ImportError")
-
-    monkeypatch.setattr("builtins.__import__", mock_import)
-
-    with caplog.at_level(logging.ERROR):
-        module = _optional_import("some_module", "fallback")
-
-    assert module is None
-    assert "Import error while loading some_module" in caplog.text
-
-
-def test_optional_import_syntax_error(monkeypatch, caplog):
-    from scripts.batch_correction import _optional_import
-
-    def mock_import(*args, **kwargs):
-        raise SyntaxError("Mocked SyntaxError")
-
-    monkeypatch.setattr("builtins.__import__", mock_import)
-
-    with pytest.raises(SyntaxError):
-        _optional_import("some_module", "fallback")
+    log_level = test_case.get("expected_log_level")
+    if log_level:
+        with caplog.at_level(log_level):
+            module = _optional_import(
+                test_case["module_name"], test_case["fallback_msg"]
+            )
+        assert test_case.get("expected_log_msg") in caplog.text
+        assert module is None
+    else:
+        module = _optional_import(test_case["module_name"], test_case["fallback_msg"])
+        if test_case.get("expected_module_is_not_none"):
+            assert module is not None
