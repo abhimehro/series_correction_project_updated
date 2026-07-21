@@ -14,7 +14,7 @@ import pytest
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
 # Import ProcessingError only if you add a test that specifically catches it
-from scripts.batch_correction import batch_process
+from scripts.batch_correction import batch_process, BatchConfig
 
 
 # Helper to create dummy dataframes
@@ -237,7 +237,9 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
         patcher.start()
 
         # Act
-        summary_df = bc.batch_process(series_selection, river_miles, years, dry_run)
+        summary_df = bc.batch_process(
+            bc.BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+        )
 
         # Assert
         assert mock_to_excel.call_count >= 0
@@ -333,7 +335,9 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
         mock_dependencies["getsize"].side_effect = getsize_side_effect
 
         # Act
-        summary_df = bc.batch_process(series_selection, river_miles, years, dry_run)
+        summary_df = bc.batch_process(
+            bc.BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+        )
 
         # Assert
         assert mock_to_excel.call_count >= 0
@@ -386,7 +390,9 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
     mock_dependencies["isfile"].side_effect = isfile_dry_run
 
     # Act
-    summary_df = batch_process(series_selection, river_miles, years, dry_run)
+    summary_df = batch_process(
+        BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+    )
 
     # Assert
     mock_config_loader.assert_called_once()
@@ -424,7 +430,9 @@ def test_batch_process_no_files_found(mock_dependencies, mock_config_loader):
     mock_dependencies["isfile"].return_value = False
 
     # Act: no matching S99 files — implementation returns an empty summary frame
-    summary_df = batch_process(series_selection, river_miles, years, dry_run)
+    summary_df = batch_process(
+        BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+    )
     assert summary_df.empty
 
 
@@ -444,7 +452,9 @@ def test_batch_process_data_dir_not_found(mock_dependencies):
     # Act & Assert
     expected_data_dir_inner = os.path.join(os.getcwd(), "data")  # Default dir check
     with pytest.raises(FileNotFoundError, match=r"Default data directory not found"):
-        batch_process(series_selection, river_miles, years, dry_run)
+        batch_process(
+            BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+        )
     # Ensure isdir was called for the default path
     # Accept both possible calls for isdir: data_dir and data_dir/output
     expected_calls = [
@@ -477,7 +487,9 @@ def test_batch_process_skip_empty_file(mock_dependencies, caplog):
     mock_dependencies["getsize"].side_effect = getsize_side_effect
 
     # Act
-    summary_df = batch_process(series_selection, river_miles, years, dry_run)
+    summary_df = batch_process(
+        BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+    )
 
     # Assert
     # No processing or saving should happen for the empty file
@@ -501,7 +513,9 @@ def test_batch_process_with_processor_module(
     mock_dependencies["isfile"].return_value = True
     mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
 
-    summary_df = batch_process(series_selection, river_miles, years, dry_run)
+    summary_df = batch_process(
+        BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+    )
 
     mock_processor_mod.process_data.assert_called_once()
     assert isinstance(summary_df, pd.DataFrame)
@@ -529,7 +543,9 @@ def test_batch_process_load_error(
 
     mocker.patch("pandas.read_csv", side_effect=read_csv_fail_sensor)
 
-    summary_df = batch_process(series_selection, river_miles, years, dry_run)
+    summary_df = batch_process(
+        BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+    )
 
     assert mock_dependencies["to_excel"].call_count == 0
     assert len(summary_df) == 1
@@ -554,7 +570,7 @@ def test_batch_process_process_error(
     mock_processor_mod.process_data.side_effect = ValueError("Processing failed")
     mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
 
-    summary_df = batch_process(series, None, years, False)
+    summary_df = batch_process(BatchConfig(series, None, years, dry_run=False))
 
     # Assert
     mock_processor_mod.process_data.assert_called_once()
@@ -581,7 +597,9 @@ def test_batch_process_invalid_series_selection(monkeypatch):
     )
     # Act & Assert
     with pytest.raises(ValueError, match="Invalid series selection"):
-        batch_process(series_selection, river_miles, years, dry_run)
+        batch_process(
+            BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+        )
 
 
 def test_minimal_happy_path(monkeypatch):
@@ -649,12 +667,14 @@ def test_minimal_happy_path(monkeypatch):
     importlib.reload(bc)
     try:
         summary_df = bc.batch_process(
-            series_selection="all",
-            river_miles=[54.0],
-            years=(1995, 1996),
-            dry_run=False,
-            config_path=None,
-            output_dir=data_dir,
+            bc.BatchConfig(
+                series_selection="all",
+                river_miles=[54.0],
+                years=(1995, 1996),
+                dry_run=False,
+                config_path=None,
+                output_dir=data_dir,
+            )
         )
     except Exception:
         raise
@@ -677,9 +697,9 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
     dry_run = True
 
     # Act
-    from scripts.batch_correction import batch_process
+    from scripts.batch_correction import batch_process, BatchConfig
 
-    batch_process(series_selection, river_miles, years, dry_run=dry_run)
+    batch_process(BatchConfig(series_selection, river_miles, years, dry_run=dry_run))
 
     # Assert
     assert mock_config_loader.called
