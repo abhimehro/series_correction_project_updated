@@ -24,10 +24,10 @@ from scripts.spreadsheet_safety import write_excel_safely
 
 # Import optional dependencies from the helper module if possible
 try:
-    from batch_correction import data_loader, load_config_func, processor
+    from batch_correction import load_config_func, processor
 except ImportError:
     # We'll define these later in the file if the import fails
-    load_config_func, processor, data_loader = None, None, None
+    load_config_func, processor = None, None
 
 # --------------------------------------------------------------------------- #
 # Logging setup
@@ -45,7 +45,6 @@ log.debug("batch_correction module loaded")
 ConfigLoaderType = None
 load_config_func = None
 processor = None
-data_loader = None
 
 
 def _optional_import(path: str, fallback_msg: str):
