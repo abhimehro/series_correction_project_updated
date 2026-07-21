@@ -2,7 +2,7 @@ import json
 import os
 
 # Import your batch processing function directly
-from scripts.batch_correction import batch_process
+from scripts.batch_correction import batch_process, BatchConfig
 
 # Use direct, absolute paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +35,7 @@ except Exception:
 # Run batch processing
 print("Processing data files...")
 try:
-    summary = batch_process(
+    config = BatchConfig(
         series_selection="all",
         river_miles=None,
         years=(1995, 2014),
@@ -43,6 +43,7 @@ try:
         config_path=CONFIG_PATH,
         output_dir=OUTPUT_DIR,
     )
+    summary = batch_process(config)
     print(f"Successfully processed {len(summary)} files")
 except Exception:
     print("Error during processing")

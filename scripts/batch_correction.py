@@ -17,7 +17,8 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Any, Dict, List, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple, Optional, Union
 
 import pandas as pd
 from scripts.spreadsheet_safety import write_excel_safely
@@ -429,28 +430,39 @@ def _ensure_output_directory(output_dir, dry_run):
             raise ProcessingError("Unable to create output directory") from None
 
 
-def batch_process(
-    series_selection,
-    river_miles,
-    years,
-    dry_run=False,
-    config_path="scripts/config.json",
-    output_dir=None,
-):
+@dataclass
+class BatchConfig:
+    series_selection: Union[int, List[int], str]
+    river_miles: Optional[List[float]]
+    years: Tuple[int, int]
+    dry_run: bool = False
+    config_path: str = "scripts/config.json"
+    output_dir: Optional[str] = None
+
+
+def batch_process(config: BatchConfig):
     """
-    Process multiple sensor data files based on series, river miles, and years.
+    Process multiple sensor data files based on configuration.
 
     Args:
-        series_selection: Series IDs to process (int, list, or "all")
-        river_miles: Optional list of river miles to filter series by
-        years: Tuple of (start_year, end_year) to process
-        dry_run: If True, don't write output files
-        config_path: Path to configuration file
-        output_dir: Directory for output files (defaults to data directory)
+        config: BatchConfig object containing:
+            - series_selection: Series IDs to process (int, list, or "all")
+            - river_miles: Optional list of river miles to filter series by
+            - years: Tuple of (start_year, end_year) to process
+            - dry_run: If True, don't write output files
+            - config_path: Path to configuration file
+            - output_dir: Directory for output files (defaults to data directory)
 
     Returns:
         DataFrame with summary of processed files
     """
+    series_selection = config.series_selection
+    river_miles = config.river_miles
+    years = config.years
+    dry_run = config.dry_run
+    config_path = config.config_path
+    output_dir = config.output_dir
+
     log.info(
         f"--- Batch processing START --- "
         f"series={series_selection} river_miles={river_miles} years={years} dry_run={dry_run}"

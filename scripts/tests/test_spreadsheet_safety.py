@@ -74,14 +74,15 @@ def test_batch_process_escapes_formula_like_raw_cells(tmp_path, monkeypatch):
         encoding="utf-8",
     )
 
-    batch_correction.batch_process(
-        "26",
-        [54.0],
-        (1995, 1995),
+    config = batch_correction.BatchConfig(
+        series_selection="26",
+        river_miles=[54.0],
+        years=(1995, 1995),
         dry_run=False,
         config_path=str(config_path),
         output_dir=str(output_dir),
     )
+    batch_correction.batch_process(config)
 
     workbook = load_workbook(output_dir / "Year_1995 (Y01)_Data.xlsx", data_only=False)
     cell = workbook.active["C2"]
