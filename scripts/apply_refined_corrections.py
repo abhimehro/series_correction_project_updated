@@ -84,9 +84,10 @@ def build_raw_file_map(data_dir):
         for f in os.listdir(data_dir)
         if f.startswith("S") and "_Y" in f and f.endswith(".txt")
     ]
+    file_pattern = re.compile(r"(S\d+)_Y(\d+)\.txt")
     for raw_file_path in all_raw_files:
         file_name = os.path.basename(raw_file_path)
-        file_match = re.match(r"(S\d+)_Y(\d+)\.txt", file_name)
+        file_match = file_pattern.match(file_name)
         if file_match:
             series_id = file_match.group(1)
             year_num = int(file_match.group(2))
