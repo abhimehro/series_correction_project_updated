@@ -36,11 +36,14 @@ def _find_year_file_match(processed_filename):
 
     yidx = int(m.group(2))
     if not hasattr(_find_year_file_match, "_cache"):
-        _find_year_file_match._cache = os.listdir(RAW_DATA_DIR)
+        _find_year_file_match._cache = {}
+        for f in os.listdir(RAW_DATA_DIR):
+            fm = re.search(r"_Y(\d+)\.txt$", f)
+            if fm:
+                _find_year_file_match._cache[int(fm.group(1))] = f
 
-    for f in _find_year_file_match._cache:
-        if f.endswith(f"_Y{yidx:02d}.txt"):
-            return os.path.join(RAW_DATA_DIR, f)
+    if yidx in _find_year_file_match._cache:
+        return os.path.join(RAW_DATA_DIR, _find_year_file_match._cache[yidx])
     return None
 
 
