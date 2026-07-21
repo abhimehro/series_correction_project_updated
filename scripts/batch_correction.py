@@ -229,13 +229,13 @@ def _determine_series_to_process(
 
 
 def _determine_year_for_index(
-    y_index: int, year_index_map: dict, years_to_process: range
+    y_index: int, reverse_year_index_map: dict, years_to_process: range
 ) -> int | None:
     """Helper function to map a Y-index back to a specific year."""
-    if year_index_map:
-        for y, idx in year_index_map.items():
-            if idx == y_index and int(y) in years_to_process:
-                return int(y)
+    if reverse_year_index_map:
+        year = reverse_year_index_map.get(y_index)
+        if year is not None and year in years_to_process:
+            return year
         return None
 
     if y_index <= len(years_to_process):
@@ -272,6 +272,9 @@ def _find_files_to_process(
     years_to_process = range(year_start, year_end + 1)
     year_index_map = config_data.get("year_index_map", {}) if config_data else {}
 
+    # Pre-compute reverse map for O(1) lookups
+    reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
+
     # ⚡ Bolt: Optimize file discovery by using a single os.listdir call
     # instead of globbing in a loop for each series, which requires repeated directory scans.
     series_map = {str(s): s for s in series_list}
@@ -291,7 +294,9 @@ def _find_files_to_process(
             continue
 
         y_index = int(match.group(2))
-        year = _determine_year_for_index(y_index, year_index_map, years_to_process)
+        year = _determine_year_for_index(
+            y_index, reverse_year_index_map, years_to_process
+        )
 
         if year is not None and year_start <= year <= year_end:
             original_series = series_map[series_str]
