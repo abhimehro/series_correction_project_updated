@@ -27,8 +27,11 @@
 
 **Merged pull requests:**
 
+- 🔒 Fix unsafe path interpretation in raw dataframe loading [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix unsafe absolute path usage in run\_analysis.py [\#270](https://github.com/abhimehro/series_correction_project_updated/pull/270) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/setup-python from 6 to 7 [\#257](https://github.com/abhimehro/series_correction_project_updated/pull/257) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/checkout from 7.0.0 to 7.0.1 [\#256](https://github.com/abhimehro/series_correction_project_updated/pull/256) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Exception Chaining in Path Traversal Check [\#253](https://github.com/abhimehro/series_correction_project_updated/pull/253) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump release-drafter/release-drafter from 7.5.1 to 7.6.0 [\#252](https://github.com/abhimehro/series_correction_project_updated/pull/252) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: Optimize rolling median calculation overhead in outlier detection [\#247](https://github.com/abhimehro/series_correction_project_updated/pull/247) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Replace np.nanmedian with np.median for faster outlier detection [\#244](https://github.com/abhimehro/series_correction_project_updated/pull/244) ([abhimehro](https://github.com/abhimehro))
