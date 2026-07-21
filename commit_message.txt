@@ -1,0 +1,6 @@
+🧹 [code health improvement] Refactor detect_outliers_series to reduce complexity
+
+🎯 **What:** The overly long function `detect_outliers_series` in `scripts/export_comparison_sheets.py` (89 lines) has been refactored into three smaller, logical pieces.
+💡 **Why:** This improves the maintainability and readability of the codebase by separating concerns (calculating median vs. mad vs. overall z-score logic) without altering functionality.
+✅ **Verification:** Verified by checking format with `black`, linting with `flake8` and `ruff`, and running the full test suite with `pytest`. All 58 tests pass successfully.
+✨ **Result:** The code complexity is reduced, keeping the identical logical operations and speedup optimizations.
