@@ -689,3 +689,20 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
         if record.levelname == "WARNING"
     )
     assert warning_logged
+
+
+def test_load_raw_data_empty_file(caplog):
+    """Test that _load_raw_data handles EmptyDataError correctly."""
+    caplog.set_level("DEBUG")
+    from scripts.batch_correction import _load_raw_data
+
+    with mock.patch("pandas.read_csv") as mock_read_csv:
+        mock_read_csv.side_effect = pd.errors.EmptyDataError(
+            "No columns to parse from file"
+        )
+
+        result = _load_raw_data("dummy_empty_file.txt")
+
+        assert isinstance(result, pd.DataFrame)
+        assert result.empty
+        assert "dummy_empty_file.txt empty." in caplog.text
