@@ -278,11 +278,12 @@ def _find_files_to_process(
     all_files = os.listdir(data_dir)
     files_by_series = {s: [] for s in series_list}
 
+    file_pattern = re.compile(r"S(.+?)_Y(\d+)\.txt$")
     for file_name in all_files:
         if not (file_name.startswith("S") and file_name.endswith(".txt")):
             continue
 
-        match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
+        match = file_pattern.search(file_name)
         if not match:
             continue
 
