@@ -56,10 +56,7 @@ def find_matching_raw_file(processed_filename):
     return _find_year_file_match(processed_filename)
 
 
-def detect_outliers_series(values, window_size=5, threshold=3.0):
-    n = len(values)
-    values_np = values.astype(float).to_numpy()
-
+def _calculate_rolling_median(values_np, window_size):
     # Calculate rolling median with padded sliding windows instead of Pandas
     # rolling().median(), avoiding Series construction for large inputs.
     pad_left = window_size // 2
@@ -78,54 +75,63 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
 
     nan_counts = np.isnan(windows_for_median).sum(axis=1)
     rolling_median[nan_counts > 0] = np.nan
+    return rolling_median
 
+
+def _calculate_rolling_mad(values_np, rolling_median, window_size):
+    n = len(values_np)
     if n < window_size:
         # If array is smaller than window size, pandas rolling median returns all NaNs
-        rolling_mad = np.full(n, np.nan)
+        return np.full(n, np.nan)
+
+    # This avoids Python function call overhead and provides ~60x speedup for this specific computation.
+    chunk_size = 50000
+    mads_list = []
+    num_windows = n - window_size + 1
+
+    for start_idx in range(0, num_windows, chunk_size):
+        end_idx = min(start_idx + chunk_size, num_windows)
+        # Add window_size - 1 to end_idx to get the slice of original array needed to form the windows
+        chunk = values_np[start_idx : end_idx + window_size - 1]
+
+        chunk_windows = sliding_window_view(chunk, window_shape=window_size)
+
+        # Calculate nan count per window to mimic pandas min_periods=window_size behavior
+        nan_counts = np.isnan(chunk_windows).sum(axis=1)
+        invalid_mask = nan_counts > 0
+
+        # Reuse precomputed rolling_median instead of recalculating np.nanmedian per window.
+        pad = window_size // 2
+        chunk_medians = rolling_median[start_idx + pad : end_idx + pad, np.newaxis]
+        chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            chunk_mads = np.median(chunk_abs_diffs, axis=1)
+
+        # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
+        chunk_mads[invalid_mask] = np.nan
+        mads_list.append(chunk_mads)
+
+    if mads_list:
+        mads = np.concatenate(mads_list)
     else:
-        # This avoids Python function call overhead and provides ~60x speedup for this specific computation.
-        chunk_size = 50000
-        mads_list = []
-        num_windows = n - window_size + 1
+        mads = np.array([])
 
-        for start_idx in range(0, num_windows, chunk_size):
-            end_idx = min(start_idx + chunk_size, num_windows)
-            # Add window_size - 1 to end_idx to get the slice of original array needed to form the windows
-            chunk = values_np[start_idx : end_idx + window_size - 1]
+    # Pad the mads array with NaNs to match pandas center=True behavior
+    pad_width = window_size // 2
 
-            chunk_windows = sliding_window_view(chunk, window_shape=window_size)
+    # Ensure the length matches by computing padding for left and right
+    pad_left = pad_width
+    pad_right = n - len(mads) - pad_left
+    return np.pad(mads, (pad_left, pad_right), mode="constant", constant_values=np.nan)
 
-            # Calculate nan count per window to mimic pandas min_periods=window_size behavior
-            nan_counts = np.isnan(chunk_windows).sum(axis=1)
-            invalid_mask = nan_counts > 0
 
-            # Reuse precomputed rolling_median instead of recalculating np.nanmedian per window.
-            pad = window_size // 2
-            chunk_medians = rolling_median[start_idx + pad : end_idx + pad, np.newaxis]
-            chunk_abs_diffs = np.abs(chunk_windows - chunk_medians)
+def detect_outliers_series(values, window_size=5, threshold=3.0):
+    values_np = values.astype(float).to_numpy()
 
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=RuntimeWarning)
-                chunk_mads = np.median(chunk_abs_diffs, axis=1)
-
-            # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
-            chunk_mads[invalid_mask] = np.nan
-            mads_list.append(chunk_mads)
-
-        if mads_list:
-            mads = np.concatenate(mads_list)
-        else:
-            mads = np.array([])
-
-        # Pad the mads array with NaNs to match pandas center=True behavior
-        pad_width = window_size // 2
-
-        # Ensure the length matches by computing padding for left and right
-        pad_left = pad_width
-        pad_right = n - len(mads) - pad_left
-        rolling_mad = np.pad(
-            mads, (pad_left, pad_right), mode="constant", constant_values=np.nan
-        )
+    rolling_median = _calculate_rolling_median(values_np, window_size)
+    rolling_mad = _calculate_rolling_mad(values_np, rolling_median, window_size)
 
     mad_scale_factor = 1.4826
     rolling_scaled_mad = rolling_mad * mad_scale_factor
