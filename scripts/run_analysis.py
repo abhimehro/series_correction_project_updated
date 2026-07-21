@@ -5,7 +5,8 @@ import os
 from scripts.batch_correction import batch_process
 
 # Use direct, absolute paths
-PROJECT_PATH = "/Users/abhimehrotra/PycharmProjects/series_correction_project_updated"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_PATH = os.path.dirname(SCRIPT_DIR)
 CONFIG_PATH = os.path.join(PROJECT_PATH, "scripts", "config.json")
 OUTPUT_DIR = os.path.join(PROJECT_PATH, "data", "output")
 
