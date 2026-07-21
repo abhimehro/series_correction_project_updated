@@ -243,6 +243,37 @@ def _determine_year_for_index(
     return None
 
 
+def _parse_and_validate_file(
+    file_name: str,
+    series_map: dict,
+    reverse_year_index_map: dict,
+    years_to_process: range,
+    year_start: int,
+    year_end: int,
+    data_dir: str,
+) -> tuple[int, int, int, str] | None:
+    """Parses a filename and returns structured info if valid."""
+    if not (file_name.startswith("S") and file_name.endswith(".txt")):
+        return None
+
+    match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
+    if not match:
+        return None
+
+    series_str = match.group(1)
+    if series_str not in series_map:
+        return None
+
+    y_index = int(match.group(2))
+    year = _determine_year_for_index(y_index, reverse_year_index_map, years_to_process)
+
+    if year is not None and year_start <= year <= year_end:
+        original_series = series_map[series_str]
+        file_path = os.path.join(data_dir, file_name)
+        return (original_series, year, y_index, file_path)
+    return None
+
+
 def _find_files_to_process(
     series_list: List[int],
     years: Tuple[int, int],
@@ -282,28 +313,18 @@ def _find_files_to_process(
     files_by_series = {s: [] for s in series_list}
 
     for file_name in all_files:
-        if not (file_name.startswith("S") and file_name.endswith(".txt")):
-            continue
-
-        match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
-        if not match:
-            continue
-
-        series_str = match.group(1)
-        if series_str not in series_map:
-            continue
-
-        y_index = int(match.group(2))
-        year = _determine_year_for_index(
-            y_index, reverse_year_index_map, years_to_process
+        result = _parse_and_validate_file(
+            file_name,
+            series_map,
+            reverse_year_index_map,
+            years_to_process,
+            year_start,
+            year_end,
+            data_dir,
         )
-
-        if year is not None and year_start <= year <= year_end:
-            original_series = series_map[series_str]
-            file_path = os.path.join(data_dir, file_name)
-            files_by_series[original_series].append(
-                (original_series, year, y_index, file_path)
-            )
+        if result:
+            original_series = result[0]
+            files_by_series[original_series].append(result)
 
     # Flatten and preserve the original ordering grouping by series
     files_to_process = []
