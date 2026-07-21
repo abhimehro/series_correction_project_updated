@@ -28,7 +28,18 @@
 **Merged pull requests:**
 
 - 🔒 Fix unsafe path interpretation in raw dataframe loading [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[code health improvement\] Refactor batch\_process to use BatchConfig [\#277](https://github.com/abhimehro/series_correction_project_updated/pull/277) ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing improvement\] Add EmptyDataError test for \_load\_raw\_data [\#274](https://github.com/abhimehro/series_correction_project_updated/pull/274) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add missing tests for \_optional\_import fallback functionality [\#273](https://github.com/abhimehro/series_correction_project_updated/pull/273) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] O\(1\) file index mapping lookup [\#272](https://github.com/abhimehro/series_correction_project_updated/pull/272) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Fix unused import in batch\_correction.py [\#271](https://github.com/abhimehro/series_correction_project_updated/pull/271) ([abhimehro](https://github.com/abhimehro))
 - 🔒 Fix unsafe absolute path usage in run\_analysis.py [\#270](https://github.com/abhimehro/series_correction_project_updated/pull/270) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize regex compilation in raw file mapping [\#269](https://github.com/abhimehro/series_correction_project_updated/pull/269) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add missing tests for generate\_summary.py main function [\#265](https://github.com/abhimehro/series_correction_project_updated/pull/265) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize \_find\_year\_file\_match with O\(1\) cache lookup [\#264](https://github.com/abhimehro/series_correction_project_updated/pull/264) ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[Testing Improvement\] Add tests for calculate\_non\_zero\_average [\#263](https://github.com/abhimehro/series_correction_project_updated/pull/263) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor detect\_outliers\_series to resolve Overly Long Function issue [\#262](https://github.com/abhimehro/series_correction_project_updated/pull/262) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add unit tests for updated\_processor.py detect\_outliers [\#258](https://github.com/abhimehro/series_correction_project_updated/pull/258) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump actions/setup-python from 6 to 7 [\#257](https://github.com/abhimehro/series_correction_project_updated/pull/257) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/checkout from 7.0.0 to 7.0.1 [\#256](https://github.com/abhimehro/series_correction_project_updated/pull/256) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🛡️ Sentinel: \[MEDIUM\] Fix Exception Chaining in Path Traversal Check [\#253](https://github.com/abhimehro/series_correction_project_updated/pull/253) ([abhimehro](https://github.com/abhimehro))
