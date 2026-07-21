@@ -228,17 +228,48 @@ def _determine_series_to_process(
 
 
 def _determine_year_for_index(
-    y_index: int, year_index_map: dict, years_to_process: range
+    y_index: int, reverse_year_index_map: dict, years_to_process: range
 ) -> int | None:
     """Helper function to map a Y-index back to a specific year."""
-    if year_index_map:
-        for y, idx in year_index_map.items():
-            if idx == y_index and int(y) in years_to_process:
-                return int(y)
+    if reverse_year_index_map:
+        year = reverse_year_index_map.get(y_index)
+        if year is not None and year in years_to_process:
+            return year
         return None
 
     if y_index <= len(years_to_process):
         return years_to_process[y_index - 1]
+    return None
+
+
+def _parse_and_validate_file(
+    file_name: str,
+    series_map: dict,
+    reverse_year_index_map: dict,
+    years_to_process: range,
+    year_start: int,
+    year_end: int,
+    data_dir: str,
+) -> tuple[int, int, int, str] | None:
+    """Parses a filename and returns structured info if valid."""
+    if not (file_name.startswith("S") and file_name.endswith(".txt")):
+        return None
+
+    match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
+    if not match:
+        return None
+
+    series_str = match.group(1)
+    if series_str not in series_map:
+        return None
+
+    y_index = int(match.group(2))
+    year = _determine_year_for_index(y_index, reverse_year_index_map, years_to_process)
+
+    if year is not None and year_start <= year <= year_end:
+        original_series = series_map[series_str]
+        file_path = os.path.join(data_dir, file_name)
+        return (original_series, year, y_index, file_path)
     return None
 
 
@@ -271,6 +302,9 @@ def _find_files_to_process(
     years_to_process = range(year_start, year_end + 1)
     year_index_map = config_data.get("year_index_map", {}) if config_data else {}
 
+    # Pre-compute reverse map for O(1) lookups
+    reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
+
     # ⚡ Bolt: Optimize file discovery by using a single os.listdir call
     # instead of globbing in a loop for each series, which requires repeated directory scans.
     series_map = {str(s): s for s in series_list}
@@ -278,26 +312,18 @@ def _find_files_to_process(
     files_by_series = {s: [] for s in series_list}
 
     for file_name in all_files:
-        if not (file_name.startswith("S") and file_name.endswith(".txt")):
-            continue
-
-        match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
-        if not match:
-            continue
-
-        series_str = match.group(1)
-        if series_str not in series_map:
-            continue
-
-        y_index = int(match.group(2))
-        year = _determine_year_for_index(y_index, year_index_map, years_to_process)
-
-        if year is not None and year_start <= year <= year_end:
-            original_series = series_map[series_str]
-            file_path = os.path.join(data_dir, file_name)
-            files_by_series[original_series].append(
-                (original_series, year, y_index, file_path)
-            )
+        result = _parse_and_validate_file(
+            file_name,
+            series_map,
+            reverse_year_index_map,
+            years_to_process,
+            year_start,
+            year_end,
+            data_dir,
+        )
+        if result:
+            original_series = result[0]
+            files_by_series[original_series].append(result)
 
     # Flatten and preserve the original ordering grouping by series
     files_to_process = []
