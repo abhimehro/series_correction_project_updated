@@ -6,6 +6,8 @@
 
 **Closed issues:**
 
+- Daily QA Check - series\_correction\_project\_updated - 2026-07-21 [\#281](https://github.com/abhimehro/series_correction_project_updated/issues/281)
+- Daily QA & Agentic Review — 2026-07-21 [\#280](https://github.com/abhimehro/series_correction_project_updated/issues/280)
 - Daily QA & Agentic Review — 2026-07-20 [\#254](https://github.com/abhimehro/series_correction_project_updated/issues/254)
 - Daily QA & Agentic Review — 2026-07-19 [\#250](https://github.com/abhimehro/series_correction_project_updated/issues/250)
 - Daily QA & Agentic Review — 2026-07-18 [\#248](https://github.com/abhimehro/series_correction_project_updated/issues/248)
@@ -27,6 +29,8 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0 [\#283](https://github.com/abhimehro/series_correction_project_updated/pull/283) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Daily QA check passed [\#282](https://github.com/abhimehro/series_correction_project_updated/pull/282) ([abhimehro](https://github.com/abhimehro))
 - 🔒 Fix unsafe path interpretation in raw dataframe loading [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[code health improvement\] Refactor batch\_process to use BatchConfig [\#277](https://github.com/abhimehro/series_correction_project_updated/pull/277) ([abhimehro](https://github.com/abhimehro))
 - 🧪 \[testing improvement\] Add EmptyDataError test for \_load\_raw\_data [\#274](https://github.com/abhimehro/series_correction_project_updated/pull/274) ([abhimehro](https://github.com/abhimehro))
