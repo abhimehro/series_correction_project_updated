@@ -172,7 +172,7 @@ def load_raw_file(raw_file):
             skip_blank_lines=True,
         )
         return _rename_raw_columns(raw_df)
-    except (IOError, ValueError):
+    except (OSError, ValueError):
         print(f"[WARN] Could not load raw file {raw_file}")
         return None
     except Exception:
@@ -183,7 +183,7 @@ def load_raw_file(raw_file):
 def load_processed_file(proc_file):
     try:
         return read_excel(proc_file)
-    except (IOError, ValueError):
+    except (OSError, ValueError):
         print(f"[WARN] Could not load processed file {proc_file}")
         return None
     except Exception:
