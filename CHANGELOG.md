@@ -6,6 +6,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-22 [\#284](https://github.com/abhimehro/series_correction_project_updated/issues/284)
 - Daily QA Check - series\_correction\_project\_updated - 2026-07-21 [\#281](https://github.com/abhimehro/series_correction_project_updated/issues/281)
 - Daily QA & Agentic Review — 2026-07-21 [\#280](https://github.com/abhimehro/series_correction_project_updated/issues/280)
 - Daily QA & Agentic Review — 2026-07-20 [\#254](https://github.com/abhimehro/series_correction_project_updated/issues/254)
@@ -29,6 +30,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0 [\#286](https://github.com/abhimehro/series_correction_project_updated/pull/286) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0 [\#283](https://github.com/abhimehro/series_correction_project_updated/pull/283) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Daily QA check passed [\#282](https://github.com/abhimehro/series_correction_project_updated/pull/282) ([abhimehro](https://github.com/abhimehro))
 - 🔒 Fix unsafe path interpretation in raw dataframe loading [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278) ([abhimehro](https://github.com/abhimehro))
