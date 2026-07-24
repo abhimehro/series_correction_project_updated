@@ -2,8 +2,7 @@ import json
 
 from openpyxl import load_workbook
 
-from scripts import batch_correction
-from scripts import loaders
+from scripts import batch_correction, loaders
 from scripts.spreadsheet_safety import (
     escape_spreadsheet_formula,
     sanitize_dataframe_for_spreadsheet,

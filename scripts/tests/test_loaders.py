@@ -1,6 +1,8 @@
-import os
 import json
+import os
+
 import pytest
+
 from scripts.loaders import load_config
 
 
