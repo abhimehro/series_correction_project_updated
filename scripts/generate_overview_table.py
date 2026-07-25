@@ -2,7 +2,6 @@ import argparse
 import re
 
 import pandas as pd
-
 from scripts.spreadsheet_safety import write_csv_safely
 
 

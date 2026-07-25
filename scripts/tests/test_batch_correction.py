@@ -5,15 +5,16 @@ Unit tests for the batch_correction module.
 
 import fnmatch
 import os
-from unittest import mock
+from typing import Dict
 
+from unittest import mock
 import pandas as pd  # type: ignore
 import pytest
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
 # Import ProcessingError only if you add a test that specifically catches it
-from scripts.batch_correction import BatchConfig, batch_process
+from scripts.batch_correction import batch_process, BatchConfig
 
 
 # Extracted helper functions for test_batch_process_happy_path_all_series_with_config
@@ -523,7 +524,7 @@ def test_batch_process_load_error(
     def read_csv_fail_sensor(path, *args, **kwargs):
         if str(path).endswith("river_mile_map.csv"):
             return pd.DataFrame({"SENSOR_ID": [26], "RIVER_MILE": [54.0]})
-        raise OSError("Cannot read file")
+        raise IOError("Cannot read file")
 
     mocker.patch("pandas.read_csv", side_effect=read_csv_fail_sensor)
 
@@ -540,7 +541,7 @@ def test_batch_process_load_error(
 
 
 def test_batch_process_process_error(
-    mock_dependencies: dict[str, mock.MagicMock],
+    mock_dependencies: Dict[str, mock.MagicMock],
     mock_config_loader,
     mock_processor_mod: mock.MagicMock,
     mocker,
@@ -681,7 +682,7 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
     dry_run = True
 
     # Act
-    from scripts.batch_correction import BatchConfig, batch_process
+    from scripts.batch_correction import batch_process, BatchConfig
 
     batch_process(BatchConfig(series_selection, river_miles, years, dry_run=dry_run))
 

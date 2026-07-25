@@ -1,12 +1,12 @@
-import numpy as np
-import pandas as pd
 import pytest
+import pandas as pd
+import numpy as np
 
 from scripts.apply_refined_corrections import (
     apply_level_shift_correction,
     calculate_non_zero_average,
-    load_identified_outliers,
     save_corrected_files,
+    load_identified_outliers,
 )
 
 

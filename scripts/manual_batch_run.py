@@ -1,17 +1,9 @@
-"""
-Manual Batch Run
-
-Utility script to run the batch correction process manually outside the CLI.
-"""
-
 import os
 import sys
 
-from scripts.batch_correction import BatchConfig, batch_process
-
-if os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) not in sys.path:
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+# flake8: noqa: E402
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from scripts.batch_correction import batch_process, BatchConfig
 
 if __name__ == "__main__":
     print("[DEBUG] Running manual batch_process call...")
