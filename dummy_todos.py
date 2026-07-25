@@ -53,12 +53,33 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
         return {"success": False, "error": "Invalid credentials"}
 
 
+def _parse_json_lines(file_obj):
+    import json
+
+    for line in file_obj:
+        yield json.loads(line)
+
+
+def _parse_standard_json_fallback(file_obj):
+    import json
+
+    yield from json.load(file_obj)
+
+
+def _parse_standard_json_ijson(file_obj, ijson_module):
+    parser = ijson_module.items(file_obj, "item")
+    try:
+        for item in parser:
+            yield item
+    finally:
+        if hasattr(parser, "close"):
+            parser.close()
+
+
 # FIXME: This loop condition causes an infinite loop under certain inputs
 # BUG: Memory leak when parsing large JSON files resolved via ijson generator wrap.
 def parse_large_json(file_path: str):
     """Parses a large JSON file yielding items one by one."""
-    import json
-
     try:
         import ijson
     except ImportError:
@@ -66,21 +87,11 @@ def parse_large_json(file_path: str):
 
     f = open(file_path, "rb")
     try:
-        # Determine if it's JSON lines or a JSON array based on extension
         if str(file_path).endswith(".jsonl"):
-            for line in f:
-                yield json.loads(line)
+            yield from _parse_json_lines(f)
         elif not ijson:
-            # Fallback for standard .json files when ijson is not available
-            # Note: This will load the entire file into memory at once
-            yield from json.load(f)
+            yield from _parse_standard_json_fallback(f)
         else:
-            parser = ijson.items(f, "item")
-            try:
-                for item in parser:
-                    yield item
-            finally:
-                if hasattr(parser, "close"):
-                    parser.close()
+            yield from _parse_standard_json_ijson(f, ijson)
     finally:
         f.close()

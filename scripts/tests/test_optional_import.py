@@ -1,7 +1,5 @@
 import logging
-
 import pytest
-
 from scripts.batch_correction import _optional_import
 
 

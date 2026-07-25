@@ -1,21 +1,14 @@
-"""
-Fix Output
-
-Applies `write_excel_safely` to already processed files to ensure they are safe.
-"""
-
 import os
 import sys
 
 import pandas as pd
 
-from scripts.processor import process_data
-from scripts.spreadsheet_safety import write_excel_safely
-
-# Add project root to path before importing local modules
+# Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+sys.path.insert(0, PROJECT_ROOT)
+
+from scripts.processor import process_data  # noqa: E402
+from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
 
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
