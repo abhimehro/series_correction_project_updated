@@ -59,7 +59,7 @@ def test_generate_summary_main_no_files(tmp_path, capsys):
         generate_summary.main()
 
     captured = capsys.readouterr()
-    assert f"No processed files found in {str(output_dir)}" in captured.out
+    assert f"No processed files found in {output_dir!s}" in captured.out
     assert not summary_file.exists()
 
 

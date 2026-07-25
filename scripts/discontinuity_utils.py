@@ -4,8 +4,8 @@ Utility functions for discontinuity processing in the Series Correction Project.
 Extracted from processor.py to reduce file size and improve maintainability.
 """
 
-import warnings
 import logging
+import warnings
 from dataclasses import dataclass
 from typing import Any
 
