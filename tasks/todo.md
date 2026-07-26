@@ -1,0 +1,11 @@
+- [x] Restore `dummy_todos.py` contents
+- [x] Fix infinite loop in `_is_json_array` by adding `max_reads = 1024` limit
+- [x] Add secure authentication functions (`generate_salt_and_hash` and `authenticate`)
+- [x] Replace `TODO: Add authentication logic here` with the new logic
+- [x] Verify changes visually
+- [x] Add tests for infinite loop fix and authentication logic
+- [x] Run `black` to format files
+- [x] Run `flake8` and `ruff` to ensure linting checks pass
+- [x] Run full test suite and confirm all tests pass
+- [ ] Document changes in `handoff.md` with ELIR format
+- [ ] Submit PR

@@ -33,11 +33,11 @@ jobs:
     steps:
       # Step 1: Check out the repository code
       - name: Check out repository code
-        uses: actions/checkout@v7.0.0 # Use the latest checkout action
+        uses: actions/checkout@v7.0.1 # Use the latest checkout action
 
       # Step 2: Set up Python environment for the current matrix version
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6 # Use the latest setup-python action
+        uses: actions/setup-python@v7 # Use the latest setup-python action
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip" # Cache pip dependencies

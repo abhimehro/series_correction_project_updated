@@ -84,9 +84,10 @@ def build_raw_file_map(data_dir):
         for f in os.listdir(data_dir)
         if f.startswith("S") and "_Y" in f and f.endswith(".txt")
     ]
+    file_pattern = re.compile(r"(S\d+)_Y(\d+)\.txt")
     for raw_file_path in all_raw_files:
         file_name = os.path.basename(raw_file_path)
-        file_match = re.match(r"(S\d+)_Y(\d+)\.txt", file_name)
+        file_match = file_pattern.match(file_name)
         if file_match:
             series_id = file_match.group(1)
             year_num = int(file_match.group(2))
@@ -102,7 +103,8 @@ def load_raw_dataframes(raw_file_map):
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
             if file_path not in dataframes:
-                dataframes[file_path] = pd.read_csv(file_path, header=None, sep=r"\s+")
+                with open(file_path, "r", encoding="utf-8") as f:
+                    dataframes[file_path] = pd.read_csv(f, header=None, sep=r"\s+")
     return dataframes
 
 

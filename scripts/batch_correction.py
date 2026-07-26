@@ -17,17 +17,18 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Any, Dict, List, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple, Optional, Union
 
 import pandas as pd
 from scripts.spreadsheet_safety import write_excel_safely
 
 # Import optional dependencies from the helper module if possible
 try:
-    from batch_correction import data_loader, load_config_func, processor
+    from batch_correction import load_config_func, processor
 except ImportError:
     # We'll define these later in the file if the import fails
-    load_config_func, processor, data_loader = None, None, None
+    load_config_func, processor = None, None
 
 # --------------------------------------------------------------------------- #
 # Logging setup
@@ -45,7 +46,6 @@ log.debug("batch_correction module loaded")
 ConfigLoaderType = None
 load_config_func = None
 processor = None
-data_loader = None
 
 
 def _optional_import(path: str, fallback_msg: str):
@@ -229,17 +229,48 @@ def _determine_series_to_process(
 
 
 def _determine_year_for_index(
-    y_index: int, year_index_map: dict, years_to_process: range
+    y_index: int, reverse_year_index_map: dict, years_to_process: range
 ) -> int | None:
     """Helper function to map a Y-index back to a specific year."""
-    if year_index_map:
-        for y, idx in year_index_map.items():
-            if idx == y_index and int(y) in years_to_process:
-                return int(y)
+    if reverse_year_index_map:
+        year = reverse_year_index_map.get(y_index)
+        if year is not None and year in years_to_process:
+            return year
         return None
 
     if y_index <= len(years_to_process):
         return years_to_process[y_index - 1]
+    return None
+
+
+def _parse_and_validate_file(
+    file_name: str,
+    series_map: dict,
+    reverse_year_index_map: dict,
+    years_to_process: range,
+    year_start: int,
+    year_end: int,
+    data_dir: str,
+) -> tuple[int, int, int, str] | None:
+    """Parses a filename and returns structured info if valid."""
+    if not (file_name.startswith("S") and file_name.endswith(".txt")):
+        return None
+
+    match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
+    if not match:
+        return None
+
+    series_str = match.group(1)
+    if series_str not in series_map:
+        return None
+
+    y_index = int(match.group(2))
+    year = _determine_year_for_index(y_index, reverse_year_index_map, years_to_process)
+
+    if year is not None and year_start <= year <= year_end:
+        original_series = series_map[series_str]
+        file_path = os.path.join(data_dir, file_name)
+        return (original_series, year, y_index, file_path)
     return None
 
 
@@ -272,6 +303,9 @@ def _find_files_to_process(
     years_to_process = range(year_start, year_end + 1)
     year_index_map = config_data.get("year_index_map", {}) if config_data else {}
 
+    # Pre-compute reverse map for O(1) lookups
+    reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
+
     # ⚡ Bolt: Optimize file discovery by using a single os.listdir call
     # instead of globbing in a loop for each series, which requires repeated directory scans.
     series_map = {str(s): s for s in series_list}
@@ -279,26 +313,18 @@ def _find_files_to_process(
     files_by_series = {s: [] for s in series_list}
 
     for file_name in all_files:
-        if not (file_name.startswith("S") and file_name.endswith(".txt")):
-            continue
-
-        match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
-        if not match:
-            continue
-
-        series_str = match.group(1)
-        if series_str not in series_map:
-            continue
-
-        y_index = int(match.group(2))
-        year = _determine_year_for_index(y_index, year_index_map, years_to_process)
-
-        if year is not None and year_start <= year <= year_end:
-            original_series = series_map[series_str]
-            file_path = os.path.join(data_dir, file_name)
-            files_by_series[original_series].append(
-                (original_series, year, y_index, file_path)
-            )
+        result = _parse_and_validate_file(
+            file_name,
+            series_map,
+            reverse_year_index_map,
+            years_to_process,
+            year_start,
+            year_end,
+            data_dir,
+        )
+        if result:
+            original_series = result[0]
+            files_by_series[original_series].append(result)
 
     # Flatten and preserve the original ordering grouping by series
     files_to_process = []
@@ -404,28 +430,39 @@ def _ensure_output_directory(output_dir, dry_run):
             raise ProcessingError("Unable to create output directory") from None
 
 
-def batch_process(
-    series_selection,
-    river_miles,
-    years,
-    dry_run=False,
-    config_path="scripts/config.json",
-    output_dir=None,
-):
+@dataclass
+class BatchConfig:
+    series_selection: Union[int, List[int], str]
+    river_miles: Optional[List[float]]
+    years: Tuple[int, int]
+    dry_run: bool = False
+    config_path: str = "scripts/config.json"
+    output_dir: Optional[str] = None
+
+
+def batch_process(config: BatchConfig):
     """
-    Process multiple sensor data files based on series, river miles, and years.
+    Process multiple sensor data files based on configuration.
 
     Args:
-        series_selection: Series IDs to process (int, list, or "all")
-        river_miles: Optional list of river miles to filter series by
-        years: Tuple of (start_year, end_year) to process
-        dry_run: If True, don't write output files
-        config_path: Path to configuration file
-        output_dir: Directory for output files (defaults to data directory)
+        config: BatchConfig object containing:
+            - series_selection: Series IDs to process (int, list, or "all")
+            - river_miles: Optional list of river miles to filter series by
+            - years: Tuple of (start_year, end_year) to process
+            - dry_run: If True, don't write output files
+            - config_path: Path to configuration file
+            - output_dir: Directory for output files (defaults to data directory)
 
     Returns:
         DataFrame with summary of processed files
     """
+    series_selection = config.series_selection
+    river_miles = config.river_miles
+    years = config.years
+    dry_run = config.dry_run
+    config_path = config.config_path
+    output_dir = config.output_dir
+
     log.info(
         f"--- Batch processing START --- "
         f"series={series_selection} river_miles={river_miles} years={years} dry_run={dry_run}"
