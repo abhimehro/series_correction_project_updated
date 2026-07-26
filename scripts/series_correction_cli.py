@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 
-from .batch_correction import batch_process, BatchConfig
+from .batch_correction import BatchConfig, batch_process
 
 
 def main():
@@ -56,7 +56,7 @@ def main():
             dry_run=args.dry_run,
         )
         batch_process(config)
-    except (IOError, ValueError) as e:
+    except (OSError, ValueError) as e:
         logging.error("Known error in processing: %s", e)
         sys.exit(1)
     except Exception as e:
