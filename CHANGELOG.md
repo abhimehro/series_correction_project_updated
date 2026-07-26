@@ -49,6 +49,7 @@
 - 🧹 Fix unused import in batch\_correction.py [\#271](https://github.com/abhimehro/series_correction_project_updated/pull/271) ([abhimehro](https://github.com/abhimehro))
 - 🔒 Fix unsafe absolute path usage in run\_analysis.py [\#270](https://github.com/abhimehro/series_correction_project_updated/pull/270) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Optimize regex compilation in raw file mapping [\#269](https://github.com/abhimehro/series_correction_project_updated/pull/269) ([abhimehro](https://github.com/abhimehro))
+- 🧹 code health: fix infinite loop in json parsing [\#268](https://github.com/abhimehro/series_correction_project_updated/pull/268) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add missing tests for generate\_summary.py main function [\#265](https://github.com/abhimehro/series_correction_project_updated/pull/265) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Optimize \_find\_year\_file\_match with O\(1\) cache lookup [\#264](https://github.com/abhimehro/series_correction_project_updated/pull/264) ([abhimehro](https://github.com/abhimehro))
 - 🧪 \[Testing Improvement\] Add tests for calculate\_non\_zero\_average [\#263](https://github.com/abhimehro/series_correction_project_updated/pull/263) ([abhimehro](https://github.com/abhimehro))
