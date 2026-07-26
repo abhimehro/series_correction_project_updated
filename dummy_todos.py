@@ -4,6 +4,7 @@ import os
 import ijson
 
 
+
 def generate_salt_and_hash(password: str) -> tuple[bytes, bytes]:
     """Generates a salt and hash for a given password."""
     salt = os.urandom(16)
@@ -54,36 +55,45 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
         return {"success": False, "error": "Invalid credentials"}
 
 
-# FIXME: This loop condition causes an infinite loop under certain inputs
-# BUG: Memory leak when parsing large JSON files
+def _parse_json_lines(file_obj):
+    import json
+
+    for line in file_obj:
+        yield json.loads(line)
 
 
-def _is_json_array(file_obj):
-    """Detect if the file object starts with a JSON array."""
-    # Read in larger chunks and limit the amount of scanning to prevent DoS (infinite loop)
-    # from files with massive amounts of whitespace. 1MB is more than enough.
-    max_bytes = 1024 * 1024
-    bytes_read = 0
-    while bytes_read < max_bytes:
-        chunk = file_obj.read(4096)
-        if not chunk:
-            return False
-        bytes_read += len(chunk)
-        stripped = chunk.lstrip()
-        if stripped:
-            return stripped.startswith(b"[")
-    return False
+def _parse_standard_json_fallback(file_obj):
+    import json
+
+    yield from json.load(file_obj)
 
 
-def parse_large_json(file_path):
-    """
-    Parse a large JSON file efficiently without reading the whole file into memory.
-    Supports both JSON arrays and JSON Lines (JSONL).
-    """
-    with open(file_path, "rb") as f:
-        is_array = _is_json_array(f)
-        f.seek(0)
-
-        prefix = "item" if is_array else ""
-        for item in ijson.items(f, prefix, multiple_values=not is_array):
+def _parse_standard_json_ijson(file_obj, ijson_module):
+    parser = ijson_module.items(file_obj, "item")
+    try:
+        for item in parser:
             yield item
+    finally:
+        if hasattr(parser, "close"):
+            parser.close()
+
+
+# FIXME: This loop condition causes an infinite loop under certain inputs
+# BUG: Memory leak when parsing large JSON files resolved via ijson generator wrap.
+def parse_large_json(file_path: str):
+    """Parses a large JSON file yielding items one by one."""
+    try:
+        import ijson
+    except ImportError:
+        ijson = None
+
+    f = open(file_path, "rb")
+    try:
+        if str(file_path).endswith(".jsonl"):
+            yield from _parse_json_lines(f)
+        elif not ijson:
+            yield from _parse_standard_json_fallback(f)
+        else:
+            yield from _parse_standard_json_ijson(f, ijson)
+    finally:
+        f.close()

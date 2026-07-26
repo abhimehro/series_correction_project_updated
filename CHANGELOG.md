@@ -6,6 +6,12 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-25 [\#291](https://github.com/abhimehro/series_correction_project_updated/issues/291)
+- Daily QA & Agentic Review — 2026-07-24 [\#289](https://github.com/abhimehro/series_correction_project_updated/issues/289)
+- Daily QA & Agentic Review — 2026-07-23 [\#287](https://github.com/abhimehro/series_correction_project_updated/issues/287)
+- Daily QA & Agentic Review — 2026-07-22 [\#284](https://github.com/abhimehro/series_correction_project_updated/issues/284)
+- Daily QA Check - series\_correction\_project\_updated - 2026-07-21 [\#281](https://github.com/abhimehro/series_correction_project_updated/issues/281)
+- Daily QA & Agentic Review — 2026-07-21 [\#280](https://github.com/abhimehro/series_correction_project_updated/issues/280)
 - Daily QA & Agentic Review — 2026-07-20 [\#254](https://github.com/abhimehro/series_correction_project_updated/issues/254)
 - Daily QA & Agentic Review — 2026-07-19 [\#250](https://github.com/abhimehro/series_correction_project_updated/issues/250)
 - Daily QA & Agentic Review — 2026-07-18 [\#248](https://github.com/abhimehro/series_correction_project_updated/issues/248)
@@ -27,6 +33,12 @@
 
 **Merged pull requests:**
 
+- Daily QA Review Summary for `series_correction_project_updated` [\#290](https://github.com/abhimehro/series_correction_project_updated/pull/290) ([abhimehro](https://github.com/abhimehro))
+- Jules Daily QA Minor Fixes [\#288](https://github.com/abhimehro/series_correction_project_updated/pull/288) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0 [\#286](https://github.com/abhimehro/series_correction_project_updated/pull/286) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🔒 fix: resolve memory leak in dummy\_todos.py JSON parsing [\#285](https://github.com/abhimehro/series_correction_project_updated/pull/285) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0 [\#283](https://github.com/abhimehro/series_correction_project_updated/pull/283) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Daily QA check passed [\#282](https://github.com/abhimehro/series_correction_project_updated/pull/282) ([abhimehro](https://github.com/abhimehro))
 - 🔒 Fix unsafe path interpretation in raw dataframe loading [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[code health improvement\] Refactor batch\_process to use BatchConfig [\#277](https://github.com/abhimehro/series_correction_project_updated/pull/277) ([abhimehro](https://github.com/abhimehro))
 - 🧪 \[testing improvement\] Add EmptyDataError test for \_load\_raw\_data [\#274](https://github.com/abhimehro/series_correction_project_updated/pull/274) ([abhimehro](https://github.com/abhimehro))
