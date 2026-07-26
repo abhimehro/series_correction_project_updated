@@ -33,11 +33,13 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     if not user_record:
         return {"success": False, "error": "Invalid credentials"}
 
-    salt = user_record.get("salt")
-    stored_hash = user_record.get("hash")
 
-    if not salt or not stored_hash:
-        return {"success": False, "error": "Invalid user record configuration"}
+def _is_json_array(file_obj):
+    """Detect if the file object starts with a JSON array."""
+    while char := file_obj.read(1):
+        if char.strip():
+            return char == b"["
+    return False
 
     # Verify the password
     computed_hash = hashlib.pbkdf2_hmac(
