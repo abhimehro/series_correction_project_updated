@@ -1,4 +1,4 @@
-import secrets
+import logging
 import hashlib
 import os
 import ijson
@@ -48,11 +48,8 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     import hmac
 
     if hmac.compare_digest(computed_hash, stored_hash):
-        # Generate a secure session token
         session_token = secrets.token_hex(32)
         return {"success": True, "token": session_token}
-    else:
-        return {"success": False, "error": "Invalid credentials"}
 
 
 def _parse_json_lines(file_obj):
