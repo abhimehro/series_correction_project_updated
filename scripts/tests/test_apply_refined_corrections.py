@@ -154,3 +154,28 @@ def test_load_identified_outliers_missing_columns(tmp_path, capsys, test_case):
 
     captured = capsys.readouterr()
     assert f"{expected_error_fragment} {csv_file}." in captured.out
+
+
+def test_calculate_non_zero_average_booleans():
+    """Test with boolean values (True coerced to 1, False to 0)."""
+    series = pd.Series([True, False, True])
+    assert calculate_non_zero_average(series) == 1.0
+
+
+def test_calculate_non_zero_average_inf():
+    # mean of [inf, -inf, 1.0] gives NaN and triggers RuntimeWarning,
+    # let's just test with a single inf and 1.0 to get inf.
+    series = pd.Series([np.inf, 1.0])
+    assert np.isinf(calculate_non_zero_average(series))
+
+
+def test_calculate_non_zero_average_whitespace():
+    """Test with whitespace strings which become NaN."""
+    series = pd.Series(["", " ", "1.0"])
+    assert calculate_non_zero_average(series) == 1.0
+
+
+def test_calculate_non_zero_average_complex_objects():
+    """Test with uncoercible complex objects."""
+    series = pd.Series([[1], {"a": 1}, 2.0])
+    assert calculate_non_zero_average(series) == 2.0

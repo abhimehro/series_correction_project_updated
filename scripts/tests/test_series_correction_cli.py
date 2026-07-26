@@ -11,11 +11,11 @@ def test_main_happy_path(monkeypatch):
     # Stub batch_process to capture its inputs
     called = {}
 
-    def fake_batch(series, river_miles, years, dry_run):
-        called["series"] = series
-        called["river_miles"] = river_miles
-        called["years"] = years
-        called["dry_run"] = dry_run
+    def fake_batch(config):
+        called["series"] = config.series_selection
+        called["river_miles"] = config.river_miles
+        called["years"] = config.years
+        called["dry_run"] = config.dry_run
 
     monkeypatch.setattr(cli, "batch_process", fake_batch)
     # Set CLI args
@@ -46,7 +46,9 @@ def test_main_with_dry_run_flag(monkeypatch):
     # Capture dry_run flag
     called = {}
     monkeypatch.setattr(
-        cli, "batch_process", lambda s, r, y, dr: called.setdefault("dry_run", dr)
+        cli,
+        "batch_process",
+        lambda config: called.setdefault("dry_run", config.dry_run),
     )
     test_args = [
         "prog",

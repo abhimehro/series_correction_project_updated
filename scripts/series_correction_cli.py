@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 
-from .batch_correction import batch_process
+from .batch_correction import batch_process, BatchConfig
 
 
 def main():
@@ -49,7 +49,13 @@ def main():
     # Ensure year range is in ascending order
     years = sorted(args.years)
     try:
-        batch_process(args.series, args.river_miles, years, args.dry_run)
+        config = BatchConfig(
+            series_selection=args.series,
+            river_miles=args.river_miles,
+            years=years,
+            dry_run=args.dry_run,
+        )
+        batch_process(config)
     except (IOError, ValueError) as e:
         logging.error("Known error in processing: %s", e)
         sys.exit(1)

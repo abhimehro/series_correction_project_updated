@@ -9,9 +9,7 @@ def load_config(config_path="scripts/config.json"):
     try:
         if os.path.commonpath([base_dir, resolved]) != base_dir:
             raise ValueError("Path traversal detected")
-    except ValueError as exc:
-        if "Path traversal detected" in str(exc):
-            raise
+    except ValueError:
         raise ValueError("Path traversal detected") from None
 
     with open(resolved, "r", encoding="utf-8") as f:
