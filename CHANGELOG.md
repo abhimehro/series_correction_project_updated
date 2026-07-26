@@ -41,6 +41,7 @@
 - Daily QA check passed [\#282](https://github.com/abhimehro/series_correction_project_updated/pull/282) ([abhimehro](https://github.com/abhimehro))
 - 🔒 Fix unsafe path interpretation in raw dataframe loading [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[code health improvement\] Refactor batch\_process to use BatchConfig [\#277](https://github.com/abhimehro/series_correction_project_updated/pull/277) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix DoS vulnerability \(infinite loop\) when parsing massive whitespace [\#276](https://github.com/abhimehro/series_correction_project_updated/pull/276) ([abhimehro](https://github.com/abhimehro))
 - 🧪 \[testing improvement\] Add EmptyDataError test for \_load\_raw\_data [\#274](https://github.com/abhimehro/series_correction_project_updated/pull/274) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add missing tests for \_optional\_import fallback functionality [\#273](https://github.com/abhimehro/series_correction_project_updated/pull/273) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: \[performance improvement\] O\(1\) file index mapping lookup [\#272](https://github.com/abhimehro/series_correction_project_updated/pull/272) ([abhimehro](https://github.com/abhimehro))
