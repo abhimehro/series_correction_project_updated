@@ -45,10 +45,22 @@ SINK_PATTERNS = {
 
 def _is_excluded(path: Path) -> bool:
     parts = set(path.parts)
-    for exclude in EXCLUDE_DIRS:
-        if exclude in parts:
+    return any(exclude in parts for exclude in EXCLUDE_DIRS) or path.name.endswith(
+        "_project_code.txt"
+    )
+
+
+def _is_cell_value_target(target: ast.expr) -> bool:
+    """Return True if the assignment target writes to a worksheet/cell value."""
+    if isinstance(target, ast.Subscript):
+        return True
+    if isinstance(target, ast.Attribute):
+        if target.attr != "value":
+            return False
+        if isinstance(target.value, ast.Call):
             return True
-    return path.name.endswith("_project_code.txt")
+        return True
+    return False
 
 
 def _has_cell_value_write(file_path: Path) -> bool:
@@ -58,16 +70,8 @@ def _has_cell_value_write(file_path: Path) -> bool:
         if not isinstance(node, ast.Assign):
             continue
         for target in node.targets:
-            if isinstance(target, ast.Subscript):
-                # ws["A1"] = ...
+            if _is_cell_value_target(target):
                 return True
-            if isinstance(target, ast.Attribute):
-                # ws.cell(...).value = ... or cell.value = ...
-                if isinstance(target.value, ast.Call):
-                    if target.attr == "value":
-                        return True
-                if target.attr == "value":
-                    return True
     return False
 
 
@@ -78,35 +82,52 @@ def _find_python_files():
         yield path
 
 
+def _is_allowed_openpyxl(file_path: Path) -> bool:
+    return file_path.name in ALLOWED_OPENPYXL_FILES
+
+
+def _check_openpyxl(file_path: Path, rel_str: str) -> list[str]:
+    """Return violations for openpyxl usage, or an empty list if allowed."""
+    if not _is_allowed_openpyxl(file_path):
+        return [f"{rel_str}: unauthorized openpyxl usage"]
+    if file_path.name == "generate_summary.py" and _has_cell_value_write(file_path):
+        return [f"{rel_str}: openpyxl cell value write detected"]
+    return []
+
+
+def _format_violation(rel_str: str, sink_name: str) -> str:
+    if sink_name in ("direct_to_csv", "direct_to_excel"):
+        return f"{rel_str}: unauthorized direct {sink_name} call"
+    if sink_name == "manual_delimiter_write":
+        return f"{rel_str}: possible manual delimiter-based write"
+    return f"{rel_str}: unauthorized {sink_name} usage"
+
+
+def _scan_file(file_path: Path) -> list[str]:
+    """Return all sink violations found in a single Python file."""
+    text = file_path.read_text(encoding="utf-8")
+    rel = file_path.relative_to(REPO_ROOT)
+    rel_str = str(rel)
+
+    # The safety module is the sole authorized gateway.
+    if rel_str == "scripts/spreadsheet_safety.py":
+        return []
+
+    violations = []
+    for sink_name, pattern in SINK_PATTERNS.items():
+        if not pattern.search(text):
+            continue
+        if sink_name == "openpyxl":
+            violations.extend(_check_openpyxl(file_path, rel_str))
+            continue
+        violations.append(_format_violation(rel_str, sink_name))
+    return violations
+
+
 def test_no_unauthorized_spreadsheet_sinks():
     violations = []
-
     for file_path in _find_python_files():
-        text = file_path.read_text(encoding="utf-8")
-        rel = file_path.relative_to(REPO_ROOT)
-        rel_str = str(rel)
-
-        # The safety module is the sole authorized gateway.
-        if rel_str == "scripts/spreadsheet_safety.py":
-            continue
-
-        for sink_name, pattern in SINK_PATTERNS.items():
-            if not pattern.search(text):
-                continue
-
-            if sink_name == "openpyxl":
-                if file_path.name in ALLOWED_OPENPYXL_FILES:
-                    if file_path.name == "generate_summary.py" and _has_cell_value_write(file_path):
-                        violations.append(f"{rel_str}: openpyxl cell value write detected")
-                    continue
-
-            if sink_name == "direct_to_csv" or sink_name == "direct_to_excel":
-                msg = f"{rel_str}: unauthorized direct {sink_name} call"
-            elif sink_name == "manual_delimiter_write":
-                msg = f"{rel_str}: possible manual delimiter-based write"
-            else:
-                msg = f"{rel_str}: unauthorized {sink_name} usage"
-            violations.append(msg)
+        violations.extend(_scan_file(file_path))
 
     assert not violations, "Unauthorized spreadsheet/CSV sinks found:\n" + "\n".join(
         violations

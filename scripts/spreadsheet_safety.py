@@ -59,31 +59,99 @@ def _sanitize_label(value: Any, context: str = "") -> Any:
     return escape_spreadsheet_formula(value)
 
 
-def _find_null_byte_in_index(index: pd.Index) -> Tuple[str, Any] | None:
-    """Return (location, offending_value) for the first null byte in an Index."""
-    if isinstance(index, pd.MultiIndex):
-        for level_index, level in enumerate(index.levels):
-            bad = _find_null_byte_in_index(level)
-            if bad is not None:
-                location, value = bad
-                return (f"MultiIndex level {level_index} {location}", value)
-        for name_index, name in enumerate(index.names):
-            if _label_has_null_byte(name):
-                return (f"MultiIndex name {name_index}", name)
-        return None
-
-    if isinstance(index, pd.CategoricalIndex):
-        for label in index.categories:
-            if _label_has_null_byte(label):
-                return ("CategoricalIndex category", label)
-    elif _is_sanitizable_dtype(index.dtype):
-        for label in index:
-            if _label_has_null_byte(label):
-                return ("index label", label)
-
+def _find_null_in_index_name(index: pd.Index) -> Tuple[str, Any] | None:
+    """Return the first null byte found in an Index name."""
     if _label_has_null_byte(index.name):
         return ("index name", index.name)
     return None
+
+
+def _find_null_in_plain_index_labels(index: pd.Index) -> Tuple[str, Any] | None:
+    """Return the first null byte in a regular (non-categorical) Index."""
+    for label in index:
+        if _label_has_null_byte(label):
+            return ("index label", label)
+    return None
+
+
+def _find_null_in_categorical_index(index: pd.CategoricalIndex) -> Tuple[str, Any] | None:
+    """Return the first null byte in a CategoricalIndex category."""
+    for label in index.categories:
+        if _label_has_null_byte(label):
+            return ("CategoricalIndex category", label)
+    return None
+
+
+def _find_null_in_multiindex(index: pd.MultiIndex) -> Tuple[str, Any] | None:
+    """Return the first null byte in a MultiIndex (levels or names)."""
+    for level_index, level in enumerate(index.levels):
+        bad = _find_null_byte_in_index(level)
+        if bad is not None:
+            location, value = bad
+            return (f"MultiIndex level {level_index} {location}", value)
+    for name_index, name in enumerate(index.names):
+        if _label_has_null_byte(name):
+            return (f"MultiIndex name {name_index}", name)
+    return None
+
+
+def _find_null_byte_in_index(index: pd.Index) -> Tuple[str, Any] | None:
+    """Return (location, offending_value) for the first null byte in an Index."""
+    if isinstance(index, pd.MultiIndex):
+        return _find_null_in_multiindex(index)
+
+    if isinstance(index, pd.CategoricalIndex):
+        bad = _find_null_in_categorical_index(index)
+        if bad is not None:
+            return bad
+    elif _is_sanitizable_dtype(index.dtype):
+        bad = _find_null_in_plain_index_labels(index)
+        if bad is not None:
+            return bad
+
+    return _find_null_in_index_name(index)
+
+
+def _sanitize_index_name(index: pd.Index, new_values: pd.Index) -> pd.Index:
+    """Escape the name of an Index if necessary."""
+    if index.name is None:
+        return new_values
+    new_name = _sanitize_label(index.name, "index name")
+    if new_name != new_values.name:
+        return new_values.set_names(new_name)
+    return new_values
+
+
+def _sanitize_multiindex(index: pd.MultiIndex) -> pd.Index:
+    """Escape formula initiators in a MultiIndex."""
+    new_levels = [_sanitize_index(level) for level in index.levels]
+    new_index = index.set_levels(new_levels)
+    new_names = tuple(
+        _sanitize_label(name, "MultiIndex name") if name is not None else None
+        for name in new_index.names
+    )
+    return new_index.set_names(new_names)
+
+
+def _escape_categories(index: pd.CategoricalIndex) -> pd.Index:
+    """Escape CategoricalIndex categories or fall back to object values."""
+    new_categories = [
+        _sanitize_label(cat, "CategoricalIndex category")
+        for cat in index.categories
+    ]
+    if len(set(new_categories)) == len(new_categories):
+        return index.rename_categories(new_categories)
+    return index.astype(object).map(escape_spreadsheet_formula)
+
+
+def _sanitize_categorical_index(index: pd.CategoricalIndex) -> pd.Index:
+    """Escape a CategoricalIndex labels."""
+    return _sanitize_index_name(index, _escape_categories(index))
+
+
+def _sanitize_plain_index(index: pd.Index) -> pd.Index:
+    """Escape labels in a regular Index."""
+    return _sanitize_index_name(index, index.map(escape_spreadsheet_formula))
 
 
 def _sanitize_index(index: pd.Index) -> pd.Index:
@@ -94,55 +162,57 @@ def _sanitize_index(index: pd.Index) -> pd.Index:
         raise ValueError(f"Null byte in {location}: {value!r}")
 
     if isinstance(index, pd.MultiIndex):
-        new_levels = [_sanitize_index(level) for level in index.levels]
-        new_index = index.set_levels(new_levels)
-        new_names = tuple(
-            _sanitize_label(name, "MultiIndex name") if name is not None else None
-            for name in new_index.names
-        )
-        return new_index.set_names(new_names)
-
+        return _sanitize_multiindex(index)
     if isinstance(index, pd.CategoricalIndex):
-        new_categories = [
-            _sanitize_label(cat, "CategoricalIndex category")
-            for cat in index.categories
-        ]
-        if len(set(new_categories)) == len(new_categories):
-            new_values = index.rename_categories(new_categories)
-        else:
-            new_values = index.astype(object).map(escape_spreadsheet_formula)
-    elif _is_sanitizable_dtype(index.dtype):
-        new_values = index.map(escape_spreadsheet_formula)
-    else:
-        new_values = index
+        return _sanitize_categorical_index(index)
+    if _is_sanitizable_dtype(index.dtype):
+        return _sanitize_plain_index(index)
+    return _sanitize_index_name(index, index)
 
-    if index.name is not None:
-        new_name = _sanitize_label(index.name, "index name")
-        if new_name != new_values.name:
-            return new_values.set_names(new_name)
-    return new_values
+
+def _find_null_in_categories(categories: Any) -> Any:
+    """Return the first category containing a null byte."""
+    for cat in categories:
+        if _label_has_null_byte(cat):
+            return cat
+    return None
+
+
+def _find_null_in_string_series(series: pd.Series) -> Any:
+    """Return the first null byte in a StringDtype Series."""
+    mask = series.str.contains("\x00", regex=False, na=False)
+    if mask.any():
+        return series[mask].iloc[0]
+    return None
+
+
+def _find_null_in_object_series(series: pd.Series) -> Any:
+    """Return the first null byte in an object-dtype Series."""
+    mask = series.apply(lambda x: _label_has_null_byte(x))
+    if mask.any():
+        return series[mask].iloc[0]
+    return None
 
 
 def _find_null_byte_in_series(series: pd.Series) -> Any:
     """Return the first offending value containing a null byte, or None."""
     if isinstance(series.dtype, pd.CategoricalDtype):
-        for cat in series.cat.categories:
-            if _label_has_null_byte(cat):
-                return cat
-        return None
-
+        return _find_null_in_categories(series.cat.categories)
     if isinstance(series.dtype, pd.StringDtype):
-        mask = series.str.contains("\x00", regex=False, na=False)
-        if mask.any():
-            return series[mask].iloc[0]
-        return None
-
-    # object dtype (or strings stored as object)
+        return _find_null_in_string_series(series)
     if series.dtype == object or pd.api.types.is_object_dtype(series.dtype):
-        mask = series.apply(lambda x: _label_has_null_byte(x))
-        if mask.any():
-            return series[mask].iloc[0]
+        return _find_null_in_object_series(series)
     return None
+
+
+def _sanitize_categorical_series(series: pd.Series) -> pd.Series:
+    """Escape a categorical Series, falling back to object on category collisions."""
+    old_categories = list(series.cat.categories)
+    new_categories = [escape_spreadsheet_formula(cat) for cat in old_categories]
+    if len(set(new_categories)) == len(new_categories):
+        return series.cat.rename_categories(new_categories)
+    # Collision fallback: keep values in object form, preserving NaN/order.
+    return series.astype(object).map(escape_spreadsheet_formula)
 
 
 def _sanitize_object_series(series: pd.Series, column: Any) -> pd.Series:
@@ -152,13 +222,7 @@ def _sanitize_object_series(series: pd.Series, column: Any) -> pd.Series:
         raise ValueError(f"Null byte in column {column!r}: {bad!r}")
 
     if isinstance(series.dtype, pd.CategoricalDtype):
-        old_categories = list(series.cat.categories)
-        new_categories = [escape_spreadsheet_formula(cat) for cat in old_categories]
-        if len(set(new_categories)) == len(new_categories):
-            return series.cat.rename_categories(new_categories)
-        # Collision fallback: keep values in object form, preserving NaN/order.
-        return series.astype(object).map(escape_spreadsheet_formula)
-
+        return _sanitize_categorical_series(series)
     return series.map(escape_spreadsheet_formula)
 
 
@@ -189,41 +253,58 @@ def sanitize_dataframe_for_spreadsheet(dataframe: pd.DataFrame) -> pd.DataFrame:
     return sanitized
 
 
-def _validate_sheet_name(sheet_name: Any) -> None:
-    """Ensure a sheet name is legal for the openpyxl/Excel target engine."""
+def _validate_sheet_name_type(sheet_name: Any) -> str:
     if sheet_name is None:
-        return
+        return ""
     if not isinstance(sheet_name, str):
-        raise ValueError(f"sheet_name must be a string, got {type(sheet_name).__name__}")
+        raise ValueError(
+            f"sheet_name must be a string, got {type(sheet_name).__name__}"
+        )
+    return sheet_name
+
+
+def _validate_sheet_name_length(sheet_name: str) -> None:
     if not sheet_name:
         raise ValueError("sheet_name cannot be empty")
     if len(sheet_name) > 31:
         raise ValueError(f"sheet_name exceeds 31 characters: {sheet_name!r}")
+
+
+def _validate_sheet_name_characters(sheet_name: str) -> None:
     if _INVALID_SHEET_NAME_RE.search(sheet_name):
-        raise ValueError(f"sheet_name contains invalid characters: {sheet_name!r}")
+        raise ValueError(
+            f"sheet_name contains invalid characters: {sheet_name!r}"
+        )
+
+
+def _validate_sheet_name(sheet_name: Any) -> None:
+    """Ensure a sheet name is legal for the openpyxl/Excel target engine."""
+    name = _validate_sheet_name_type(sheet_name)
+    if name == "":
+        return
+    _validate_sheet_name_length(name)
+    _validate_sheet_name_characters(name)
+
+
+def _sanitize_sequence_arg(value: Any, context: str) -> list | tuple | Any:
+    """Sanitize a header/index_label that may be a sequence or scalar."""
+    if isinstance(value, (list, tuple)):
+        sanitized = [_sanitize_label(item, context) for item in value]
+        return type(value)(sanitized)
+    return _sanitize_label(value, context)
 
 
 def _sanitize_writer_kwargs(kwargs: dict, *, excel: bool = False) -> dict:
     """Sanitize user-supplied header/index_label/sheet_name arguments."""
     sanitized = dict(kwargs)
 
-    header = sanitized.get("header")
-    if header is not None and not isinstance(header, bool):
-        if isinstance(header, (list, tuple)):
-            sanitized["header"] = [
-                _sanitize_label(item, "header") for item in header
-            ]
-        else:
-            sanitized["header"] = _sanitize_label(header, "header")
+    if "header" in sanitized and not isinstance(sanitized["header"], bool):
+        sanitized["header"] = _sanitize_sequence_arg(sanitized["header"], "header")
 
-    index_label = sanitized.get("index_label")
-    if index_label is not None and not isinstance(index_label, bool):
-        if isinstance(index_label, (list, tuple)):
-            sanitized["index_label"] = tuple(
-                _sanitize_label(item, "index_label") for item in index_label
-            )
-        else:
-            sanitized["index_label"] = _sanitize_label(index_label, "index_label")
+    if "index_label" in sanitized and not isinstance(sanitized["index_label"], bool):
+        sanitized["index_label"] = _sanitize_sequence_arg(
+            sanitized["index_label"], "index_label"
+        )
 
     if excel:
         _validate_sheet_name(sanitized.get("sheet_name"))
