@@ -52,27 +52,20 @@ def _is_excluded(path: Path) -> bool:
 
 def _is_cell_value_target(target: ast.expr) -> bool:
     """Return True if the assignment target writes to a worksheet/cell value."""
-    if isinstance(target, ast.Subscript):
-        return True
-    if isinstance(target, ast.Attribute):
-        if target.attr != "value":
-            return False
-        if isinstance(target.value, ast.Call):
-            return True
-        return True
-    return False
+    return isinstance(target, ast.Subscript) or (
+        isinstance(target, ast.Attribute) and target.attr == "value"
+    )
 
 
 def _has_cell_value_write(file_path: Path) -> bool:
     """Return True if the file assigns to a worksheet/cell value."""
     tree = ast.parse(file_path.read_text(encoding="utf-8"))
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            if _is_cell_value_target(target):
-                return True
-    return False
+    return any(
+        _is_cell_value_target(target)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+    )
 
 
 def _find_python_files():

@@ -51,11 +51,10 @@ def escape_spreadsheet_formula(value: Any) -> Any:
 def _sanitize_label(value: Any, context: str = "") -> Any:
     """Escape a single label and reject embedded null bytes."""
     if _label_has_null_byte(value):
-        msg = "Null byte found in spreadsheet export"
-        if context:
-            msg += f" ({context})"
-        msg += f": {value!r}"
-        raise ValueError(msg)
+        context_part = f" ({context})" if context else ""
+        raise ValueError(
+            f"Null byte found in spreadsheet export{context_part}: {value!r}"
+        )
     return escape_spreadsheet_formula(value)
 
 
@@ -68,47 +67,70 @@ def _find_null_in_index_name(index: pd.Index) -> Tuple[str, Any] | None:
 
 def _find_null_in_plain_index_labels(index: pd.Index) -> Tuple[str, Any] | None:
     """Return the first null byte in a regular (non-categorical) Index."""
-    for label in index:
-        if _label_has_null_byte(label):
-            return ("index label", label)
+    bad = next(
+        (label for label in index if _label_has_null_byte(label)),
+        None,
+    )
+    if bad is not None:
+        return ("index label", bad)
     return None
 
 
 def _find_null_in_categorical_index(index: pd.CategoricalIndex) -> Tuple[str, Any] | None:
     """Return the first null byte in a CategoricalIndex category."""
-    for label in index.categories:
-        if _label_has_null_byte(label):
-            return ("CategoricalIndex category", label)
+    bad = next(
+        (label for label in index.categories if _label_has_null_byte(label)),
+        None,
+    )
+    if bad is not None:
+        return ("CategoricalIndex category", bad)
     return None
 
 
-def _find_null_in_multiindex(index: pd.MultiIndex) -> Tuple[str, Any] | None:
-    """Return the first null byte in a MultiIndex (levels or names)."""
+def _find_null_in_multiindex_level(
+    level_index: int, level: pd.Index
+) -> Tuple[str, Any] | None:
+    """Return the first null byte in a single MultiIndex level."""
+    bad = _find_null_byte_in_index(level)
+    if bad is not None:
+        location, value = bad
+        return (f"MultiIndex level {level_index} {location}", value)
+    return None
+
+
+def _find_null_in_multiindex_levels(index: pd.MultiIndex) -> Tuple[str, Any] | None:
+    """Return the first null byte across all MultiIndex levels."""
     for level_index, level in enumerate(index.levels):
-        bad = _find_null_byte_in_index(level)
+        bad = _find_null_in_multiindex_level(level_index, level)
         if bad is not None:
-            location, value = bad
-            return (f"MultiIndex level {level_index} {location}", value)
+            return bad
+    return None
+
+
+def _find_null_in_multiindex_names(index: pd.MultiIndex) -> Tuple[str, Any] | None:
+    """Return the first null byte in MultiIndex level names."""
     for name_index, name in enumerate(index.names):
         if _label_has_null_byte(name):
             return (f"MultiIndex name {name_index}", name)
     return None
 
 
+def _find_null_in_multiindex(index: pd.MultiIndex) -> Tuple[str, Any] | None:
+    """Return the first null byte in a MultiIndex (levels or names)."""
+    level_bad = _find_null_in_multiindex_levels(index)
+    if level_bad is not None:
+        return level_bad
+    return _find_null_in_multiindex_names(index)
+
+
 def _find_null_byte_in_index(index: pd.Index) -> Tuple[str, Any] | None:
     """Return (location, offending_value) for the first null byte in an Index."""
     if isinstance(index, pd.MultiIndex):
         return _find_null_in_multiindex(index)
-
     if isinstance(index, pd.CategoricalIndex):
-        bad = _find_null_in_categorical_index(index)
-        if bad is not None:
-            return bad
-    elif _is_sanitizable_dtype(index.dtype):
-        bad = _find_null_in_plain_index_labels(index)
-        if bad is not None:
-            return bad
-
+        return _find_null_in_categorical_index(index) or _find_null_in_index_name(index)
+    if _is_sanitizable_dtype(index.dtype):
+        return _find_null_in_plain_index_labels(index) or _find_null_in_index_name(index)
     return _find_null_in_index_name(index)
 
 
