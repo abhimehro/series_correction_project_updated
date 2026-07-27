@@ -88,9 +88,8 @@ if raw_files:
             output_dir, f"TEST_Series{series}_Year{year_idx}.xlsx"
         )
 
-        # Save with explicit writer
-        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-            write_excel_safely(processed_df, writer, index=False)
+        # Save through the safe export gateway
+        write_excel_safely(processed_df, output_path, index=False)
 
         print(f"Explicitly saved file to: {output_path}")
         print(f"Check if file exists: {os.path.exists(output_path)}")

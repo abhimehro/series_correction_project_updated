@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple, Optional, Union
 
 import pandas as pd
-from scripts.spreadsheet_safety import write_excel_safely
+from scripts import spreadsheet_safety
 
 # Import optional dependencies from the helper module if possible
 try:
@@ -528,7 +528,7 @@ def _process_fallback_mode(
                                     f"Series{series_id}_File{i:02d}_Processed.xlsx"
                                 )
                                 out_path = os.path.join(output_dir, out_name)
-                                write_excel_safely(processed_df, out_path, index=False)
+                                spreadsheet_safety.write_excel_safely(processed_df, out_path, index=False)
                                 log.info(f"Wrote output: {out_path}")
 
                             summary_records.append(
@@ -593,7 +593,9 @@ def _process_main_mode(
             if not dry_run:
                 out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
                 out_path = os.path.join(output_dir, out_name)
-                write_excel_safely(processed_df, out_path, index=False, header=False)
+                spreadsheet_safety.write_excel_safely(
+                    processed_df, out_path, index=False, header=False
+                )
                 log.info(f"Saved corrected data to {out_path}")
 
         except ProcessingError:
