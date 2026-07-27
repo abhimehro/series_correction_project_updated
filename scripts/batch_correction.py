@@ -18,9 +18,10 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple, Optional, Union
+from typing import Any
 
 import pandas as pd
+
 from scripts.spreadsheet_safety import write_excel_safely
 
 # Import optional dependencies from the helper module if possible
@@ -97,14 +98,12 @@ data_loader = _optional_import(
 class ProcessingError(Exception):
     """Custom exception for errors during batch processing."""
 
-    pass
-
 
 # --------------------------------------------------------------------------- #
 # Helper functions
 # --------------------------------------------------------------------------- #
 def _get_data_directory(
-    config_data: Dict[str, Any], create_if_missing: bool = False
+    config_data: dict[str, Any], create_if_missing: bool = False
 ) -> str:
     """
     Determine the raw‑data directory from configuration.
@@ -275,11 +274,11 @@ def _parse_and_validate_file(
 
 
 def _find_files_to_process(
-    series_list: List[int],
-    years: Tuple[int, int],
+    series_list: list[int],
+    years: tuple[int, int],
     data_dir: str,
-    config_data: Dict[str, Any] = None,
-) -> List[Tuple[int, int, int, str]]:
+    config_data: dict[str, Any] = None,
+) -> list[tuple[int, int, int, str]]:
     """
     Discover S{series}_Y{index:02d}.txt files that correspond to the requested
     years.  The simplistic mapping assumes sequential Y01, Y02… for each year.
@@ -432,12 +431,12 @@ def _ensure_output_directory(output_dir, dry_run):
 
 @dataclass
 class BatchConfig:
-    series_selection: Union[int, List[int], str]
-    river_miles: Optional[List[float]]
-    years: Tuple[int, int]
+    series_selection: int | list[int] | str
+    river_miles: list[float] | None
+    years: tuple[int, int]
     dry_run: bool = False
     config_path: str = "scripts/config.json"
-    output_dir: Optional[str] = None
+    output_dir: str | None = None
 
 
 def batch_process(config: BatchConfig):
@@ -499,8 +498,8 @@ def batch_process(config: BatchConfig):
 
 
 def _process_fallback_mode(
-    series_to_process: List[int],
-    config_data: Dict[str, Any],
+    series_to_process: list[int],
+    config_data: dict[str, Any],
     output_dir: str,
     dry_run: bool,
 ) -> pd.DataFrame:
@@ -562,8 +561,8 @@ def _process_fallback_mode(
 
 
 def _process_main_mode(
-    files_to_process: List[Tuple[int, int, int, str]],
-    processor_config: Dict[str, Any],
+    files_to_process: list[tuple[int, int, int, str]],
+    processor_config: dict[str, Any],
     output_dir: str,
     dry_run: bool,
 ) -> pd.DataFrame:
