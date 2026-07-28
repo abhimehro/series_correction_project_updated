@@ -83,3 +83,28 @@ def test_generate_summary_main_with_exception(tmp_path, capsys):
     assert summary_file.exists()
     summary_df = pd.read_excel(summary_file)
     assert len(summary_df) == 0
+
+
+def test_generate_summary_escapes_malicious_filename(tmp_path):
+    """A processed file whose name looks like a formula must be stored as text."""
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    summary_file = output_dir / "Summary_Report.xlsx"
+
+    payload_name = "=SUM(1,1)_Processed.xlsx"
+    malicious_file = output_dir / payload_name
+    df = pd.DataFrame(
+        {"Processed_Value": [1.0, 2.0, 3.0], "Is_Outlier": [0, 1, 0]}
+    )
+    df.to_excel(malicious_file, index=False)
+
+    with patch("generate_summary.OUTPUT_DIR", str(output_dir)), patch(
+        "generate_summary.SUMMARY_FILE", str(summary_file)
+    ):
+        generate_summary.main()
+
+    assert summary_file.exists()
+    wb = load_workbook(summary_file, data_only=False)
+    file_cell = wb.active["A2"]
+    assert file_cell.data_type == "s"
+    assert file_cell.value == "'" + payload_name
