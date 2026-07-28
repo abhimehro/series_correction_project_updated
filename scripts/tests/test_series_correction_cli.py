@@ -82,7 +82,7 @@ def test_main_batch_process_exception(monkeypatch):
 
     # Simulate an error in batch_process
     def fake_batch(*args, **kwargs):
-        raise Exception("test error")
+        raise RuntimeError("test error")
 
     monkeypatch.setattr(cli, "batch_process", fake_batch)
     test_args = [

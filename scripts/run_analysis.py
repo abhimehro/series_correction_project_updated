@@ -2,7 +2,7 @@ import json
 import os
 
 # Import your batch processing function directly
-from scripts.batch_correction import batch_process, BatchConfig
+from scripts.batch_correction import BatchConfig, batch_process
 
 # Use direct, absolute paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

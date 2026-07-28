@@ -1,9 +1,10 @@
 import logging
-import pytest
-import pandas as pd
-import numpy as np
 
-from scripts.processor import detect_outliers, process_data, correct_jumps
+import numpy as np
+import pandas as pd
+import pytest
+
+from scripts.processor import correct_jumps, detect_outliers, process_data
 
 
 def test_detect_outliers_basic():
@@ -58,11 +59,10 @@ def test_process_data_time_col_parsing_failure(caplog):
         {"Time (Seconds)": ["not_a_time", "also_not_a_time"], "Value": [1.0, 2.0]}
     )
 
-    with caplog.at_level(logging.ERROR):
-        with pytest.raises(
-            ValueError, match="Time column is not numeric and could not be converted"
-        ):
-            process_data(df)
+    with caplog.at_level(logging.ERROR), pytest.raises(
+        ValueError, match="Time column is not numeric and could not be converted"
+    ):
+        process_data(df)
 
     assert (
         "Time column 'Time (Seconds)' is not numeric and could not be converted"
