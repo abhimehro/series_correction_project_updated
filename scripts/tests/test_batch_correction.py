@@ -5,16 +5,15 @@ Unit tests for the batch_correction module.
 
 import fnmatch
 import os
-from typing import Dict
-
 from unittest import mock
+
 import pandas as pd  # type: ignore
 import pytest
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
 # Import ProcessingError only if you add a test that specifically catches it
-from scripts.batch_correction import batch_process, BatchConfig
+from scripts.batch_correction import BatchConfig, batch_process
 
 
 # Extracted helper functions for test_batch_process_happy_path_all_series_with_config
@@ -70,9 +69,7 @@ def _isfile_side_effect_data_specific_series(path):
 # Helper to create dummy dataframes
 def create_dummy_df(rows=5):
     """Creates a dummy pandas DataFrame for testing."""
-    return pd.DataFrame(
-        {"col1": range(rows), "col2": ["val%i" % i for i in range(rows)]}
-    )
+    return pd.DataFrame({"col1": range(rows), "col2": [f"val{i}" for i in range(rows)]})
 
 
 # --- Fixtures ---
@@ -211,7 +208,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
             (1996, "Y02", 27),
         ]:
             expected_output_path = os.path.join(
-                expected_data_dir_inner, "Year_%d (%s)_Data.xlsx" % (year, yi)
+                expected_data_dir_inner, f"Year_{year} ({yi})_Data.xlsx"
             )
             mock_to_excel.assert_any_call(
                 expected_output_path, index=False, header=False
@@ -451,7 +448,7 @@ def test_batch_process_load_error(
     def read_csv_fail_sensor(path, *args, **kwargs):
         if str(path).endswith("river_mile_map.csv"):
             return pd.DataFrame({"SENSOR_ID": [26], "RIVER_MILE": [54.0]})
-        raise IOError("Cannot read file")
+        raise OSError("Cannot read file")
 
     mocker.patch("pandas.read_csv", side_effect=read_csv_fail_sensor)
 
@@ -468,7 +465,7 @@ def test_batch_process_load_error(
 
 
 def test_batch_process_process_error(
-    mock_dependencies: Dict[str, mock.MagicMock],
+    mock_dependencies: dict[str, mock.MagicMock],
     mock_config_loader,
     mock_processor_mod: mock.MagicMock,
     mocker,
@@ -609,7 +606,7 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
     dry_run = True
 
     # Act
-    from scripts.batch_correction import batch_process, BatchConfig
+    from scripts.batch_correction import BatchConfig, batch_process
 
     batch_process(BatchConfig(series_selection, river_miles, years, dry_run=dry_run))
 

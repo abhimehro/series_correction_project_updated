@@ -1,8 +1,9 @@
 import csv
-
-import pytest
-import pandas as pd
 from unittest.mock import patch
+
+import pandas as pd
+import pytest
+
 from scripts.generate_overview_table import main
 
 
