@@ -52,7 +52,7 @@ Manually identifying and correcting these discontinuities is time-consuming, sub
 - **Batch Processing:** Capable of processing multiple data files (`S<series>_Y<index>.txt`) efficiently based on series, year range, and river mile criteria (`batch_correction.py`).
 - **Command-Line Interface:** Provides a CLI tool (`seatek-correction`) for easy execution (`series_correction_cli.py`).
 - **Reporting:** Generates a summary CSV file (`Batch_Processing_Summary.csv`) and detailed logs (`processing_log.txt`).
-- **Testing & CI:** Includes unit tests (`tests/`) and a GitHub Actions workflow (`.github/workflows/python-tests.yml`) for automated testing.
+- **Testing & CI:** Includes unit tests (`scripts/tests/`) and a GitHub Actions workflow (`.github/workflows/python-tests.yml`) for automated testing.
 
 ## Installation
 
@@ -214,10 +214,10 @@ series_correction_project_updated/
 │   ├── river_mile_map.json   # Default mapping
 │   └── requirements.txt
 │
-├── tests/                    # Unit and integration tests
-│   ├── __init__.py
-│   └── test_batch_correction.py # Example test file
-│   # (Add other test files like test_processor.py here)
+├── scripts/tests/            # Unit and integration tests
+│   ├── conftest.py
+│   ├── test_batch_correction.py
+│   └── ...                   # Additional test files
 │
 ├── docs/                     # Documentation files
 │   ├── correction_methodology.md
@@ -248,13 +248,13 @@ This project uses pytest for testing.
 3. Run tests:
 
    ```bash
-   pytest
+   python3 -m pytest scripts/tests/ -v
    ```
 
 4. Run tests with coverage:
 
    ```bash
-   pytest --cov=scripts tests/
+   python3 -m pytest --cov=scripts scripts/tests/ -v
    ```
 
 (Note: Comprehensive testing, especially integration tests, requires the presence of sample data files in the `data/` directory.)
