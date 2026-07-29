@@ -81,5 +81,6 @@ Thumbs.db
 /data/output/comparisons/Year_1995 (Y01)_Data_comparison.xlsx
 /data/output/comparisons/Year_1996 (Y02)_Data_comparison.xlsx
 
-# Stale generated AI context dump; if needed, regenerate as an untracked artifact.
+# Accidental code dumps
+*_project_code.txt
 series_correction_project_updated_project_code.txt
