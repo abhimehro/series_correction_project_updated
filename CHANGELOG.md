@@ -11,6 +11,7 @@
 **Closed issues:**
 
 - Daily QA & Agentic Review — 2026-07-28 [\#302](https://github.com/abhimehro/series_correction_project_updated/issues/302)
+- \[repo-health\] Re-enable Python Tests workflow \(disabled\_manually\) [\#298](https://github.com/abhimehro/series_correction_project_updated/issues/298)
 - Daily QA & Agentic Review — 2026-07-26 [\#292](https://github.com/abhimehro/series_correction_project_updated/issues/292)
 - Daily QA & Agentic Review — 2026-07-25 [\#291](https://github.com/abhimehro/series_correction_project_updated/issues/291)
 - Daily QA & Agentic Review — 2026-07-24 [\#289](https://github.com/abhimehro/series_correction_project_updated/issues/289)
@@ -39,6 +40,7 @@
 
 **Merged pull requests:**
 
+- ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\) [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Auto-applied routine code health and linting fixes [\#299](https://github.com/abhimehro/series_correction_project_updated/pull/299) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): docs sync, untrack junk, annotations [\#297](https://github.com/abhimehro/series_correction_project_updated/pull/297) ([cursor[bot]](https://github.com/apps/cursor))
 - ABHI-1518: Harden spreadsheet/CSV formula-injection protection [\#295](https://github.com/abhimehro/series_correction_project_updated/pull/295) ([abhimehro](https://github.com/abhimehro))
