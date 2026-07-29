@@ -41,6 +41,7 @@
 **Merged pull requests:**
 
 - ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\) [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Information Exposure in generate\_summary.py [\#301](https://github.com/abhimehro/series_correction_project_updated/pull/301) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Auto-applied routine code health and linting fixes [\#299](https://github.com/abhimehro/series_correction_project_updated/pull/299) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): docs sync, untrack junk, annotations [\#297](https://github.com/abhimehro/series_correction_project_updated/pull/297) ([cursor[bot]](https://github.com/apps/cursor))
 - ABHI-1518: Harden spreadsheet/CSV formula-injection protection [\#295](https://github.com/abhimehro/series_correction_project_updated/pull/295) ([abhimehro](https://github.com/abhimehro))
