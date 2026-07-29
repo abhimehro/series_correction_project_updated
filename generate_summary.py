@@ -1,3 +1,4 @@
+import logging
 import os
 
 import pandas as pd
@@ -7,6 +8,8 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 
 from scripts.spreadsheet_safety import write_excel_safely
+
+log = logging.getLogger(__name__)
 
 # Set OUTPUT_DIR to the project root's output directory
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -39,8 +42,9 @@ def main():
                     "Outlier_Count": outlier_count,
                 }
             )
-        except Exception as e:
-            print(f"Error processing {file}: {e}")
+        except Exception:
+            log.exception(f"Internal error processing {file}")
+            print(f"Error processing {file}: An unexpected error occurred.")
 
     summary_df = pd.DataFrame(summary_data)
     write_excel_safely(summary_df, SUMMARY_FILE, index=False)
