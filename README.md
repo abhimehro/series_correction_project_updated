@@ -80,7 +80,7 @@ Manually identifying and correcting these discontinuities is time-consuming, sub
    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 
    # Or using conda
-   # conda create --name seatek_corr python=3.9
+   # conda create --name seatek_corr python=3.10
    # conda activate seatek_corr
    ```
 
