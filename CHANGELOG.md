@@ -40,6 +40,7 @@
 
 **Merged pull requests:**
 
+<<<<<<< HEAD
 - Add Seatek testing skill [\#305](https://github.com/abhimehro/series_correction_project_updated/pull/305) ([abhimehro](https://github.com/abhimehro))
 - chore: bump minimum Python to 3.10 [\#304](https://github.com/abhimehro/series_correction_project_updated/pull/304) ([abhimehro](https://github.com/abhimehro))
 - ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\) [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303) ([abhimehro](https://github.com/abhimehro))
@@ -134,6 +135,583 @@
 - chore\(deps\): bump release-drafter/release-drafter from 7.2.1 to 7.4.0 [\#138](https://github.com/abhimehro/series_correction_project_updated/pull/138) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/checkout from 4.2.2 to 7.0.0 [\#137](https://github.com/abhimehro/series_correction_project_updated/pull/137) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Format scripts/processor.py with black [\#134](https://github.com/abhimehro/series_correction_project_updated/pull/134) ([abhimehro](https://github.com/abhimehro))
+=======
+<<<<<<< HEAD
+
+- Add Seatek testing skill
+  [\#305](https://github.com/abhimehro/series_correction_project_updated/pull/305)
+  ([abhimehro](https://github.com/abhimehro))
+- chore: bump minimum Python to 3.10
+  [\#304](https://github.com/abhimehro/series_correction_project_updated/pull/304)
+  ([abhimehro](https://github.com/abhimehro))
+- ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\)
+  [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303)
+  ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Information Exposure in generate\_summary.py
+  [\#301](https://github.com/abhimehro/series_correction_project_updated/pull/301)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Auto-applied routine code health and linting fixes
+  [\#299](https://github.com/abhimehro/series_correction_project_updated/pull/299)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(repo-health\): docs sync, untrack junk, annotations
+  [\#297](https://github.com/abhimehro/series_correction_project_updated/pull/297)
+  ([cursor[bot]](https://github.com/apps/cursor))
+- ⚡ Bolt: Remove redundant manual NaN masking from numpy sliding windows
+  [\#296](https://github.com/abhimehro/series_correction_project_updated/pull/296)
+  ([abhimehro](https://github.com/abhimehro))
+- ABHI-1518: Harden spreadsheet/CSV formula-injection protection
+  [\#295](https://github.com/abhimehro/series_correction_project_updated/pull/295)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0
+  [\#294](https://github.com/abhimehro/series_correction_project_updated/pull/294)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Daily QA Review Summary for `series_correction_project_updated`
+  [\#290](https://github.com/abhimehro/series_correction_project_updated/pull/290)
+  ([abhimehro](https://github.com/abhimehro))
+- Jules Daily QA Minor Fixes
+  [\#288](https://github.com/abhimehro/series_correction_project_updated/pull/288)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0
+  [\#286](https://github.com/abhimehro/series_correction_project_updated/pull/286)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🔒 fix: resolve memory leak in dummy\_todos.py JSON parsing
+  [\#285](https://github.com/abhimehro/series_correction_project_updated/pull/285)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0
+  [\#283](https://github.com/abhimehro/series_correction_project_updated/pull/283)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Daily QA check passed
+  [\#282](https://github.com/abhimehro/series_correction_project_updated/pull/282)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix unsafe path interpretation in raw dataframe loading
+  [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[code health improvement\] Refactor batch\_process to use BatchConfig
+  [\#277](https://github.com/abhimehro/series_correction_project_updated/pull/277)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix DoS vulnerability \(infinite loop\) when parsing massive whitespace
+  [\#276](https://github.com/abhimehro/series_correction_project_updated/pull/276)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 feat: add secure authentication and prevent DoS in JSON parsing
+  [\#275](https://github.com/abhimehro/series_correction_project_updated/pull/275)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing improvement\] Add EmptyDataError test for \_load\_raw\_data
+  [\#274](https://github.com/abhimehro/series_correction_project_updated/pull/274)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add missing tests for \_optional\_import fallback functionality
+  [\#273](https://github.com/abhimehro/series_correction_project_updated/pull/273)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] O\(1\) file index mapping lookup
+  [\#272](https://github.com/abhimehro/series_correction_project_updated/pull/272)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Fix unused import in batch\_correction.py
+  [\#271](https://github.com/abhimehro/series_correction_project_updated/pull/271)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix unsafe absolute path usage in run\_analysis.py
+  [\#270](https://github.com/abhimehro/series_correction_project_updated/pull/270)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize regex compilation in raw file mapping
+  [\#269](https://github.com/abhimehro/series_correction_project_updated/pull/269)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 code health: fix infinite loop in json parsing
+  [\#268](https://github.com/abhimehro/series_correction_project_updated/pull/268)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add missing tests for generate\_summary.py main function
+  [\#265](https://github.com/abhimehro/series_correction_project_updated/pull/265)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize \_find\_year\_file\_match with O\(1\) cache lookup
+  [\#264](https://github.com/abhimehro/series_correction_project_updated/pull/264)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[Testing Improvement\] Add tests for calculate\_non\_zero\_average
+  [\#263](https://github.com/abhimehro/series_correction_project_updated/pull/263)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor detect\_outliers\_series to resolve Overly Long Function issue
+  [\#262](https://github.com/abhimehro/series_correction_project_updated/pull/262)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add unit tests for updated\_processor.py detect\_outliers
+  [\#258](https://github.com/abhimehro/series_correction_project_updated/pull/258)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/setup-python from 6 to 7
+  [\#257](https://github.com/abhimehro/series_correction_project_updated/pull/257)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/checkout from 7.0.0 to 7.0.1
+  [\#256](https://github.com/abhimehro/series_correction_project_updated/pull/256)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Exception Chaining in Path Traversal Check
+  [\#253](https://github.com/abhimehro/series_correction_project_updated/pull/253)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump release-drafter/release-drafter from 7.5.1 to 7.6.0
+  [\#252](https://github.com/abhimehro/series_correction_project_updated/pull/252)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Optimize rolling median calculation overhead in outlier detection
+  [\#247](https://github.com/abhimehro/series_correction_project_updated/pull/247)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Replace np.nanmedian with np.median for faster outlier detection
+  [\#244](https://github.com/abhimehro/series_correction_project_updated/pull/244)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.318.0 to 1.319.0
+  [\#243](https://github.com/abhimehro/series_correction_project_updated/pull/243)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- security\(deps\): raise filelock and click floors for OSV fixes
+  [\#241](https://github.com/abhimehro/series_correction_project_updated/pull/241)
+  ([cursor[bot]](https://github.com/apps/cursor))
+- Draft: Salvage \#238 sliding-window rolling median optimization
+  [\#240](https://github.com/abhimehro/series_correction_project_updated/pull/240)
+  ([abhimehro](https://github.com/abhimehro))
+- Draft: Salvage \#235 integer column rename optimization
+  [\#239](https://github.com/abhimehro/series_correction_project_updated/pull/239)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Combine adjacent loops for performance improvement
+  [\#236](https://github.com/abhimehro/series_correction_project_updated/pull/236)
+  ([abhimehro](https://github.com/abhimehro))
+- fix\(json\): fix memory leak in JSON parsing
+  [\#234](https://github.com/abhimehro/series_correction_project_updated/pull/234)
+  ([abhimehro](https://github.com/abhimehro))
+- feat: implement user authentication logic
+  [\#233](https://github.com/abhimehro/series_correction_project_updated/pull/233)
+  ([abhimehro](https://github.com/abhimehro))
+- docs\(agents\): document egg-info hygiene from continual learning
+  [\#232](https://github.com/abhimehro/series_correction_project_updated/pull/232)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 fix\(lint\): resolve Ruff E402 formatting issue in discontinuity\_utils.py
+  [\#231](https://github.com/abhimehro/series_correction_project_updated/pull/231)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] optimize file discovery with os.listdir
+  [\#229](https://github.com/abhimehro/series_correction_project_updated/pull/229)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/setup-node from 6.4.0 to 7.0.0
+  [\#228](https://github.com/abhimehro/series_correction_project_updated/pull/228)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0
+  [\#227](https://github.com/abhimehro/series_correction_project_updated/pull/227)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Information Exposure \(CWE-209\) in CLI output
+  [\#224](https://github.com/abhimehro/series_correction_project_updated/pull/224)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Remove slow python engine in pandas read\_csv
+  [\#222](https://github.com/abhimehro/series_correction_project_updated/pull/222)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Suppress RuntimeWarnings for np.nanmedian when processing all-NaN slices
+  [\#216](https://github.com/abhimehro/series_correction_project_updated/pull/216)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Cache os.listdir in \_find\_year\_file\_match
+  [\#214](https://github.com/abhimehro/series_correction_project_updated/pull/214)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Jules Daily QA: Auto-format and clean unused imports
+  [\#208](https://github.com/abhimehro/series_correction_project_updated/pull/208)
+  ([abhimehro](https://github.com/abhimehro))
+- perf\(outliers\): reuse rolling\_median in MAD calculation \(salvages \#204\)
+  [\#206](https://github.com/abhimehro/series_correction_project_updated/pull/206)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from
+  841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 to
+  bbc72fbfb8e514ed2dd0a1ba2dda2e0083abac73
+  [\#202](https://github.com/abhimehro/series_correction_project_updated/pull/202)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🧹 Code Health: Auto-format with black
+  [\#201](https://github.com/abhimehro/series_correction_project_updated/pull/201)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize detect\_gaps using NumPy
+  [\#199](https://github.com/abhimehro/series_correction_project_updated/pull/199)
+  ([abhimehro](https://github.com/abhimehro))
+- refactor\(processor\): extract gap-analysis helpers for code health \(salvages
+  \#178\)
+  [\#197](https://github.com/abhimehro/series_correction_project_updated/pull/197)
+  ([abhimehro](https://github.com/abhimehro))
+- fix\(security\): sanitize CLI exception output in export\_comparison\_sheets
+  \(salvages \#184\)
+  [\#195](https://github.com/abhimehro/series_correction_project_updated/pull/195)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: cache listdir to optimize redundant disk reads
+  [\#194](https://github.com/abhimehro/series_correction_project_updated/pull/194)
+  ([abhimehro](https://github.com/abhimehro))
+- Parse roots from payload for multi-root workspace support
+  [\#193](https://github.com/abhimehro/series_correction_project_updated/pull/193)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add test for batch\_correction config load FileNotFoundError
+  [\#192](https://github.com/abhimehro/series_correction_project_updated/pull/192)
+  ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Raw Exception Data Exposure
+  [\#191](https://github.com/abhimehro/series_correction_project_updated/pull/191)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing\] add comprehensive unit tests for correct\_jumps
+  [\#190](https://github.com/abhimehro/series_correction_project_updated/pull/190)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[Code Health\] Extract complex loop body in export\_comparisons
+  [\#188](https://github.com/abhimehro/series_correction_project_updated/pull/188)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add tests for load\_identified\_outliers error paths
+  [\#185](https://github.com/abhimehro/series_correction_project_updated/pull/185)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[test\] Add test coverage for export\_comparison\_sheets.py
+  [\#182](https://github.com/abhimehro/series_correction_project_updated/pull/182)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Catch specific exceptions in generate\_overview\_table
+  [\#181](https://github.com/abhimehro/series_correction_project_updated/pull/181)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor `batch_process` by extracting setup logic
+  [\#179](https://github.com/abhimehro/series_correction_project_updated/pull/179)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing improvement\] Add test suite for generate\_overview\_table.py
+  [\#176](https://github.com/abhimehro/series_correction_project_updated/pull/176)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Remove unnecessary global variables in export\_comparison\_sheets.py
+  [\#174](https://github.com/abhimehro/series_correction_project_updated/pull/174)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.315.0 to 1.316.0
+  [\#172](https://github.com/abhimehro/series_correction_project_updated/pull/172)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Agentic QA: Minor linting and code quality fixes
+  [\#171](https://github.com/abhimehro/series_correction_project_updated/pull/171)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize jump correction window extraction
+  [\#169](https://github.com/abhimehro/series_correction_project_updated/pull/169)
+  ([abhimehro](https://github.com/abhimehro))
+- style: fix black formatting in processor.py
+  [\#168](https://github.com/abhimehro/series_correction_project_updated/pull/168)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.314.0 to 1.315.0
+  [\#165](https://github.com/abhimehro/series_correction_project_updated/pull/165)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Optimize file discovery in batch process
+  [\#163](https://github.com/abhimehro/series_correction_project_updated/pull/163)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/cache from 6.0.0 to 6.1.0
+  [\#161](https://github.com/abhimehro/series_correction_project_updated/pull/161)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Replace DataFrame.itertuples with zip over NumPy arrays
+  [\#158](https://github.com/abhimehro/series_correction_project_updated/pull/158)
+  ([abhimehro](https://github.com/abhimehro))
+- Jules Daily QA & Agentic Review: Fix pandas to\_datetime format warning
+  [\#157](https://github.com/abhimehro/series_correction_project_updated/pull/157)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize DataFrame numeric conversion
+  [\#155](https://github.com/abhimehro/series_correction_project_updated/pull/155)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump release-drafter/release-drafter from 7.4.0 to 7.5.1
+  [\#154](https://github.com/abhimehro/series_correction_project_updated/pull/154)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Vectorize processing loops in jumps and outliers correction
+  [\#152](https://github.com/abhimehro/series_correction_project_updated/pull/152)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] Vectorize non-stateful operations in
+  `detect_jumps`
+  [\#150](https://github.com/abhimehro/series_correction_project_updated/pull/150)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/cache from 5.0.5 to 6.0.0
+  [\#149](https://github.com/abhimehro/series_correction_project_updated/pull/149)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Exception Chaining Data Leakage
+  [\#146](https://github.com/abhimehro/series_correction_project_updated/pull/146)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Vectorize Z-score calculation in outlier detection
+  [\#145](https://github.com/abhimehro/series_correction_project_updated/pull/145)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.313.0 to 1.314.0
+  [\#141](https://github.com/abhimehro/series_correction_project_updated/pull/141)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump pnpm/action-setup from 6.0.8 to 6.0.9
+  [\#140](https://github.com/abhimehro/series_correction_project_updated/pull/140)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/cache from 4.2.3 to 5.0.5
+  [\#139](https://github.com/abhimehro/series_correction_project_updated/pull/139)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump release-drafter/release-drafter from 7.2.1 to 7.4.0
+  [\#138](https://github.com/abhimehro/series_correction_project_updated/pull/138)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/checkout from 4.2.2 to 7.0.0
+  [\#137](https://github.com/abhimehro/series_correction_project_updated/pull/137)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Format scripts/processor.py with black
+  [\#134](https://github.com/abhimehro/series_correction_project_updated/pull/134)
+  ([abhimehro](https://github.com/abhimehro)) =======
+- chore: bump minimum Python to 3.10
+  [\#304](https://github.com/abhimehro/series_correction_project_updated/pull/304)
+  ([abhimehro](https://github.com/abhimehro))
+- ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\)
+  [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303)
+  ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Information Exposure in generate\_summary.py
+  [\#301](https://github.com/abhimehro/series_correction_project_updated/pull/301)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Auto-applied routine code health and linting fixes
+  [\#299](https://github.com/abhimehro/series_correction_project_updated/pull/299)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(repo-health\): docs sync, untrack junk, annotations
+  [\#297](https://github.com/abhimehro/series_correction_project_updated/pull/297)
+  ([cursor[bot]](https://github.com/apps/cursor))
+- ⚡ Bolt: Remove redundant manual NaN masking from numpy sliding windows
+  [\#296](https://github.com/abhimehro/series_correction_project_updated/pull/296)
+  ([abhimehro](https://github.com/abhimehro))
+- ABHI-1518: Harden spreadsheet/CSV formula-injection protection
+  [\#295](https://github.com/abhimehro/series_correction_project_updated/pull/295)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0
+  [\#294](https://github.com/abhimehro/series_correction_project_updated/pull/294)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Daily QA Review Summary for `series_correction_project_updated`
+  [\#290](https://github.com/abhimehro/series_correction_project_updated/pull/290)
+  ([abhimehro](https://github.com/abhimehro))
+- Jules Daily QA Minor Fixes
+  [\#288](https://github.com/abhimehro/series_correction_project_updated/pull/288)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0
+  [\#286](https://github.com/abhimehro/series_correction_project_updated/pull/286)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🔒 fix: resolve memory leak in dummy\_todos.py JSON parsing
+  [\#285](https://github.com/abhimehro/series_correction_project_updated/pull/285)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.319.0 to 1.320.0
+  [\#283](https://github.com/abhimehro/series_correction_project_updated/pull/283)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Daily QA check passed
+  [\#282](https://github.com/abhimehro/series_correction_project_updated/pull/282)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix unsafe path interpretation in raw dataframe loading
+  [\#278](https://github.com/abhimehro/series_correction_project_updated/pull/278)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[code health improvement\] Refactor batch\_process to use BatchConfig
+  [\#277](https://github.com/abhimehro/series_correction_project_updated/pull/277)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix DoS vulnerability \(infinite loop\) when parsing massive whitespace
+  [\#276](https://github.com/abhimehro/series_correction_project_updated/pull/276)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 feat: add secure authentication and prevent DoS in JSON parsing
+  [\#275](https://github.com/abhimehro/series_correction_project_updated/pull/275)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing improvement\] Add EmptyDataError test for \_load\_raw\_data
+  [\#274](https://github.com/abhimehro/series_correction_project_updated/pull/274)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add missing tests for \_optional\_import fallback functionality
+  [\#273](https://github.com/abhimehro/series_correction_project_updated/pull/273)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] O\(1\) file index mapping lookup
+  [\#272](https://github.com/abhimehro/series_correction_project_updated/pull/272)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Fix unused import in batch\_correction.py
+  [\#271](https://github.com/abhimehro/series_correction_project_updated/pull/271)
+  ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix unsafe absolute path usage in run\_analysis.py
+  [\#270](https://github.com/abhimehro/series_correction_project_updated/pull/270)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize regex compilation in raw file mapping
+  [\#269](https://github.com/abhimehro/series_correction_project_updated/pull/269)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 code health: fix infinite loop in json parsing
+  [\#268](https://github.com/abhimehro/series_correction_project_updated/pull/268)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add missing tests for generate\_summary.py main function
+  [\#265](https://github.com/abhimehro/series_correction_project_updated/pull/265)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize \_find\_year\_file\_match with O\(1\) cache lookup
+  [\#264](https://github.com/abhimehro/series_correction_project_updated/pull/264)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[Testing Improvement\] Add tests for calculate\_non\_zero\_average
+  [\#263](https://github.com/abhimehro/series_correction_project_updated/pull/263)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor detect\_outliers\_series to resolve Overly Long Function issue
+  [\#262](https://github.com/abhimehro/series_correction_project_updated/pull/262)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add unit tests for updated\_processor.py detect\_outliers
+  [\#258](https://github.com/abhimehro/series_correction_project_updated/pull/258)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/setup-python from 6 to 7
+  [\#257](https://github.com/abhimehro/series_correction_project_updated/pull/257)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/checkout from 7.0.0 to 7.0.1
+  [\#256](https://github.com/abhimehro/series_correction_project_updated/pull/256)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Exception Chaining in Path Traversal Check
+  [\#253](https://github.com/abhimehro/series_correction_project_updated/pull/253)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump release-drafter/release-drafter from 7.5.1 to 7.6.0
+  [\#252](https://github.com/abhimehro/series_correction_project_updated/pull/252)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Optimize rolling median calculation overhead in outlier detection
+  [\#247](https://github.com/abhimehro/series_correction_project_updated/pull/247)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Replace np.nanmedian with np.median for faster outlier detection
+  [\#244](https://github.com/abhimehro/series_correction_project_updated/pull/244)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.318.0 to 1.319.0
+  [\#243](https://github.com/abhimehro/series_correction_project_updated/pull/243)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- security\(deps\): raise filelock and click floors for OSV fixes
+  [\#241](https://github.com/abhimehro/series_correction_project_updated/pull/241)
+  ([cursor[bot]](https://github.com/apps/cursor))
+- Draft: Salvage \#238 sliding-window rolling median optimization
+  [\#240](https://github.com/abhimehro/series_correction_project_updated/pull/240)
+  ([abhimehro](https://github.com/abhimehro))
+- Draft: Salvage \#235 integer column rename optimization
+  [\#239](https://github.com/abhimehro/series_correction_project_updated/pull/239)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Combine adjacent loops for performance improvement
+  [\#236](https://github.com/abhimehro/series_correction_project_updated/pull/236)
+  ([abhimehro](https://github.com/abhimehro))
+- fix\(json\): fix memory leak in JSON parsing
+  [\#234](https://github.com/abhimehro/series_correction_project_updated/pull/234)
+  ([abhimehro](https://github.com/abhimehro))
+- feat: implement user authentication logic
+  [\#233](https://github.com/abhimehro/series_correction_project_updated/pull/233)
+  ([abhimehro](https://github.com/abhimehro))
+- docs\(agents\): document egg-info hygiene from continual learning
+  [\#232](https://github.com/abhimehro/series_correction_project_updated/pull/232)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 fix\(lint\): resolve Ruff E402 formatting issue in discontinuity\_utils.py
+  [\#231](https://github.com/abhimehro/series_correction_project_updated/pull/231)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] optimize file discovery with os.listdir
+  [\#229](https://github.com/abhimehro/series_correction_project_updated/pull/229)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/setup-node from 6.4.0 to 7.0.0
+  [\#228](https://github.com/abhimehro/series_correction_project_updated/pull/228)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump ruby/setup-ruby from 1.316.0 to 1.318.0
+  [\#227](https://github.com/abhimehro/series_correction_project_updated/pull/227)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Information Exposure \(CWE-209\) in CLI output
+  [\#224](https://github.com/abhimehro/series_correction_project_updated/pull/224)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Remove slow python engine in pandas read\_csv
+  [\#222](https://github.com/abhimehro/series_correction_project_updated/pull/222)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Suppress RuntimeWarnings for np.nanmedian when processing all-NaN slices
+  [\#216](https://github.com/abhimehro/series_correction_project_updated/pull/216)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Cache os.listdir in \_find\_year\_file\_match
+  [\#214](https://github.com/abhimehro/series_correction_project_updated/pull/214)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Jules Daily QA: Auto-format and clean unused imports
+  [\#208](https://github.com/abhimehro/series_correction_project_updated/pull/208)
+  ([abhimehro](https://github.com/abhimehro))
+- perf\(outliers\): reuse rolling\_median in MAD calculation \(salvages \#204\)
+  [\#206](https://github.com/abhimehro/series_correction_project_updated/pull/206)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from
+  841e34c7ddd7a8ec887d632ac51432d6c71e2fe1 to
+  bbc72fbfb8e514ed2dd0a1ba2dda2e0083abac73
+  [\#202](https://github.com/abhimehro/series_correction_project_updated/pull/202)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🧹 Code Health: Auto-format with black
+  [\#201](https://github.com/abhimehro/series_correction_project_updated/pull/201)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize detect\_gaps using NumPy
+  [\#199](https://github.com/abhimehro/series_correction_project_updated/pull/199)
+  ([abhimehro](https://github.com/abhimehro))
+- refactor\(processor\): extract gap-analysis helpers for code health \(salvages
+  \#178\)
+  [\#197](https://github.com/abhimehro/series_correction_project_updated/pull/197)
+  ([abhimehro](https://github.com/abhimehro))
+- fix\(security\): sanitize CLI exception output in export\_comparison\_sheets
+  \(salvages \#184\)
+  [\#195](https://github.com/abhimehro/series_correction_project_updated/pull/195)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: cache listdir to optimize redundant disk reads
+  [\#194](https://github.com/abhimehro/series_correction_project_updated/pull/194)
+  ([abhimehro](https://github.com/abhimehro))
+- Parse roots from payload for multi-root workspace support
+  [\#193](https://github.com/abhimehro/series_correction_project_updated/pull/193)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add test for batch\_correction config load FileNotFoundError
+  [\#192](https://github.com/abhimehro/series_correction_project_updated/pull/192)
+  ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Raw Exception Data Exposure
+  [\#191](https://github.com/abhimehro/series_correction_project_updated/pull/191)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing\] add comprehensive unit tests for correct\_jumps
+  [\#190](https://github.com/abhimehro/series_correction_project_updated/pull/190)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[Code Health\] Extract complex loop body in export\_comparisons
+  [\#188](https://github.com/abhimehro/series_correction_project_updated/pull/188)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add tests for load\_identified\_outliers error paths
+  [\#185](https://github.com/abhimehro/series_correction_project_updated/pull/185)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[test\] Add test coverage for export\_comparison\_sheets.py
+  [\#182](https://github.com/abhimehro/series_correction_project_updated/pull/182)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Catch specific exceptions in generate\_overview\_table
+  [\#181](https://github.com/abhimehro/series_correction_project_updated/pull/181)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor `batch_process` by extracting setup logic
+  [\#179](https://github.com/abhimehro/series_correction_project_updated/pull/179)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing improvement\] Add test suite for generate\_overview\_table.py
+  [\#176](https://github.com/abhimehro/series_correction_project_updated/pull/176)
+  ([abhimehro](https://github.com/abhimehro))
+- 🧹 Remove unnecessary global variables in export\_comparison\_sheets.py
+  [\#174](https://github.com/abhimehro/series_correction_project_updated/pull/174)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.315.0 to 1.316.0
+  [\#172](https://github.com/abhimehro/series_correction_project_updated/pull/172)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Agentic QA: Minor linting and code quality fixes
+  [\#171](https://github.com/abhimehro/series_correction_project_updated/pull/171)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize jump correction window extraction
+  [\#169](https://github.com/abhimehro/series_correction_project_updated/pull/169)
+  ([abhimehro](https://github.com/abhimehro))
+- style: fix black formatting in processor.py
+  [\#168](https://github.com/abhimehro/series_correction_project_updated/pull/168)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.314.0 to 1.315.0
+  [\#165](https://github.com/abhimehro/series_correction_project_updated/pull/165)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Optimize file discovery in batch process
+  [\#163](https://github.com/abhimehro/series_correction_project_updated/pull/163)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/cache from 6.0.0 to 6.1.0
+  [\#161](https://github.com/abhimehro/series_correction_project_updated/pull/161)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Replace DataFrame.itertuples with zip over NumPy arrays
+  [\#158](https://github.com/abhimehro/series_correction_project_updated/pull/158)
+  ([abhimehro](https://github.com/abhimehro))
+- Jules Daily QA & Agentic Review: Fix pandas to\_datetime format warning
+  [\#157](https://github.com/abhimehro/series_correction_project_updated/pull/157)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Optimize DataFrame numeric conversion
+  [\#155](https://github.com/abhimehro/series_correction_project_updated/pull/155)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump release-drafter/release-drafter from 7.4.0 to 7.5.1
+  [\#154](https://github.com/abhimehro/series_correction_project_updated/pull/154)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: Vectorize processing loops in jumps and outliers correction
+  [\#152](https://github.com/abhimehro/series_correction_project_updated/pull/152)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: \[performance improvement\] Vectorize non-stateful operations in
+  `detect_jumps`
+  [\#150](https://github.com/abhimehro/series_correction_project_updated/pull/150)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump actions/cache from 5.0.5 to 6.0.0
+  [\#149](https://github.com/abhimehro/series_correction_project_updated/pull/149)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Fix Exception Chaining Data Leakage
+  [\#146](https://github.com/abhimehro/series_correction_project_updated/pull/146)
+  ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Vectorize Z-score calculation in outlier detection
+  [\#145](https://github.com/abhimehro/series_correction_project_updated/pull/145)
+  ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.313.0 to 1.314.0
+  [\#141](https://github.com/abhimehro/series_correction_project_updated/pull/141)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump pnpm/action-setup from 6.0.8 to 6.0.9
+  [\#140](https://github.com/abhimehro/series_correction_project_updated/pull/140)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/cache from 4.2.3 to 5.0.5
+  [\#139](https://github.com/abhimehro/series_correction_project_updated/pull/139)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump release-drafter/release-drafter from 7.2.1 to 7.4.0
+  [\#138](https://github.com/abhimehro/series_correction_project_updated/pull/138)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/checkout from 4.2.2 to 7.0.0
+  [\#137](https://github.com/abhimehro/series_correction_project_updated/pull/137)
+  ([dependabot[bot]](https://github.com/apps/dependabot))
+- Format scripts/processor.py with black
+  [\#134](https://github.com/abhimehro/series_correction_project_updated/pull/134)
+  ([abhimehro](https://github.com/abhimehro))
+
+>>>>>>> 7cfa43f (- Refactor hooks bundle indentation and add telemetry)
+>>>>>>> 2994cf1 (- Reformat testing skill docs and update changelog)
 
 ## [v0.0.1](https://github.com/abhimehro/series_correction_project_updated/tree/v0.0.1) (2026-07-04)
 
