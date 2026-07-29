@@ -40,6 +40,7 @@
 
 **Merged pull requests:**
 
+- chore: bump minimum Python to 3.10 [\#304](https://github.com/abhimehro/series_correction_project_updated/pull/304) ([abhimehro](https://github.com/abhimehro))
 - ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\) [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[MEDIUM\] Fix Information Exposure in generate\_summary.py [\#301](https://github.com/abhimehro/series_correction_project_updated/pull/301) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Auto-applied routine code health and linting fixes [\#299](https://github.com/abhimehro/series_correction_project_updated/pull/299) ([abhimehro](https://github.com/abhimehro))
