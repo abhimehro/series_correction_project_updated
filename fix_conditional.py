@@ -1,4 +1,4 @@
-with open('scripts/processor.py', 'r') as f:
+with open("scripts/processor.py", "r") as f:
     content = f.read()
 
 import re
@@ -11,7 +11,7 @@ replacement = r"""    # Map back to original DataFrame index
 
 if re.search(pattern, content, re.DOTALL):
     content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-    with open('scripts/processor.py', 'w') as f:
+    with open("scripts/processor.py", "w") as f:
         f.write(content)
     print("Replaced!")
 else:

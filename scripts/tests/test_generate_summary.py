@@ -93,9 +93,7 @@ def test_generate_summary_escapes_malicious_filename(tmp_path):
 
     payload_name = "=SUM(1,1)_Processed.xlsx"
     malicious_file = output_dir / payload_name
-    df = pd.DataFrame(
-        {"Processed_Value": [1.0, 2.0, 3.0], "Is_Outlier": [0, 1, 0]}
-    )
+    df = pd.DataFrame({"Processed_Value": [1.0, 2.0, 3.0], "Is_Outlier": [0, 1, 0]})
     df.to_excel(malicious_file, index=False)
 
     with patch("generate_summary.OUTPUT_DIR", str(output_dir)), patch(

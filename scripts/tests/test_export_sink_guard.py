@@ -3,6 +3,7 @@ Sink guard: production code must route spreadsheet/CSV exports through
 scripts.spreadsheet_safety.  Any direct DataFrame.to_csv/to_excel, csv.writer,
 ExcelWriter, xlsxwriter, or unreviewed openpyxl cell writes must fail CI.
 """
+
 import ast
 import re
 from pathlib import Path
@@ -27,7 +28,7 @@ EXCLUDE_DIRS = {
 # they have been reviewed and do not write attacker-controlled cell values.
 ALLOWED_OPENPYXL_FILES = {
     "generate_summary.py",  # loads workbook, styles/chart/saves; no cell.value writes
-    "setup.py",             # dependency declaration only
+    "setup.py",  # dependency declaration only
 }
 
 SINK_PATTERNS = {

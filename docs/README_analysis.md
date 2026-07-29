@@ -1,6 +1,7 @@
 # Series Correction Project - Analysis Guide
 
-This guide explains how to use the analysis notebook to evaluate the results of your batch correction process.
+This guide explains how to use the analysis notebook to evaluate the results of
+your batch correction process.
 
 ## Setup
 
@@ -34,9 +35,12 @@ This guide explains how to use the analysis notebook to evaluate the results of 
 
 ### Obtaining Data
 
-- **Sample data**: The project includes sample data files in the `data/input/` directory.
-- **Your own data**: Place your sensor data files in the `data/input/` directory using CSV or Excel format.
-- **Data format**: Files should contain time series data with timestamp and value columns.
+- **Sample data**: The project includes sample data files in the `data/input/`
+  directory.
+- **Your own data**: Place your sensor data files in the `data/input/` directory
+  using CSV or Excel format.
+- **Data format**: Files should contain time series data with timestamp and
+  value columns.
 
 ### Data Structure
 
@@ -46,11 +50,15 @@ This guide explains how to use the analysis notebook to evaluate the results of 
 
 ### Running Analysis
 
-1. After processing your data, open the `visualization_qa_notebook.ipynb` notebook
+1. After processing your data, open the `visualization_qa_notebook.ipynb`
+   notebook
 2. Run the cells to visualize differences between raw and processed data
-3. The notebook will automatically locate comparison files in the output directory
+3. The notebook will automatically locate comparison files in the output
+   directory
 
 ### Troubleshooting
 
-- If you encounter a "file not found" error, make sure you're running commands from the project's root directory
-- Create any missing directories manually if needed (`data/input`, `data/output/comparisons`)
+- If you encounter a "file not found" error, make sure you're running commands
+  from the project's root directory
+- Create any missing directories manually if needed (`data/input`,
+  `data/output/comparisons`)

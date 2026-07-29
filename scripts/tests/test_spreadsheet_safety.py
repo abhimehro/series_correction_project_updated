@@ -141,7 +141,7 @@ def test_escape_spreadsheet_formula(value, expected):
 
 
 def test_escape_spreadsheet_formula_is_idempotent():
-    payload = "=HYPERLINK(\"http://x\")"
+    payload = '=HYPERLINK("http://x")'
     once = escape_spreadsheet_formula(payload)
     twice = escape_spreadsheet_formula(once)
     assert once == "'" + payload
@@ -157,7 +157,9 @@ def test_sanitize_dataframe_does_not_mutate_input():
 
 
 def test_sanitize_dataframe_escapes_column_and_index_labels():
-    dataframe = pd.DataFrame({"=header": ["=cell"]}, index=pd.Index(["=idx"], name="=name"))
+    dataframe = pd.DataFrame(
+        {"=header": ["=cell"]}, index=pd.Index(["=idx"], name="=name")
+    )
     sanitized = sanitize_dataframe_for_spreadsheet(dataframe)
     assert list(sanitized.columns) == ["'=header"]
     assert list(sanitized.index) == ["'=idx"]
@@ -193,9 +195,7 @@ def test_sanitize_dataframe_null_byte_in_index_raises():
 
 
 def test_sanitize_dataframe_categorical_collision_fallback():
-    dataframe = pd.DataFrame(
-        {"value": pd.Categorical(["=x", "'=x"])}
-    )
+    dataframe = pd.DataFrame({"value": pd.Categorical(["=x", "'=x"])})
     sanitized = sanitize_dataframe_for_spreadsheet(dataframe)
     assert sanitized["value"].iloc[0] == "'=x"
     assert sanitized["value"].iloc[1] == "'=x"
@@ -235,7 +235,7 @@ def test_write_csv_safely_neutralizes_payloads(tmp_path):
         "＝1+1",
         "a=b",
         'a,b";=1+1',
-        'a\nb;=1+1',
+        "a\nb;=1+1",
     ]
     df = pd.DataFrame({"value": payloads})
     out_path = tmp_path / "out.csv"

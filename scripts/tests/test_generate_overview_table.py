@@ -121,7 +121,9 @@ def test_main_escapes_malicious_sensor_values(tmp_path, capsys):
 
     main(str(log_path), str(avg_path))
     captured = capsys.readouterr()
-    output_lines = [line for line in captured.out.splitlines() if "=A" in line or payload in line]
+    output_lines = [
+        line for line in captured.out.splitlines() if "=A" in line or payload in line
+    ]
     assert output_lines
 
     # The printed CSV line must start with a neutralized Series and Sensor.

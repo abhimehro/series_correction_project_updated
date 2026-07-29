@@ -3,26 +3,31 @@
 ## Project Goals
 
 1. **Automated Discontinuity Detection**
-   - Automatically identify jumps, gaps, and outliers in time-series data from Seatek sensors
-   - Provide configurable detection parameters to adjust sensitivity based on data characteristics
+   - Automatically identify jumps, gaps, and outliers in time-series data from
+     Seatek sensors
+   - Provide configurable detection parameters to adjust sensitivity based on
+     data characteristics
    - Support batch processing of multiple data files
 
 2. **Reliable Correction Methods**
    - Implement interpolation methods for filling gaps in data
    - Develop offset correction techniques for jumps in baseline values
-   - Create configurable outlier replacement strategies (median, mean, interpolation)
+   - Create configurable outlier replacement strategies (median, mean,
+     interpolation)
    - Ensure corrections maintain data integrity and physical meaning
 
 3. **Usability and Accessibility**
    - Provide a command-line interface for easy execution
-   - Support batch processing based on series, year range, and river mile criteria
+   - Support batch processing based on series, year range, and river mile
+     criteria
    - Generate comprehensive reports and logs for transparency
    - Enable configuration through external files
 
 4. **Data Quality and Validation**
    - Improve overall data quality for downstream analysis
    - Make data suitable for integration with systems like NESST II
-   - Provide validation mechanisms to ensure processed data meets quality standards
+   - Provide validation mechanisms to ensure processed data meets quality
+     standards
 
 ## Technical Constraints
 

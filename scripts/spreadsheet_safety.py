@@ -76,7 +76,9 @@ def _find_null_in_plain_index_labels(index: pd.Index) -> Tuple[str, Any] | None:
     return None
 
 
-def _find_null_in_categorical_index(index: pd.CategoricalIndex) -> Tuple[str, Any] | None:
+def _find_null_in_categorical_index(
+    index: pd.CategoricalIndex,
+) -> Tuple[str, Any] | None:
     """Return the first null byte in a CategoricalIndex category."""
     bad = next(
         (label for label in index.categories if _label_has_null_byte(label)),
@@ -130,7 +132,9 @@ def _find_null_byte_in_index(index: pd.Index) -> Tuple[str, Any] | None:
     if isinstance(index, pd.CategoricalIndex):
         return _find_null_in_categorical_index(index) or _find_null_in_index_name(index)
     if _is_sanitizable_dtype(index.dtype):
-        return _find_null_in_plain_index_labels(index) or _find_null_in_index_name(index)
+        return _find_null_in_plain_index_labels(index) or _find_null_in_index_name(
+            index
+        )
     return _find_null_in_index_name(index)
 
 
@@ -158,8 +162,7 @@ def _sanitize_multiindex(index: pd.MultiIndex) -> pd.Index:
 def _escape_categories(index: pd.CategoricalIndex) -> pd.Index:
     """Escape CategoricalIndex categories or fall back to object values."""
     new_categories = [
-        _sanitize_label(cat, "CategoricalIndex category")
-        for cat in index.categories
+        _sanitize_label(cat, "CategoricalIndex category") for cat in index.categories
     ]
     if len(set(new_categories)) == len(new_categories):
         return index.rename_categories(new_categories)
@@ -294,9 +297,7 @@ def _validate_sheet_name_length(sheet_name: str) -> None:
 
 def _validate_sheet_name_characters(sheet_name: str) -> None:
     if _INVALID_SHEET_NAME_RE.search(sheet_name):
-        raise ValueError(
-            f"sheet_name contains invalid characters: {sheet_name!r}"
-        )
+        raise ValueError(f"sheet_name contains invalid characters: {sheet_name!r}")
 
 
 def _validate_sheet_name(sheet_name: Any) -> None:

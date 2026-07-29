@@ -527,7 +527,9 @@ def _process_fallback_mode(
                                     f"Series{series_id}_File{i:02d}_Processed.xlsx"
                                 )
                                 out_path = os.path.join(output_dir, out_name)
-                                spreadsheet_safety.write_excel_safely(processed_df, out_path, index=False)
+                                spreadsheet_safety.write_excel_safely(
+                                    processed_df, out_path, index=False
+                                )
                                 log.info(f"Wrote output: {out_path}")
 
                             summary_records.append(

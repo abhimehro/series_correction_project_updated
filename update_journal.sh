@@ -1,9 +1,9 @@
 mkdir -p .jules
 if [ ! -f .jules/bolt.md ]; then
-  touch .jules/bolt.md
+	touch .jules/bolt.md
 fi
 
-cat << 'INNER_EOF' >> .jules/bolt.md
+cat <<'INNER_EOF' >>.jules/bolt.md
 
 ## 2025-05-16 - Avoid np.nanmedian overhead when NaNs are explicitly invalidated
 **Learning:** `np.nanmedian` creates masks and copies internally to ignore `NaN` values, which introduces significant overhead (~3x slower than `np.median`). When processing `sliding_window_view` chunks where any window containing a `NaN` is subsequently explicitly assigned `np.nan` anyway, this overhead is entirely unnecessary.

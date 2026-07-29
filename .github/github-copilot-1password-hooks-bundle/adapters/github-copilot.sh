@@ -10,52 +10,49 @@
 #
 # Note: Copilot uses exit 0 for BOTH allow and deny. The decision is in the JSON.
 
-[[ -n "${_ADAPTER_COPILOT_LOADED:-}" ]] && return 0
+[[ -n ${_ADAPTER_COPILOT_LOADED-} ]] && return 0
 _ADAPTER_COPILOT_LOADED=1
 
 _ADAPTER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_ADAPTER_DIR}/_lib.sh"
 
 normalize_input() {
-    local raw_payload="$1"
+	local raw_payload="$1"
 
-    local cwd tool_name command workspace_roots workspace_roots_json
-    cwd=$(extract_json_string "$raw_payload" "cwd")
-    tool_name=$(extract_json_string "$raw_payload" "tool_name")
-    command=$(extract_json_string "$raw_payload" "command")
+	local cwd tool_name command workspace_roots_json
+	cwd=$(extract_json_string "$raw_payload" "cwd")
+	tool_name=$(extract_json_string "$raw_payload" "tool_name")
+	command=$(extract_json_string "$raw_payload" "command")
 
-    # Try workspace_roots array first if Copilot supports it, fall back to cwd
-    workspace_roots=$(parse_json_workspace_roots "$raw_payload")
-    if [[ -z "$workspace_roots" ]] && [[ -n "$cwd" ]]; then
-        workspace_roots="$cwd"
-    fi
-    workspace_roots_json=$(paths_to_json_array "$workspace_roots")
+	# Copilot currently provides cwd as the single workspace root.
+	# TODO: If Copilot adds multi-root workspace support, parse roots from the payload instead.
+	workspace_roots_json=$(paths_to_json_array "$cwd")
 
-    build_canonical_input \
-        "github-copilot" \
-        "before_shell_execution" \
-        "command" \
-        "$workspace_roots_json" \
-        "$cwd" \
-        "$command" \
-        "$tool_name" \
-        "$raw_payload"
+	build_canonical_input \
+		"github-copilot" \
+		"before_shell_execution" \
+		"command" \
+		"$workspace_roots_json" \
+		"$cwd" \
+		"$command" \
+		"$tool_name" \
+		"$raw_payload"
 }
 
 emit_output() {
-    local canonical_output="$1"
+	local canonical_output="$1"
 
-    local decision message
-    decision=$(get_decision "$canonical_output")
-    message=$(get_message "$canonical_output")
+	local decision message
+	decision=$(get_decision "$canonical_output")
+	message=$(get_message "$canonical_output")
 
-    if [[ "$decision" == "deny" ]]; then
-        local escaped_message
-        escaped_message=$(escape_json_string "$message")
-        echo "{\"continue\": false, \"stopReason\": \"${escaped_message}\"}"
-    else
-        echo "{\"continue\": true}"
-    fi
+	if [[ $decision == "deny" ]]; then
+		local escaped_message
+		escaped_message=$(escape_json_string "$message")
+		echo "{\"continue\": false, \"stopReason\": \"${escaped_message}\"}"
+	else
+		echo '{"continue": true}'
+	fi
 
-    return 0
+	return 0
 }

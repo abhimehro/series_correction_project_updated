@@ -1,8 +1,8 @@
 from unittest.mock import patch
-from openpyxl import Workbook
 
 import numpy as np
 import pandas as pd
+from openpyxl import Workbook
 
 from scripts.export_comparison_sheets import (
     _process_single_file,

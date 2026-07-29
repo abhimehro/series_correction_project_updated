@@ -7,9 +7,7 @@ from scripts.batch_correction import BatchConfig, batch_process
 
 
 @pytest.mark.usefixtures("mock_config_loader")
-def test_batch_process_routes_through_write_excel_safely(
-    mock_dependencies, mocker
-):
+def test_batch_process_routes_through_write_excel_safely(mock_dependencies, mocker):
     """The batch processor must route Excel exports through write_excel_safely
     and the sanitizer must escape formula-like payloads before to_excel is called.
     """
