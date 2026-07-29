@@ -1,3 +1,4 @@
+import csv
 from unittest.mock import patch
 
 import pandas as pd
@@ -89,3 +90,42 @@ def test_main_generic_exception(mock_read_csv, capsys):
     output = captured.out
 
     assert "An error occurred while generating Overview table content." in output
+
+
+def test_main_escapes_malicious_sensor_values(tmp_path, capsys):
+    """Overview CSV output must neutralize attacker-controlled fields."""
+    log_path = tmp_path / "correction_log.csv"
+    avg_path = tmp_path / "updated_averages.csv"
+
+    payload = "=SUM(1,1)"
+    df_log = pd.DataFrame(
+        {
+            "Series": ["=A"],
+            "Year_Pair_Outlier": ["1 (Y00) to 2 (Y01)"],
+            "Sensor": [payload],
+            "Original_Difference_Summary": [1.0],
+            "Calculated_Level_Shift": [1.0],
+        }
+    )
+    df_log.to_csv(log_path, index=False)
+
+    df_averages = pd.DataFrame(
+        {
+            "Series": ["=A", "=A"],
+            "Year_Num_YY": [0, 1],
+            "Beginning_Average": [10.0, 11.0],
+            "End_Average": [10.5, 11.5],
+        }
+    )
+    df_averages.to_csv(avg_path, index=False)
+
+    main(str(log_path), str(avg_path))
+    captured = capsys.readouterr()
+    output_lines = [line for line in captured.out.splitlines() if "=A" in line or payload in line]
+    assert output_lines
+
+    # The printed CSV line must start with a neutralized Series and Sensor.
+    data_line = output_lines[-1]
+    parsed = list(csv.reader([data_line]))[0]
+    assert parsed[0] == "'=A"
+    assert parsed[2] == "'" + payload

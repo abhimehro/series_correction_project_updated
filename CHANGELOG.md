@@ -4,6 +4,10 @@
 
 [Full Changelog](https://github.com/abhimehro/series_correction_project_updated/compare/v0.0.1...HEAD)
 
+**Security fixes:**
+
+- P0: Spreadsheet Formula Injection Vulnerability [\#279](https://github.com/abhimehro/series_correction_project_updated/issues/279)
+
 **Closed issues:**
 
 - Daily QA & Agentic Review — 2026-07-26 [\#292](https://github.com/abhimehro/series_correction_project_updated/issues/292)
@@ -35,6 +39,7 @@
 **Merged pull requests:**
 
 - ⚡ Auto-applied routine code health and linting fixes [\#299](https://github.com/abhimehro/series_correction_project_updated/pull/299) ([abhimehro](https://github.com/abhimehro))
+- ABHI-1518: Harden spreadsheet/CSV formula-injection protection [\#295](https://github.com/abhimehro/series_correction_project_updated/pull/295) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0 [\#294](https://github.com/abhimehro/series_correction_project_updated/pull/294) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Daily QA Review Summary for `series_correction_project_updated` [\#290](https://github.com/abhimehro/series_correction_project_updated/pull/290) ([abhimehro](https://github.com/abhimehro))
 - Jules Daily QA Minor Fixes [\#288](https://github.com/abhimehro/series_correction_project_updated/pull/288) ([abhimehro](https://github.com/abhimehro))
