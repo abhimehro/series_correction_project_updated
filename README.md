@@ -52,7 +52,7 @@ Manually identifying and correcting these discontinuities is time-consuming, sub
 - **Batch Processing:** Capable of processing multiple data files (`S<series>_Y<index>.txt`) efficiently based on series, year range, and river mile criteria (`batch_correction.py`).
 - **Command-Line Interface:** Provides a CLI tool (`seatek-correction`) for easy execution (`series_correction_cli.py`).
 - **Reporting:** Generates a summary CSV file (`Batch_Processing_Summary.csv`) and detailed logs (`processing_log.txt`).
-- **Testing & CI:** Includes unit tests (`tests/`) and a GitHub Actions workflow (`.github/workflows/python-tests.yml`) for automated testing.
+- **Testing & CI:** Includes unit tests under `scripts/tests/`. A GitHub Actions workflow (`.github/workflows/python-tests.yml`) exists but is currently disabled on the remote; run tests locally with `python3 -m pytest scripts/tests/ -v`.
 
 ## Installation
 
@@ -102,7 +102,8 @@ The primary way to use the tool is via the `seatek-correction` command-line inte
 ```bash
 seatek-correction --help
 Output:
-usage: seatek-correction [-h] [--series SERIES] --river-miles RIVER_MILES RIVER_MILES --years YEARS YEARS [--dry-run] [--config CONFIG_PATH] [--output OUTPUT_DIR] [--log LOG_FILE]
+usage: seatek-correction [-h] [--series SERIES] --river-miles RIVER_MILES RIVER_MILES
+                         --years YEARS YEARS [--dry-run]
 
 Run series correction batch processing on sensor data.
 
@@ -113,25 +114,20 @@ options:
                         Upstream and downstream river mile markers (e.g., 54.0 53.0). (required)
   --years YEARS YEARS   Start and end years of data to process (e.g., 1995 2014). (required)
   --dry-run             If set, process data without saving output files.
-  --config CONFIG_PATH  Path to the configuration JSON file. (default: scripts/config.json)
-  --output OUTPUT_DIR   Directory to save output files (default: data/output/).
-  --log LOG_FILE        Path to the log file (default: processing_log.txt).
 ```
 
-**Example: Process Series 26 data between river miles 53.0 and 54.0 for the years 1995 to 2014, using a custom configuration and saving output to ./corrected_output/.**
+Logging writes to `processing_log.txt` in the working directory. Configuration defaults come from `scripts/config.json` (loaded by the batch processor); there are no `--config` / `--output` / `--log` CLI flags today.
+
+**Example: Process Series 26 data between river miles 53.0 and 54.0 for the years 1995 to 2014.**
 
 ```bash
-# This command processes data for a specific series (26) within the given river mile range and years.
-# It uses a custom config file and directs output to a specific folder.
-seatek-correction --series 26 --river-miles 54.0 53.0 --years 1995 2014 --config custom_config.json --output ./corrected_output/
+seatek-correction --series 26 --river-miles 54.0 53.0 --years 1995 2014
 ```
 
-**Example (Dry Run for All Series): Perform a dry run (no files saved) for all series associated with river miles 53.0-54.0 between 1995-1996, logging to a specific file.**
+**Example (Dry Run for All Series): Perform a dry run (no files saved) for all series associated with river miles 53.0-54.0 between 1995-1996.**
 
 ```bash
-# This command simulates processing for all applicable series in the range without saving output files.
-# It's useful for checking which files would be processed and verifying logs.
-seatek-correction --series all --river-miles 54.0 53.0 --years 1995 1996 --dry-run --log dry_run.log
+seatek-correction --series all --river-miles 54.0 53.0 --years 1995 1996 --dry-run
 ```
 
 ## Configuration
@@ -178,13 +174,11 @@ The processing behavior is controlled by a JSON configuration file (default: `sc
 
 ### Sample Data
 
-**Status: Required**
+**Status: Included**
 
-This repository does not include sample `S<series>_Y<index>.txt` files due to data sensitivity or size. To run the processing and tests effectively, you must provide your own representative (anonymized if necessary) data files and place them in the `./data/` directory.
+The repository ships committed Series 26 and Series 27 `.txt` inputs under `./data/` (for example `data/S26_Y01.txt`, `data/S27_Y01.txt`). Corrected outputs are written under `./data/output/`.
 
-**Action Required**: Create files like `data/S26_Y01.txt`, `data/S27_Y01.txt`, etc., using your Seatek data, ensuring they match the required filename pattern and content format described above.
-
-**Importance**: Without these files in the `./data/` directory, the batch processing script will not find any input, and end-to-end testing cannot be performed.
+Real files are typically **headerless, multi-column** whitespace-delimited rows (multiple sensors plus trailing metadata), not a two-column `Time`/`Value` table. The two-column block above is a simplified illustration only.
 
 ## Methodology
 
@@ -197,12 +191,9 @@ The correction process involves sequentially detecting and correcting gaps, outl
 ```
 series_correction_project_updated/
 │
-├── data/                     # Input data directory (MUST ADD SAMPLE S<series>_Y<index>.txt FILES HERE)
-│   └── S26_Y01.txt           # Example required input file format
-│
-├── output/                   # Default directory for corrected data and reports
-│   └── S26_Y01_1995_CorrectedData.csv # Example output format
-│   └── Batch_Processing_Summary.csv   # Example summary output
+├── data/                     # Committed Series 26/27 .txt inputs
+│   ├── S26_Y01.txt           # Example input
+│   └── output/               # Corrected outputs and batch summary CSV
 │
 ├── scripts/                  # Source code package
 │   ├── __init__.py
@@ -212,11 +203,8 @@ series_correction_project_updated/
 │   ├── series_correction_cli.py
 │   ├── config.json           # Default configuration
 │   ├── river_mile_map.json   # Default mapping
-│   └── requirements.txt
-│
-├── tests/                    # Unit and integration tests
-│   ├── __init__.py
-│   └── test_batch_correction.py # Example test file
+│   ├── requirements.txt
+│   └── tests/                # Primary unit/integration suite (pytest)
 │   # (Add other test files like test_processor.py here)
 │
 ├── docs/                     # Documentation files
@@ -235,7 +223,7 @@ series_correction_project_updated/
 
 ## Testing
 
-This project uses pytest for testing.
+This project uses pytest for testing. The primary suite lives under `scripts/tests/`.
 
 1. Ensure development dependencies are installed (included in `pip install -e .` if requirements.txt includes them, or use a separate requirements-dev.txt).
 
@@ -248,16 +236,16 @@ This project uses pytest for testing.
 3. Run tests:
 
    ```bash
-   pytest
+   python3 -m pytest scripts/tests/ -v
    ```
 
 4. Run tests with coverage:
 
    ```bash
-   pytest --cov=scripts tests/
+   python3 -m pytest --cov=scripts scripts/tests/ -v
    ```
 
-(Note: Comprehensive testing, especially integration tests, requires the presence of sample data files in the `data/` directory.)
+Committed Series 26/27 sample inputs under `data/` are sufficient for most suite paths.
 
 ## Contributing
 
