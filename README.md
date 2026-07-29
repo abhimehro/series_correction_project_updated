@@ -52,7 +52,7 @@ Manually identifying and correcting these discontinuities is time-consuming, sub
 - **Batch Processing:** Capable of processing multiple data files (`S<series>_Y<index>.txt`) efficiently based on series, year range, and river mile criteria (`batch_correction.py`).
 - **Command-Line Interface:** Provides a CLI tool (`seatek-correction`) for easy execution (`series_correction_cli.py`).
 - **Reporting:** Generates a summary CSV file (`Batch_Processing_Summary.csv`) and detailed logs (`processing_log.txt`).
-- **Testing & CI:** Includes unit tests under `scripts/tests/`. A GitHub Actions workflow (`.github/workflows/python-tests.yml`) exists but is currently disabled on the remote; run tests locally with `python3 -m pytest scripts/tests/ -v`.
+- **Testing & CI:** Includes unit tests under `scripts/tests/`. A GitHub Actions workflow (`.github/workflows/python-tests.yml`) runs the test suite on `push` and `pull_request` to `main`.
 
 ## Installation
 

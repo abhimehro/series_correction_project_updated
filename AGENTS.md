@@ -22,10 +22,9 @@ CLI tool to detect and correct discontinuities (jumps, gaps, outliers) in Seatek
 
 - **`pandas<2.0` constraint is incompatible with Python 3.12**: The pinned `pandas<2.0` in `scripts/requirements.txt` cannot build from source on Python 3.12+. Install dependencies individually (without the upper bound) then install the package with `pip3 install --user --no-deps -e .`.
 - **Mocks**: `scripts/tests/test_batch_correction.py` uses `unittest.mock` (stdlib). No third-party `mock` package is required.
-- **Test status**: With the documented dependency install (which resolves to a current pandas, e.g. 3.x), `python3 -m pytest scripts/tests/ -v` collects **75** tests (including `test_batch_correction.py`).
+- **Test status**: The full suite passes with `python3 -m pytest scripts/tests/ -v`.
 - **Test path**: Primary suite is under `scripts/tests/`, not root `tests/` (root `tests/` only covers scaffolding helpers).
 - **Data files**: `.txt` sensor data files in `data/` are committed for Series 26 and 27. Output goes to `data/output/`.
-- **CI note**: The `Python Tests` GitHub Actions workflow (`.github/workflows/python-tests.yml`) is currently `disabled_manually` on the remote — local pytest remains the gate until it is re-enabled.
 - Use `python3` (not `python`) as the command.
 
 ### CodeScene review/salvage trigger
