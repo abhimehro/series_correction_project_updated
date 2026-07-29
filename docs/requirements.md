@@ -32,7 +32,7 @@
    - Complete batch processing in reasonable time frames
 
 2. **Compatibility Requirements**
-   - Support Python 3.8 or higher
+   - Support Python 3.10 or higher
    - Work with space or tab-delimited input files
    - Generate output in standard formats (CSV, Excel)
    - Maintain compatibility with existing data analysis workflows

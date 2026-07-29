@@ -58,7 +58,7 @@ Manually identifying and correcting these discontinuities is time-consuming, sub
 
 **Prerequisites:**
 
-- Python >= 3.8
+- Python >= 3.10
 - `pip` (Python package installer)
 - `git` (for cloning the repository)
 - (Optional: `virtualenv` or `conda` for environment management)

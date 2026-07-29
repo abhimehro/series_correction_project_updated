@@ -68,7 +68,7 @@ LICENSE = "MIT"
 # Package discovery / requirements
 # --------------------------------------------------------------------------- #
 PACKAGES = find_packages(where=".", include=["scripts", "scripts.*"])
-PYTHON_REQUIRES = ">=3.8"
+PYTHON_REQUIRES = ">=3.10"
 
 INSTALL_REQUIRES = parse_requirements()
 
@@ -127,8 +127,6 @@ def main() -> None:
             "Natural Language :: English",
             "Operating System :: OS Independent",
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
             "Topic :: Scientific/Engineering",

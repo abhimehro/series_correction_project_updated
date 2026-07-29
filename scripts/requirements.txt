@@ -7,7 +7,7 @@ openpyxl>=3.0,<4.0  # For reading/writing Excel files (optional, if needed by lo
 
 # Specify Python version (Note: This is informational in requirements.txt,
 # the actual enforcement happens in setup.py's python_requires)
-# Python >= 3.8
+# Python >= 3.10
 
 # --- Development and Testing Dependencies ---
 pytest>=6.0,<7.0  # Testing framework
