@@ -215,12 +215,9 @@ def detect_outliers(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         # ⚡ Bolt: Use np.median instead of np.nanmedian for a ~9x speedup.
-        # Windows containing NaNs return NaN, which perfectly matches the manual
-        # nullification logic below, avoiding redundant NaN-masking overhead.
+        # Windows containing NaNs automatically evaluate to NaN, fulfilling
+        # our required nullification behavior directly.
         rolling_median = np.median(windows, axis=1)
-
-    nan_counts = np.isnan(windows).sum(axis=1)
-    rolling_median[nan_counts > 0] = np.nan
 
     z_scores, valid_mask = _calculate_outlier_z_scores(
         values_np, rolling_median, window_size, threshold

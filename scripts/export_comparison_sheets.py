@@ -69,12 +69,10 @@ def _calculate_rolling_median(values_np, window_size):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         # ⚡ Bolt: Use np.median instead of np.nanmedian for a ~9x speedup.
-        # Windows containing NaNs return NaN, which perfectly matches the manual
-        # nullification logic below, avoiding redundant NaN-masking overhead.
+        # Windows containing NaNs automatically evaluate to NaN, fulfilling
+        # our required nullification behavior directly.
         rolling_median = np.median(windows_for_median, axis=1)
 
-    nan_counts = np.isnan(windows_for_median).sum(axis=1)
-    rolling_median[nan_counts > 0] = np.nan
     return rolling_median
 
 
@@ -172,7 +170,7 @@ def load_raw_file(raw_file):
             skip_blank_lines=True,
         )
         return _rename_raw_columns(raw_df)
-    except (OSError, ValueError):
+    except (IOError, ValueError):
         print(f"[WARN] Could not load raw file {raw_file}")
         return None
     except Exception:
@@ -183,7 +181,7 @@ def load_raw_file(raw_file):
 def load_processed_file(proc_file):
     try:
         return read_excel(proc_file)
-    except (OSError, ValueError):
+    except (IOError, ValueError):
         print(f"[WARN] Could not load processed file {proc_file}")
         return None
     except Exception:
