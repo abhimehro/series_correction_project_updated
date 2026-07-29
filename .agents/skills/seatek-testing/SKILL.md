@@ -7,7 +7,7 @@ description: How to install and test the seatek-series-correction package using 
 
 ## Environment
 
-- Pyenv root: `/home/ubuntu/.pyenv`
+- Pyenv root: `$HOME/.pyenv`
 - Required Python versions are installed under `~/.pyenv/versions` (3.9.21, 3.10.16, 3.11.11, 3.12.8).
 - The system `python3` is 3.12 and cannot install `pandas<2.0`; use `3.10` or `3.11` for this project.
 
@@ -21,7 +21,7 @@ export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
 ## Install in an isolated venv
 
 ```bash
-PYENV_VERSION=3.10.16 python -m venv /tmp/seatek-venv
+PYENV_VERSION=3.10.16 python3 -m venv /tmp/seatek-venv
 /tmp/seatek-venv/bin/pip install -r scripts/requirements.txt
 /tmp/seatek-venv/bin/pip install .
 ```
@@ -37,14 +37,14 @@ PYENV_VERSION=3.10.16 python -m venv /tmp/seatek-venv
 `pip install .` from a source tree on Python 3.9 may fail with a dependency-resolution error (`filelock>=3.20.3` requires Python >=3.10) rather than a clean `python_requires` message. To see the explicit `python_requires` rejection, build a wheel on 3.10 and install it with `--no-deps` under 3.9:
 
 ```bash
-PYENV_VERSION=3.10.16 python -m venv /tmp/build-venv
+PYENV_VERSION=3.10.16 python3 -m venv /tmp/build-venv
 /tmp/build-venv/bin/pip install wheel
-/tmp/build-venv/bin/python setup.py bdist_wheel -d /tmp/dist
-PYENV_VERSION=3.9.21 python -m venv /tmp/py39-venv
+/tmp/build-venv/bin/python3 setup.py bdist_wheel -d /tmp/dist
+PYENV_VERSION=3.9.21 python3 -m venv /tmp/py39-venv
 /tmp/py39-venv/bin/pip install --no-deps /tmp/dist/seatek_series_correction-*.whl
 ```
 
-Expected output contains: `Package 'seatek-correction' requires a different Python: 3.9.x not in '>=3.10'`.
+Expected output contains: `Package 'seatek-series-correction' requires a different Python: 3.9.x not in '>=3.10'`.
 
 ## Notes
 
