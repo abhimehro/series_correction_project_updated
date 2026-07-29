@@ -44,6 +44,7 @@
 - 🛡️ Sentinel: \[MEDIUM\] Fix Information Exposure in generate\_summary.py [\#301](https://github.com/abhimehro/series_correction_project_updated/pull/301) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Auto-applied routine code health and linting fixes [\#299](https://github.com/abhimehro/series_correction_project_updated/pull/299) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): docs sync, untrack junk, annotations [\#297](https://github.com/abhimehro/series_correction_project_updated/pull/297) ([cursor[bot]](https://github.com/apps/cursor))
+- ⚡ Bolt: Remove redundant manual NaN masking from numpy sliding windows [\#296](https://github.com/abhimehro/series_correction_project_updated/pull/296) ([abhimehro](https://github.com/abhimehro))
 - ABHI-1518: Harden spreadsheet/CSV formula-injection protection [\#295](https://github.com/abhimehro/series_correction_project_updated/pull/295) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.320.0 to 1.321.0 [\#294](https://github.com/abhimehro/series_correction_project_updated/pull/294) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Daily QA Review Summary for `series_correction_project_updated` [\#290](https://github.com/abhimehro/series_correction_project_updated/pull/290) ([abhimehro](https://github.com/abhimehro))
