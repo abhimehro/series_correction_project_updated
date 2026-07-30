@@ -1,8 +1,7 @@
 import hashlib
-import logging
 import os
-
-import ijson
+import hmac
+import secrets
 
 
 def generate_salt_and_hash(password: str) -> tuple[bytes, bytes]:
@@ -33,6 +32,22 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     if not user_record:
         return {"success": False, "error": "Invalid credentials"}
 
+    salt = user_record.get("salt")
+    stored_hash = user_record.get("hash")
+
+    if not salt or not stored_hash:
+        return {"success": False, "error": "Invalid credentials"}
+
+    computed_hash = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt, 100000
+    )
+
+    if hmac.compare_digest(computed_hash, stored_hash):
+        session_token = secrets.token_hex(32)
+        return {"success": True, "token": session_token}
+
+    return {"success": False, "error": "Invalid credentials"}
+
 
 def _is_json_array(file_obj):
     """Detect if the file object starts with a JSON array."""
@@ -40,18 +55,6 @@ def _is_json_array(file_obj):
         if char.strip():
             return char == b"["
     return False
-
-    # Verify the password
-    computed_hash = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, 100000
-    )
-
-    # Use hmac.compare_digest to prevent timing attacks
-    import hmac
-
-    if hmac.compare_digest(computed_hash, stored_hash):
-        session_token = secrets.token_hex(32)
-        return {"success": True, "token": session_token}
 
 
 def _parse_json_lines(file_obj):
