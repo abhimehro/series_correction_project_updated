@@ -9,7 +9,6 @@ The implementation has been aligned with the requirements asserted in
 scripts/tests/test_batch_correction.py.
 """
 
-
 # ---------------------------------------------------------------------------
 # Imports
 # ---------------------------------------------------------------------------
@@ -66,8 +65,8 @@ def _optional_import(path: str, fallback_msg: str):
     except ImportError:
         log.exception("Import error while loading %s", path)
         return None
-    except (SyntaxError, TypeError, ValueError) as err:
-        log.exception("Syntax or type error in %s: %s", path, err)
+    except (SyntaxError, TypeError, ValueError):
+        log.exception("Syntax or type error in %s", path)
         raise
 
 
@@ -144,10 +143,8 @@ def _get_data_directory(
         try:
             os.makedirs(default_data_dir, exist_ok=True)
             log.info(f"Created data directory: {default_data_dir}")
-        except OSError as e:
-            log.exception(
-                f"Cannot create default data directory {default_data_dir!r}: {e}"
-            )
+        except OSError:
+            log.exception(f"Cannot create default data directory {default_data_dir!r}")
             raise FileNotFoundError("Cannot create default data directory") from None
     elif not os.path.isdir(default_data_dir):
         raise FileNotFoundError("Default data directory not found")
@@ -197,6 +194,7 @@ def _determine_series_to_process(
                     try:
                         found.add(int(fname.split("_")[0][1:]))
                     except Exception:
+                        log.exception("Error extracting series number from filename %s", fname)
                         continue
             series_list = sorted(found)
             if river_miles:

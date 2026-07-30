@@ -33,7 +33,7 @@ if os.path.exists("data/output"):
     logger.info("\nChecking for other file types in data/output:")
     all_files = glob.glob(os.path.join("data/output", "*.*"))
     if all_files:
-        extensions = set(os.path.splitext(f)[1] for f in all_files)
+        extensions = {os.path.splitext(f)[1] for f in all_files}
         logger.info(f"File extensions found: {extensions}")
         for file in all_files:
             logger.info(f"  - {os.path.basename(file)}")

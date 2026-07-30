@@ -199,7 +199,7 @@ def apply_level_shift_correction(
 ):
     """Calculates and applies level shift correction for a single outlier."""
 
-    year_pair_str, sensor_name, orig_diff = outlier_info
+    year_pair_str, sensor_name, _orig_diff = outlier_info
     parsed_years = parse_year_pair(year_pair_str)
     if not parsed_years:
         return None

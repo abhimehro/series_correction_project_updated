@@ -1,11 +1,12 @@
-import pytest
 import numpy as np
 import pandas as pd
+
 from scripts.discontinuity_utils import (
     _calculate_normal_step,
     _is_valid_step,
-    _validate_gap_parameters
+    _validate_gap_parameters,
 )
+
 
 def test_calculate_normal_step_with_prior():
     time_col_arr = [0, 10, 20, 50, 60]
