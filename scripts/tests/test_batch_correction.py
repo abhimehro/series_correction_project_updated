@@ -366,12 +366,39 @@ def test_batch_process_data_dir_not_found(mock_dependencies):
         )
     # Ensure isdir was called for the default path
     # Accept both possible calls for isdir: data_dir and data_dir/output
+
     expected_calls = [
         ((expected_data_dir_inner,),),
         ((os.path.join(expected_data_dir_inner, "output"),),),
     ]
     actual_calls = mock_dependencies["isdir"].call_args_list
     assert any(call in actual_calls for call in expected_calls)
+
+def test_get_data_directory_creates_dir(mock_dependencies):
+    from scripts.batch_correction import _get_data_directory
+    import os
+    from unittest.mock import patch
+
+    config_data = {}
+    with patch("os.path.isdir", return_value=False), patch("os.makedirs") as mock_makedirs:
+        result = _get_data_directory(config_data, create_if_missing=True)
+        # Note: Depending on where __file__ is relative to the project root, the path changes.
+        # But we know it evaluates to something ending with /data.
+        assert mock_makedirs.called
+        args, kwargs = mock_makedirs.call_args
+        assert args[0].endswith("data")
+        assert kwargs.get("exist_ok") is True
+        assert result.endswith("data")
+
+def test_get_data_directory_creates_dir_oserror(mock_dependencies):
+    from scripts.batch_correction import _get_data_directory
+    from unittest.mock import patch
+    import os
+
+    config_data = {}
+    with patch("os.path.isdir", return_value=False), patch("os.makedirs", side_effect=OSError("Perm denied")):
+        with pytest.raises(FileNotFoundError, match="Cannot create default data directory"):
+            _get_data_directory(config_data, create_if_missing=True)
 
 
 def test_batch_process_skip_empty_file(mock_dependencies, caplog):
