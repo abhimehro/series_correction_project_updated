@@ -102,11 +102,18 @@ providing a consistent and efficient way to improve data quality.
    # conda activate seatek_corr
    ```
 
-3. **Install the package and its dependencies:** This command uses `setup.py` to
-   install the project, including the CLI tool and required libraries from
-   `requirements.txt`.
+3. **Install the package and its dependencies:** For normal use, install the
+   pinned runtime requirements first, then the project itself:
 
    ```bash
+   pip install -r scripts/requirements.txt
+   pip install -e .
+   ```
+
+   For development (tests, linting, etc.), install the dev requirements:
+
+   ```bash
+   pip install -r scripts/requirements-dev.txt
    pip install -e .
    ```
 
@@ -248,7 +255,8 @@ series_correction_project_updated/
 │   ├── series_correction_cli.py
 │   ├── config.json           # Default configuration
 │   ├── river_mile_map.json   # Default mapping
-│   ├── requirements.txt
+│   ├── requirements.txt      # Runtime dependencies (exact pins)
+│   ├── requirements-dev.txt  # Dev/test/lint dependencies
 │   └── tests/                # Primary unit/integration suite (pytest)
 │   # (Add other test files like test_processor.py here)
 │
@@ -271,11 +279,11 @@ series_correction_project_updated/
 This project uses pytest for testing. The primary suite lives under
 `scripts/tests/`.
 
-1. Ensure development dependencies are installed (included in `pip install -e .`
-   if requirements.txt includes them, or use a separate requirements-dev.txt).
+1. Ensure development dependencies are installed. These are listed in
+   `scripts/requirements-dev.txt`:
 
    ```bash
-   pip install pytest pytest-cov pytest-mock
+   pip install -r scripts/requirements-dev.txt
    ```
 
 2. Navigate to the project's root directory.
@@ -324,7 +332,7 @@ Alternatively, contact Abhi Mehrotra <AbhiMhrtr@pm.me>
 
 ## Acknowledgements
 
-- **Libraries**: pandas, numpy, click
+- **Libraries**: pandas, numpy, openpyxl
 - **Testing**: pytest
 - **Guidance**: Audit report and best practices.
 - **Support**: Baton Rouge Community College (BRCC), Louisiana State University
@@ -351,8 +359,8 @@ Based on the audit report and potential enhancements:
 - **Performance**: Profile and optimize processing for very large datasets if
   needed.
 - **Packaging**: Consider using pyproject.toml for modern packaging standards.
-- **Dependency Pinning**: Provide a pinned requirements.txt for reproducible
-  environments.
+- **Dependency Pinning**: Runtime and dev dependencies are pinned with exact
+  `==` versions in `scripts/requirements.txt` and `scripts/requirements-dev.txt`.
 
 ## Workflow for Efficient Batch Processing, QA, and Visualization Updates (2025)
 
