@@ -10,6 +10,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-07-29 [\#306](https://github.com/abhimehro/series_correction_project_updated/issues/306)
 - Daily QA & Agentic Review — 2026-07-28 [\#302](https://github.com/abhimehro/series_correction_project_updated/issues/302)
 - \[repo-health\] Re-enable Python Tests workflow \(disabled\_manually\) [\#298](https://github.com/abhimehro/series_correction_project_updated/issues/298)
 - Daily QA & Agentic Review — 2026-07-26 [\#292](https://github.com/abhimehro/series_correction_project_updated/issues/292)
