@@ -135,10 +135,12 @@ def parse_sensor_index(sensor_name):
     return sensor_idx
 
 
-def find_year_files(raw_file_map, prev_yy, next_yy):
+def find_year_files(raw_file_map, prev_yy, next_yy, sorted_series_ids=None):
     # Preserve deterministic series preference (S26 before S27) regardless of
     # filesystem/os.listdir ordering.
-    for series_id in sorted(raw_file_map):
+    if sorted_series_ids is None:
+        sorted_series_ids = sorted(raw_file_map)
+    for series_id in sorted_series_ids:
         year_files = raw_file_map.get(series_id, {})
         if prev_yy in year_files and next_yy in year_files:
             return series_id, year_files[prev_yy], year_files[next_yy]
@@ -159,7 +161,9 @@ def output_file_name(input_file):
     return os.path.basename(input_file).replace(".txt", "_refined_corrected.csv")
 
 
-def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
+def apply_level_shift_correction(
+    outlier_info, raw_file_map, raw_dataframes, sorted_series_ids=None
+):
     """Calculates and applies level shift correction for a single outlier."""
 
     year_pair_str, sensor_name, orig_diff = outlier_info
@@ -172,7 +176,9 @@ def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
         return None
 
     prev_yy, next_yy = parsed_years
-    series_id, prev_file, next_file = find_year_files(raw_file_map, prev_yy, next_yy)
+    series_id, prev_file, next_file = find_year_files(
+        raw_file_map, prev_yy, next_yy, sorted_series_ids
+    )
 
     if not series_id:
         return None
@@ -231,13 +237,14 @@ def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, outp
 
 
 def _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections):
+    sorted_series_ids = sorted(raw_file_map)
     for year_pair, sensor, diff in zip(
         outliers_df["Year_Pair"].to_numpy(),
         outliers_df["Sensor"].to_numpy(),
         outliers_df["Difference"].to_numpy(),
     ):
         result = apply_level_shift_correction(
-            (year_pair, sensor, diff), raw_file_map, raw_dataframes
+            (year_pair, sensor, diff), raw_file_map, raw_dataframes, sorted_series_ids
         )
         if result:
             applied_corrections.append(result)
