@@ -1,4 +1,5 @@
 import json
+from unittest import mock
 
 from dummy_todos import authenticate, generate_salt_and_hash, parse_large_json
 
@@ -17,8 +18,7 @@ def test_parse_large_json_lines(tmp_path):
     file_path = tmp_path / "data.jsonl"
     data = [{"id": 1}, {"id": 2}, {"id": 3}]
     with open(file_path, "w") as f:
-        for item in data:
-            f.write(json.dumps(item) + "\n")
+        f.writelines(json.dumps(item) + "\n" for item in data)
 
     result = list(parse_large_json(file_path))
     assert result == data
@@ -63,3 +63,15 @@ def test_is_json_array_infinite_loop(tmp_path):
     with open(file_path, "rb") as f:
         # Should return False after hitting the maximum read limit
         assert _is_json_array(f) is False
+
+
+def test_parse_large_json_fallback(tmp_path):
+    file_path = tmp_path / "data.json"
+    data = [{"id": 1}, {"id": 2}, {"id": 3}]
+    with open(file_path, "w") as f:
+        json.dump(data, f)
+
+    with mock.patch.dict("sys.modules", {"ijson": None}):
+        result = list(parse_large_json(file_path))
+
+    assert result == data
