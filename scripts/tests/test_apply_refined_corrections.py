@@ -8,6 +8,7 @@ from scripts.apply_refined_corrections import (
     apply_level_shift_correction,
     calculate_non_zero_average,
     load_identified_outliers,
+    parse_year_pair,
     output_file_name,
     save_corrected_files,
 )
@@ -202,3 +203,19 @@ def test_save_corrected_files_escapes_malicious_cells(tmp_path):
     assert len(rows[0]) == 2
     assert rows[0][1] == "'" + payload
     assert rows[1][1] == "safe"
+
+
+def test_parse_year_pair_valid_forward():
+    assert parse_year_pair("1995 (Y01) to 1996 (Y02)") == (1, 2)
+
+
+def test_parse_year_pair_valid_reverse():
+    assert parse_year_pair("1996 (Y02) to 1995 (Y01)") == (1, 2)
+
+
+def test_parse_year_pair_invalid_format():
+    assert parse_year_pair("1995 to 1996") is None
+
+
+def test_parse_year_pair_empty():
+    assert parse_year_pair("") is None
