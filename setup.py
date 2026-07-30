@@ -44,9 +44,8 @@ def parse_requirements(filename: str = "scripts/requirements.txt") -> list[str]:
             if not ln or ln.startswith("#"):
                 continue
             if ln.startswith("-r "):
-                # Recursively include referenced requirement files.
-                ref_path = req_path.parent / ln[2:].strip()
-                reqs.extend(parse_requirements(str(ref_path)))
+                # Skip include directives; this parser is only used for the
+                # runtime requirements file, which must not reference others.
                 continue
             # Strip inline comments (e.g. "package==1.0  # reason")
             if " #" in ln:
