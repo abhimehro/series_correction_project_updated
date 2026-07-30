@@ -1,0 +1,4 @@
+🎯 **What:** Removed the unused `from __future__ import annotations` import from `setup.py`.
+💡 **Why:** To improve code readability and maintainability by removing dead code. This ensures the codebase remains clean and adheres to good code health practices.
+✅ **Verification:** Verified by formatting the file with `black`, linting with `flake8`, checking for any other occurrences using `grep`, and running the full test suite with `pytest scripts/tests/ -v`.
+✨ **Result:** A cleaner `setup.py` file with no unused imports and all tests passing successfully.
