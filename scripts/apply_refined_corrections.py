@@ -109,9 +109,12 @@ def load_raw_dataframes(raw_file_map):
     return dataframes
 
 
+_YEAR_PAIR_REGEX = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
+
+
 def parse_year_pair(year_pair_str):
     """Parses the Year_Pair string into previous and next year numbers."""
-    pair_match = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", year_pair_str)
+    pair_match = _YEAR_PAIR_REGEX.match(year_pair_str)
     if not pair_match:
         return None
 
