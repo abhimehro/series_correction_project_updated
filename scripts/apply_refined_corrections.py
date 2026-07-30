@@ -161,9 +161,14 @@ def output_file_name(input_file):
     return os.path.basename(input_file).replace(".txt", "_refined_corrected.csv")
 
 
-def _calculate_and_apply_shift(
-    df_prev, df_next, sensor_idx, next_file, series_id, year_pair_str, sensor_name, orig_diff, prev_yy, next_yy
-):
+def _calculate_and_apply_shift(dfs, metadata, outlier_data):
+    df_prev, df_next = dfs
+    sensor_idx, next_file, series_id = metadata
+    outlier_info, parsed_years = outlier_data
+
+    year_pair_str, sensor_name, orig_diff = outlier_info
+    prev_yy, next_yy = parsed_years
+
     if not has_sensor_window(df_prev, df_next, sensor_idx):
         return None
 
@@ -213,8 +218,9 @@ def apply_level_shift_correction(
         df_next = raw_dataframes[next_file]
 
         return _calculate_and_apply_shift(
-            df_prev, df_next, sensor_idx, next_file, series_id,
-            year_pair_str, sensor_name, orig_diff, prev_yy, next_yy
+            (df_prev, df_next),
+            (sensor_idx, next_file, series_id),
+            (outlier_info, parsed_years),
         )
 
     except Exception:
