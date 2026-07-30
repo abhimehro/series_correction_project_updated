@@ -107,7 +107,7 @@ providing a consistent and efficient way to improve data quality.
 
    ```bash
    pip install -r scripts/requirements.txt
-   pip install -e .
+   pip install .
    ```
 
    For development (tests, linting, etc.), install the dev requirements:
