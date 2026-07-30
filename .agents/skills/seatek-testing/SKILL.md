@@ -10,7 +10,10 @@ description: How to install and test the seatek-series-correction package using 
 - Pyenv root: `$HOME/.pyenv`
 - Required Python versions are installed under `~/.pyenv/versions` (3.9.21,
   3.10.16, 3.11.11, 3.12.8).
-- Use `3.10` or `3.11` for this project; `setup.py` declares `python_requires=">=3.10"`.
+- Use `3.10` or `3.11` for this project. The GitHub Actions matrix tests these
+  versions and the exact wheel pins (`pandas==2.3.3`, `numpy==2.2.6`) are built
+  for them. `setup.py` declares `python_requires=">=3.10"`, so later versions may
+  work but are not continuously validated.
 
 ## One-time shell setup
 
@@ -53,7 +56,7 @@ pip install -e .
 ## Run tests
 
 ```bash
-python -m pytest scripts/tests/ -v
+python3 -m pytest scripts/tests/ -v
 ```
 
 Expected result: 114 passed.
@@ -61,8 +64,8 @@ Expected result: 114 passed.
 ## Run lint / format checks
 
 ```bash
-python -m black --check scripts
-python -m flake8 scripts/ --max-line-length=100
+python3 -m black --check scripts
+python3 -m flake8 scripts/ --max-line-length=100
 ```
 
 ## Verify the CLI
