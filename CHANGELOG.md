@@ -6,6 +6,7 @@
 
 **Security fixes:**
 
+- 🔒 Supply Chain: Pin and update dependencies to current versions [\#300](https://github.com/abhimehro/series_correction_project_updated/issues/300)
 - P0: Spreadsheet Formula Injection Vulnerability [\#279](https://github.com/abhimehro/series_correction_project_updated/issues/279)
 
 **Closed issues:**
@@ -41,6 +42,7 @@
 
 **Merged pull requests:**
 
+- fix\(deps\): pin runtime deps and split dev requirements \(ABHI-1591\) [\#308](https://github.com/abhimehro/series_correction_project_updated/pull/308) ([abhimehro](https://github.com/abhimehro))
 - Add Seatek testing skill [\#305](https://github.com/abhimehro/series_correction_project_updated/pull/305) ([abhimehro](https://github.com/abhimehro))
 - chore: bump minimum Python to 3.10 [\#304](https://github.com/abhimehro/series_correction_project_updated/pull/304) ([abhimehro](https://github.com/abhimehro))
 - ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\) [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303) ([abhimehro](https://github.com/abhimehro))

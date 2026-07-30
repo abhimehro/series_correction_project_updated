@@ -12,7 +12,7 @@ database, no Docker required. See `README.md` for full details.
 
 | Task                 | Command                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------- |
-| Install deps         | `pip3 install --user --no-deps -e .` (see caveats below)                            |
+| Install deps         | `pip3 install -r scripts/requirements-dev.txt && pip3 install -e .`                 |
 | Run tests            | `python3 -m pytest scripts/tests/ -v`                                               |
 | Run tests + coverage | `python3 -m pytest --cov=scripts scripts/tests/ -v`                                 |
 | Lint                 | `flake8 scripts/ --max-line-length=100`                                             |
@@ -22,10 +22,10 @@ database, no Docker required. See `README.md` for full details.
 
 ### Non-obvious caveats
 
-- **`pandas<2.0` constraint is incompatible with Python 3.12**: The pinned
-  `pandas<2.0` in `scripts/requirements.txt` cannot build from source on Python
-  3.12+. Install dependencies individually (without the upper bound) then
-  install the package with `pip3 install --user --no-deps -e .`.
+- **Runtime dependencies are pinned**: `scripts/requirements.txt` contains exact
+  `==` pins for `pandas`, `numpy`, and `openpyxl`. Dev/test tools live in
+  `scripts/requirements-dev.txt` and are not included in the package's runtime
+  `install_requires`.
 - **Mocks**: `scripts/tests/test_batch_correction.py` uses `unittest.mock`
   (stdlib). No third-party `mock` package is required.
 - **Test status**: The full suite passes with

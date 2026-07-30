@@ -3,8 +3,8 @@ Setup script for the Seatek Series Correction Project.
 
 Typical usage
 -------------
-• Install editable (development):  python -m pip install -e .
-• Install normally:               python -m pip install .
+• Install runtime only:           python -m pip install .
+• Install editable (development):  python -m pip install -r scripts/requirements-dev.txt -e .
 • Build distribution:             python -m build
 • Show help / commands:           python setup.py --help
 """
@@ -23,9 +23,11 @@ from setuptools import find_packages, setup
 # --------------------------------------------------------------------------- #
 def parse_requirements(filename: str = "scripts/requirements.txt") -> list[str]:
     """
-    Read a pip‐style requirements file.
+    Read a pip-style runtime requirements file.
 
-    Returns an empty list (with a warning) if the file does not exist.
+    Skips blank/comment lines and strips inline comments so each line is a
+    valid PEP 508 requirement. Returns an empty list (with a warning) if the
+    file does not exist.
     """
     req_path = Path(filename)
 
@@ -35,9 +37,21 @@ def parse_requirements(filename: str = "scripts/requirements.txt") -> list[str]:
         )
         return []
 
+    reqs: list[str] = []
     with req_path.open(encoding="utf-8") as f:
-        line_iter = (line.strip() for line in f)
-        return [ln for ln in line_iter if ln and not ln.startswith("#")]
+        for raw in f:
+            ln = raw.strip()
+            if not ln or ln.startswith("#"):
+                continue
+            if ln.startswith("-r "):
+                # Skip include directives; this parser is only used for the
+                # runtime requirements file, which must not reference others.
+                continue
+            # Strip inline comments (e.g. "package==1.0  # reason")
+            if " #" in ln:
+                ln = ln.split(" #", 1)[0].strip()
+            reqs.append(ln)
+    return reqs
 
 
 def read_long_description(filename: str = "README.md") -> str:
@@ -70,10 +84,10 @@ LICENSE = "MIT"
 PACKAGES = find_packages(where=".", include=["scripts", "scripts.*"])
 PYTHON_REQUIRES = ">=3.10"
 
-INSTALL_REQUIRES = parse_requirements()
+INSTALL_REQUIRES = parse_requirements("scripts/requirements.txt")
 
 # Validate core deps are listed
-required_core = {"pandas", "numpy", "click", "openpyxl", "ijson"}
+required_core = {"pandas", "numpy", "openpyxl"}
 missing_core = required_core - {
     ln.split("==")[0].split("<")[0].split(">")[0] for ln in INSTALL_REQUIRES
 }
