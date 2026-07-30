@@ -180,7 +180,7 @@ def _get_series_from_all(
         series_list = sorted(selected)
         log.info(f"Series selected from river miles {river_miles} ➜ {series_list}")
     elif sensor_to_rm_map:
-        series_list = sorted(int(s) for s in sensor_to_rm_map)
+        series_list = sorted(int(s) for s in sensor_to_rm_map.keys())
         log.info(f"Selecting every series in SENSOR_TO_RIVER map: {series_list}")
     else:
         found = set()
