@@ -1,8 +1,5 @@
 import hashlib
-import logging
 import os
-
-import ijson
 
 
 def generate_salt_and_hash(password: str) -> tuple[bytes, bytes]:
