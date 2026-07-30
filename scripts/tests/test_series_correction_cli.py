@@ -101,6 +101,7 @@ def test_main_batch_process_exception(monkeypatch):
         cli.main()
     assert excinfo.value.code == 1
 
+
 def test_main_batch_process_value_error(monkeypatch):
     monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
 
