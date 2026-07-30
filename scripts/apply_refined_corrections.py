@@ -161,6 +161,31 @@ def output_file_name(input_file):
     return os.path.basename(input_file).replace(".txt", "_refined_corrected.csv")
 
 
+def _calculate_and_apply_shift(
+    df_prev, df_next, sensor_idx, next_file, series_id, year_pair_str, sensor_name, orig_diff, prev_yy, next_yy
+):
+    if not has_sensor_window(df_prev, df_next, sensor_idx):
+        return None
+
+    prev_avg = calculate_non_zero_average(df_prev.iloc[-5:, sensor_idx])
+    next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
+    shift = prev_avg - next_avg
+
+    df_next[sensor_idx] = pd.to_numeric(df_next[sensor_idx], errors="coerce") + shift
+    output_name = output_file_name(next_file)
+
+    return {
+        "Series": series_id,
+        "Year_Pair_Outlier": year_pair_str,
+        "Sensor": sensor_name,
+        "Original_Difference_Summary": orig_diff,
+        "Calculated_Level_Shift": shift,
+        "Correction_Type": "Level Shift",
+        "File_Corrected": output_name,
+        "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
+    }
+
+
 def apply_level_shift_correction(
     outlier_info, raw_file_map, raw_dataframes, sorted_series_ids=None
 ):
@@ -187,28 +212,10 @@ def apply_level_shift_correction(
         df_prev = raw_dataframes[prev_file]
         df_next = raw_dataframes[next_file]
 
-        if not has_sensor_window(df_prev, df_next, sensor_idx):
-            return None
-
-        prev_avg = calculate_non_zero_average(df_prev.iloc[-5:, sensor_idx])
-        next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
-        shift = prev_avg - next_avg
-
-        df_next[sensor_idx] = (
-            pd.to_numeric(df_next[sensor_idx], errors="coerce") + shift
+        return _calculate_and_apply_shift(
+            df_prev, df_next, sensor_idx, next_file, series_id,
+            year_pair_str, sensor_name, orig_diff, prev_yy, next_yy
         )
-        output_name = output_file_name(next_file)
-
-        return {
-            "Series": series_id,
-            "Year_Pair_Outlier": year_pair_str,
-            "Sensor": sensor_name,
-            "Original_Difference_Summary": orig_diff,
-            "Calculated_Level_Shift": shift,
-            "Correction_Type": "Level Shift",
-            "File_Corrected": output_name,
-            "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
-        }
 
     except Exception:
         print(
