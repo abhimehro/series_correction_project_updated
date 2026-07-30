@@ -1,3 +1,0 @@
-This error looks like an infrastructure failure, not a code problem.
-"Error creating PR review request: SessionModelError: You've reached your additional usage limit for your plan. Go to https://github.com/settings/copilot/features for more details."
-The CI check failure was caused by the GitHub Copilot API usage limit being reached for the Copilot PR Reviewer action.
