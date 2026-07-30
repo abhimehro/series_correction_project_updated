@@ -42,6 +42,7 @@
 
 **Merged pull requests:**
 
+- Update seatek-testing skill for runtime/dev dependency split [\#309](https://github.com/abhimehro/series_correction_project_updated/pull/309) ([abhimehro](https://github.com/abhimehro))
 - fix\(deps\): pin runtime deps and split dev requirements \(ABHI-1591\) [\#308](https://github.com/abhimehro/series_correction_project_updated/pull/308) ([abhimehro](https://github.com/abhimehro))
 - Add Seatek testing skill [\#305](https://github.com/abhimehro/series_correction_project_updated/pull/305) ([abhimehro](https://github.com/abhimehro))
 - chore: bump minimum Python to 3.10 [\#304](https://github.com/abhimehro/series_correction_project_updated/pull/304) ([abhimehro](https://github.com/abhimehro))
