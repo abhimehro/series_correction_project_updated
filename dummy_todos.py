@@ -1,8 +1,7 @@
 import hashlib
-import logging
 import os
-
-import ijson
+import secrets
+import hmac
 
 
 def generate_salt_and_hash(password: str) -> tuple[bytes, bytes]:
@@ -33,13 +32,8 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     if not user_record:
         return {"success": False, "error": "Invalid credentials"}
 
-
-def _is_json_array(file_obj):
-    """Detect if the file object starts with a JSON array."""
-    while char := file_obj.read(1):
-        if char.strip():
-            return char == b"["
-    return False
+    salt = user_record.get("salt")
+    stored_hash = user_record.get("hash")
 
     # Verify the password
     computed_hash = hashlib.pbkdf2_hmac(
@@ -47,11 +41,23 @@ def _is_json_array(file_obj):
     )
 
     # Use hmac.compare_digest to prevent timing attacks
-    import hmac
-
     if hmac.compare_digest(computed_hash, stored_hash):
         session_token = secrets.token_hex(32)
         return {"success": True, "token": session_token}
+
+    return {"success": False, "error": "Invalid credentials"}
+
+
+def _is_json_array(file_obj, max_read=1024):
+    """Detect if the file object starts with a JSON array."""
+    bytes_read = 0
+    while char := file_obj.read(1):
+        if char.strip():
+            return char == b"["
+        bytes_read += 1
+        if bytes_read >= max_read:
+            break
+    return False
 
 
 def _parse_json_lines(file_obj):
@@ -77,7 +83,6 @@ def _parse_standard_json_ijson(file_obj, ijson_module):
             parser.close()
 
 
-# FIXME: This loop condition causes an infinite loop under certain inputs
 # BUG: Memory leak when parsing large JSON files resolved via ijson generator wrap.
 def parse_large_json(file_path: str):
     """Parses a large JSON file yielding items one by one."""
