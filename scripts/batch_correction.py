@@ -601,10 +601,10 @@ def _process_main_mode(
 
         except ProcessingError:
             status = "Failed (Processing Error)"
-            processed_df = pd.DataFrame()
+            processed_df = None
         except Exception:  # pragma: no cover
             status = "Failed (Unexpected Error)"
-            processed_df = pd.DataFrame()
+            processed_df = None
 
         summary_records.append(
             {
@@ -613,7 +613,11 @@ def _process_main_mode(
                 "Y-Index": yi,
                 "Filename": fname,
                 "Status": status,
-                "Records": len(processed_df) if not processed_df.empty else 0,
+                "Records": (
+                    len(processed_df)
+                    if processed_df is not None and not processed_df.empty
+                    else 0
+                ),
             }
         )
 
