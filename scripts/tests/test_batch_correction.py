@@ -635,3 +635,69 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
+import pytest
+from scripts.batch_correction import _process_fallback_mode
+import pandas as pd
+from unittest.mock import patch, MagicMock
+
+def test_process_fallback_mode_coverage(tmp_path):
+    series_to_process = [1]
+    config_data = {
+        "series": {
+            "1": {
+                "raw_data": ["file1.txt"]
+            }
+        },
+        "defaults": {"a": 1},
+        "processor_config": {"b": 2},
+    }
+
+    mock_df = pd.DataFrame({"A": [1, 2, 3]})
+    processed_df = pd.DataFrame({"A": [1, 2, 3], "Processed": [True, True, True]})
+
+    with patch("scripts.batch_correction._load_raw_data", return_value=mock_df) as mock_load, \
+         patch("scripts.batch_correction.processor.process_data", return_value=processed_df) as mock_process, \
+         patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as mock_write, \
+         patch("scripts.batch_correction.log") as mock_log:
+
+        result_df = _process_fallback_mode(
+            series_to_process=series_to_process,
+            config_data=config_data,
+            output_dir=str(tmp_path),
+            dry_run=False
+        )
+
+        assert len(result_df) == 1
+        assert result_df.iloc[0]["Series"] == 1
+        assert result_df.iloc[0]["Filename"] == "file1.txt"
+        assert result_df.iloc[0]["Status"] == "Fallback Processed"
+
+        mock_load.assert_called_once_with("file1.txt")
+        mock_process.assert_called_once()
+        mock_write.assert_called_once()
+
+def test_process_fallback_mode_coverage_error(tmp_path):
+    series_to_process = [1]
+    config_data = {
+        "series": {
+            "1": {
+                "raw_data": ["file1.txt"]
+            }
+        },
+        "defaults": {"a": 1},
+        "processor_config": {"b": 2},
+    }
+
+    with patch("scripts.batch_correction._load_raw_data", side_effect=Exception("Test error")) as mock_load, \
+         patch("scripts.batch_correction.log") as mock_log:
+
+        result_df = _process_fallback_mode(
+            series_to_process=series_to_process,
+            config_data=config_data,
+            output_dir=str(tmp_path),
+            dry_run=False
+        )
+
+        assert len(result_df) == 1
+        assert result_df.iloc[0]["Series"] == 1
+        assert result_df.iloc[0]["Status"] == "Failed (Processing Error)"
