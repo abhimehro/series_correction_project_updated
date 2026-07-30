@@ -505,6 +505,10 @@ def _process_fallback_mode(
 ) -> pd.DataFrame:
     summary_records = []
     if "series" in config_data and processor is not None:
+        processor_config = {
+            **config_data.get("defaults", {}),
+            **config_data.get("processor_config", {}),
+        }
         for series_id in series_to_process:
             str_series_id = str(series_id)
             if str_series_id in config_data.get("series", {}):
@@ -516,10 +520,6 @@ def _process_fallback_mode(
                     try:
                         df = _load_raw_data(file_path)
                         if not df.empty:
-                            processor_config = {
-                                **config_data.get("defaults", {}),
-                                **config_data.get("processor_config", {}),
-                            }
                             processed_df = processor.process_data(df, processor_config)
 
                             if not dry_run:
