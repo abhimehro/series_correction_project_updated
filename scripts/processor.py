@@ -5,8 +5,6 @@ Implements algorithms for detecting and correcting discontinuities
 in Seatek sensor time-series data based on the audit report suggestions.
 """
 
-from __future__ import annotations
-
 import logging
 import warnings
 from typing import Any
