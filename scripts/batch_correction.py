@@ -121,16 +121,13 @@ def _get_data_directory(
     data_dir_key = "RAW_DATA_DIR"
     data_dir = config_data.get(data_dir_key)
 
-    # Use configured directory if it exists
     if data_dir and os.path.isdir(data_dir):
         log.info(f"Using data directory from config ({data_dir_key}): {data_dir}")
         return data_dir
 
-    # Compute default directory - use package root if possible
     package_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     default_data_dir = os.path.join(package_root, "data")
 
-    # Log warning about fallback
     if data_dir:
         log.warning(
             f"Configured path {data_dir} (from {data_dir_key}) is not a directory – defaulting to {default_data_dir}"
@@ -140,20 +137,19 @@ def _get_data_directory(
             f"Key {data_dir_key} not found in config – defaulting data directory to {default_data_dir}"
         )
 
-    # Create directory if requested
-    if create_if_missing and not os.path.isdir(default_data_dir):
-        try:
-            os.makedirs(default_data_dir, exist_ok=True)
-            log.info(f"Created data directory: {default_data_dir}")
-        except OSError as e:
-            log.exception(
-                f"Cannot create default data directory {default_data_dir!r}: {e}"
-            )
-            raise FileNotFoundError("Cannot create default data directory") from None
-    elif not os.path.isdir(default_data_dir):
+    if os.path.isdir(default_data_dir):
+        return default_data_dir
+
+    if not create_if_missing:
         raise FileNotFoundError("Default data directory not found")
 
-    return default_data_dir
+    try:
+        os.makedirs(default_data_dir, exist_ok=True)
+        log.info(f"Created data directory: {default_data_dir}")
+        return default_data_dir
+    except OSError as e:
+        log.exception(f"Cannot create default data directory {default_data_dir!r}: {e}")
+        raise FileNotFoundError("Cannot create default data directory") from None
 
 
 def _determine_series_to_process(
