@@ -73,15 +73,12 @@ def _parse_standard_json_fallback(file_obj):
 def _parse_standard_json_ijson(file_obj, ijson_module):
     parser = ijson_module.items(file_obj, "item")
     try:
-        for item in parser:
-            yield item
+        yield from parser
     finally:
         if hasattr(parser, "close"):
             parser.close()
 
 
-# FIXME: This loop condition causes an infinite loop under certain inputs
-# BUG: Memory leak when parsing large JSON files resolved via ijson generator wrap.
 def parse_large_json(file_path: str):
     """Parses a large JSON file yielding items one by one."""
     try:
@@ -89,13 +86,15 @@ def parse_large_json(file_path: str):
     except ImportError:
         ijson = None
 
-    f = open(file_path, "rb")
-    try:
+    with open(file_path, "rb") as f:
         if str(file_path).endswith(".jsonl"):
             yield from _parse_json_lines(f)
         elif not ijson:
             yield from _parse_standard_json_fallback(f)
         else:
-            yield from _parse_standard_json_ijson(f, ijson)
-    finally:
-        f.close()
+            is_array = _is_json_array(f)
+            f.seek(0)
+            if is_array:
+                yield from _parse_standard_json_ijson(f, ijson)
+            else:
+                yield from _parse_standard_json_fallback(f)
