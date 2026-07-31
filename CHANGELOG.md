@@ -51,6 +51,7 @@
 - 🧹 \[Code Health\] Refactor detect\_outliers function for readability [\#318](https://github.com/abhimehro/series_correction_project_updated/pull/318) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[Code Health\] Remove unused future annotations import [\#317](https://github.com/abhimehro/series_correction_project_updated/pull/317) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add tests for parse\_sensor\_index [\#316](https://github.com/abhimehro/series_correction_project_updated/pull/316) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix broken authentication logic in dummy\_todos.py [\#315](https://github.com/abhimehro/series_correction_project_updated/pull/315) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Remove unused annotations import [\#314](https://github.com/abhimehro/series_correction_project_updated/pull/314) ([abhimehro](https://github.com/abhimehro))
 - 🧪 \[testing improvement\] Add test for \_safe\_round exception handling [\#312](https://github.com/abhimehro/series_correction_project_updated/pull/312) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add unit tests for discontinuity\_utils.py [\#311](https://github.com/abhimehro/series_correction_project_updated/pull/311) ([abhimehro](https://github.com/abhimehro))
