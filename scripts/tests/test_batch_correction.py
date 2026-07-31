@@ -632,3 +632,69 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
+
+def test_determine_series_to_process_invalid_explicit():
+    from scripts.batch_correction import _determine_series_to_process
+    with pytest.raises(ValueError, match="Invalid series selection"):
+        _determine_series_to_process("invalid", None, {}, "/fake/dir")
+
+def test_determine_series_to_process_filter_by_rm():
+    from scripts.batch_correction import _determine_series_to_process
+    config = {"SENSOR_TO_RIVER": {26: 54.0, 27: 53.0}}
+    result = _determine_series_to_process("all", [54.0], config, "/fake/dir")
+    assert result == [26]
+
+def test_determine_series_to_process_scan_dir(monkeypatch):
+    import os
+
+    from scripts.batch_correction import _determine_series_to_process
+    monkeypatch.setattr(os, "listdir", lambda d: ["S26_Y01.txt", "S27_Y01.txt"])
+    result = _determine_series_to_process("all", None, {}, "/fake/dir")
+    assert result == [26, 27]
+
+def test_determine_series_to_process_scan_dir_invalid(monkeypatch, caplog):
+    import os
+
+    from scripts.batch_correction import _determine_series_to_process
+    monkeypatch.setattr(os, "listdir", lambda d: ["Sxx_Y01.txt"])
+    result = _determine_series_to_process("all", None, {}, "/fake/dir")
+    assert result == []
+
+def test_determine_series_to_process_scan_dir_exception(monkeypatch, caplog):
+    import os
+
+    from scripts.batch_correction import _determine_series_to_process
+    monkeypatch.setattr(os, "listdir", lambda d: ["S26_Y01.txt", "Sbad_Y01.txt"])
+    result = _determine_series_to_process("all", None, {}, "/fake/dir")
+    assert result == [26]
+    assert "Error extracting series number" in caplog.text
+
+def test_determine_series_to_process_filter_by_rm_not_allowed():
+    from scripts.batch_correction import _determine_series_to_process
+    config = {"SENSOR_TO_RIVER": {26: 54.0, 27: 53.0}}
+    result = _determine_series_to_process([26], [53.0], config, "/fake/dir")
+    assert result == []
+
+def test_determine_series_to_process_invalid_sensor_in_map(caplog):
+    from scripts.batch_correction import _determine_series_to_process
+    config = {"SENSOR_TO_RIVER": {"bad": 54.0}}
+    result = _determine_series_to_process("all", [54.0], config, "/fake/dir")
+    assert result == []
+    assert "Invalid sensor id in" in caplog.text
+
+def test_determine_series_to_process_get_all_series_from_map(caplog):
+    caplog.set_level("INFO")
+    from scripts.batch_correction import _determine_series_to_process
+    config = {"SENSOR_TO_RIVER": {26: 54.0, 27: 53.0}}
+    result = _determine_series_to_process("all", None, config, "/fake/dir")
+    assert result == [26, 27]
+    assert "Selecting every series" in caplog.text
+
+def test_determine_series_to_process_scan_dir_with_rm(monkeypatch, caplog):
+    import os
+
+    from scripts.batch_correction import _determine_series_to_process
+    monkeypatch.setattr(os, "listdir", lambda d: ["S26_Y01.txt"])
+    result = _determine_series_to_process("all", [54.0], {}, "/fake/dir")
+    assert result == [26]
+    assert "River miles provided but no map" in caplog.text
