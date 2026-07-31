@@ -5,8 +5,6 @@ Implements algorithms for detecting and correcting discontinuities
 in Seatek sensor time-series data based on the audit report suggestions.
 """
 
-from __future__ import annotations
-
 import logging
 import warnings
 from typing import Any
@@ -171,6 +169,40 @@ def detect_jumps(
     return jumps
 
 
+def _validate_outlier_inputs(n: int, window_size: int) -> bool:
+    if n < window_size:
+        log.debug(
+            "Not enough data points (< %d) for outlier detection with window size %d.",
+            n,
+            window_size,
+        )
+        return False
+    return True
+
+
+def _calculate_outlier_indices(
+    values_np: np.ndarray, window_size: int, threshold: float
+) -> list[int]:
+    pad_left = window_size // 2
+    pad_right = window_size - 1 - pad_left
+    padded_values = np.pad(
+        values_np, (pad_left, pad_right), mode="constant", constant_values=np.nan
+    )
+    windows = sliding_window_view(padded_values, window_shape=window_size)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        # ⚡ Bolt: Use np.median instead of np.nanmedian for a ~9x speedup.
+        # Windows containing NaNs automatically evaluate to NaN, fulfilling
+        # our required nullification behavior directly.
+        rolling_median = np.median(windows, axis=1)
+
+    z_scores, valid_mask = _calculate_outlier_z_scores(
+        values_np, rolling_median, window_size, threshold
+    )
+    outlier_mask = valid_mask & (z_scores > threshold)
+    return np.where(outlier_mask)[0].tolist()
+
+
 def detect_outliers(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -192,38 +224,11 @@ def detect_outliers(
         fewer than window_size data points exist or no outliers are found.
     """
     n = len(data)
-    if n < window_size:
-        log.debug(
-            "Not enough data points (< %d) for outlier detection with window size %d.",
-            n,
-            window_size,
-        )
+    if not _validate_outlier_inputs(n, window_size):
         return []
 
-    outliers = []
-    values = data[value_col]
-    values_np = values.astype(float).to_numpy()
-
-    # Calculate rolling median with NumPy sliding windows instead of Pandas
-    # rolling().median(), avoiding Series construction for large inputs.
-    pad_left = window_size // 2
-    pad_right = window_size - 1 - pad_left
-    padded_values = np.pad(
-        values_np, (pad_left, pad_right), mode="constant", constant_values=np.nan
-    )
-    windows = sliding_window_view(padded_values, window_shape=window_size)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        # ⚡ Bolt: Use np.median instead of np.nanmedian for a ~9x speedup.
-        # Windows containing NaNs automatically evaluate to NaN, fulfilling
-        # our required nullification behavior directly.
-        rolling_median = np.median(windows, axis=1)
-
-    z_scores, valid_mask = _calculate_outlier_z_scores(
-        values_np, rolling_median, window_size, threshold
-    )
-    outlier_mask = valid_mask & (z_scores > threshold)
-    outliers = np.where(outlier_mask)[0].tolist()
+    values_np = data[value_col].astype(float).to_numpy(copy=True)
+    outliers = _calculate_outlier_indices(values_np, window_size, threshold)
 
     if outliers:
         log.info(
