@@ -59,10 +59,10 @@ def main():
     except (OSError, ValueError) as e:
         logging.error("Known error in processing: %s", e)
         sys.exit(1)
-    except Exception as e:
-        logging.exception("Unexpected error in processing: %s", e)
+    except Exception:
+        logging.exception("Unexpected error in processing")
         sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
