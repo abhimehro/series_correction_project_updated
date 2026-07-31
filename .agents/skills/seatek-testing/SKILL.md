@@ -12,8 +12,8 @@ description: How to install and test the seatek-series-correction package using 
   3.10.16, 3.11.11, 3.12.8).
 - Use `3.10` or `3.11` for this project. The GitHub Actions matrix tests these
   versions and the exact wheel pins (`pandas==2.3.3`, `numpy==2.2.6`) are built
-  for them. `setup.py` declares `python_requires=">=3.10"`, so later versions may
-  work but are not continuously validated.
+  for them. `setup.py` declares `python_requires=">=3.10"`, so later versions
+  may work but are not continuously validated.
 
 ## One-time shell setup
 
