@@ -180,7 +180,6 @@ def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshol
             warnings.simplefilter("ignore", category=RuntimeWarning)
             cmads = np.median(np.abs(cw - cm), axis=1)
 
-        cmads[np.isnan(cw).sum(axis=1) > 0] = np.nan
         mads.append(cmads)
 
     m = np.concatenate(mads) if mads else np.array([])
