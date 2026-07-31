@@ -45,6 +45,7 @@
 - fix\(lint\): flake8 cleanup for discontinuity unit tests [\#334](https://github.com/abhimehro/series_correction_project_updated/pull/334) ([cursor[bot]](https://github.com/apps/cursor))
 - 🧹 \[code health improvement\] Remove unused logging import [\#330](https://github.com/abhimehro/series_correction_project_updated/pull/330) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Optimize finding year files by preventing redundant sorting [\#328](https://github.com/abhimehro/series_correction_project_updated/pull/328) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Code Health: Extract helper functions from \_determine\_series\_to\_process [\#327](https://github.com/abhimehro/series_correction_project_updated/pull/327) ([abhimehro](https://github.com/abhimehro))
 - ⚡ \[compile static regular expressions\] [\#325](https://github.com/abhimehro/series_correction_project_updated/pull/325) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[code health improvement\] Remove unused annotations import [\#324](https://github.com/abhimehro/series_correction_project_updated/pull/324) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Optimize regex compilation in year pair parsing [\#319](https://github.com/abhimehro/series_correction_project_updated/pull/319) ([abhimehro](https://github.com/abhimehro))
