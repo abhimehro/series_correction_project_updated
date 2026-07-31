@@ -9,7 +9,6 @@ The implementation has been aligned with the requirements asserted in
 scripts/tests/test_batch_correction.py.
 """
 
-from __future__ import annotations
 
 # ---------------------------------------------------------------------------
 # Imports
@@ -299,7 +298,7 @@ def _find_files_to_process(
     series_list: list[int],
     years: tuple[int, int],
     data_dir: str,
-    config_data: dict[str, Any] = None,
+    config_data: dict[str, Any] | None = None,
 ) -> list[tuple[int, int, int, str]]:
     """
     Discover S{series}_Y{index:02d}.txt files that correspond to the requested
@@ -401,8 +400,8 @@ def _load_raw_data(file_path):
     except pd.errors.EmptyDataError:
         log.debug(f"File {file_path} empty.")
         return pd.DataFrame()
-    except Exception as exc:
-        log.exception(f"Failed to load data from {file_path}: {exc}")
+    except Exception:
+        log.exception(f"Failed to load data from {file_path}")
         raise ProcessingError("Failed to load data from file") from None
 
 
@@ -419,8 +418,8 @@ def _load_and_enrich_config(config_path):
             log.warning(
                 f"Config file {config_path} not found – continuing with empty config."
             )
-        except Exception as exc:  # pragma: no cover
-            log.exception(f"Failed to load configuration: {exc}")
+        except Exception:  # pragma: no cover
+            log.exception("Failed to load configuration")
             raise ProcessingError("Failed to load configuration") from None
 
     _enrich_config_with_river_mappings(config_data)
@@ -446,8 +445,8 @@ def _ensure_output_directory(output_dir, dry_run):
         try:
             os.makedirs(output_dir, exist_ok=True)
             log.info(f"Created output directory {output_dir}")
-        except OSError as exc:
-            log.exception(f"Unable to create output directory: {exc}")
+        except OSError:
+            log.exception("Unable to create output directory")
             raise ProcessingError("Unable to create output directory") from None
 
 
