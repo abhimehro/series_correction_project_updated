@@ -109,12 +109,9 @@ def load_raw_dataframes(raw_file_map):
     return dataframes
 
 
-_YEAR_PAIR_REGEX = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
-
-
 def parse_year_pair(year_pair_str):
     """Parses the Year_Pair string into previous and next year numbers."""
-    pair_match = _YEAR_PAIR_REGEX.match(year_pair_str)
+    pair_match = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", year_pair_str)
     if not pair_match:
         return None
 
@@ -138,12 +135,10 @@ def parse_sensor_index(sensor_name):
     return sensor_idx
 
 
-def find_year_files(raw_file_map, prev_yy, next_yy, sorted_series_ids=None):
+def find_year_files(raw_file_map, prev_yy, next_yy):
     # Preserve deterministic series preference (S26 before S27) regardless of
     # filesystem/os.listdir ordering.
-    if sorted_series_ids is None:
-        sorted_series_ids = sorted(raw_file_map)
-    for series_id in sorted_series_ids:
+    for series_id in sorted(raw_file_map):
         year_files = raw_file_map.get(series_id, {})
         if prev_yy in year_files and next_yy in year_files:
             return series_id, year_files[prev_yy], year_files[next_yy]
@@ -164,39 +159,7 @@ def output_file_name(input_file):
     return os.path.basename(input_file).replace(".txt", "_refined_corrected.csv")
 
 
-def _calculate_and_apply_shift(dfs, metadata, outlier_data):
-    df_prev, df_next = dfs
-    sensor_idx, next_file, series_id = metadata
-    outlier_info, parsed_years = outlier_data
-
-    year_pair_str, sensor_name, orig_diff = outlier_info
-    prev_yy, next_yy = parsed_years
-
-    if not has_sensor_window(df_prev, df_next, sensor_idx):
-        return None
-
-    prev_avg = calculate_non_zero_average(df_prev.iloc[-5:, sensor_idx])
-    next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
-    shift = prev_avg - next_avg
-
-    df_next[sensor_idx] = pd.to_numeric(df_next[sensor_idx], errors="coerce") + shift
-    output_name = output_file_name(next_file)
-
-    return {
-        "Series": series_id,
-        "Year_Pair_Outlier": year_pair_str,
-        "Sensor": sensor_name,
-        "Original_Difference_Summary": orig_diff,
-        "Calculated_Level_Shift": shift,
-        "Correction_Type": "Level Shift",
-        "File_Corrected": output_name,
-        "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
-    }
-
-
-def apply_level_shift_correction(
-    outlier_info, raw_file_map, raw_dataframes, sorted_series_ids=None
-):
+def apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes):
     """Calculates and applies level shift correction for a single outlier."""
 
     year_pair_str, sensor_name, orig_diff = outlier_info
@@ -209,9 +172,7 @@ def apply_level_shift_correction(
         return None
 
     prev_yy, next_yy = parsed_years
-    series_id, prev_file, next_file = find_year_files(
-        raw_file_map, prev_yy, next_yy, sorted_series_ids
-    )
+    series_id, prev_file, next_file = find_year_files(raw_file_map, prev_yy, next_yy)
 
     if not series_id:
         return None
@@ -220,11 +181,28 @@ def apply_level_shift_correction(
         df_prev = raw_dataframes[prev_file]
         df_next = raw_dataframes[next_file]
 
-        return _calculate_and_apply_shift(
-            (df_prev, df_next),
-            (sensor_idx, next_file, series_id),
-            (outlier_info, parsed_years),
+        if not has_sensor_window(df_prev, df_next, sensor_idx):
+            return None
+
+        prev_avg = calculate_non_zero_average(df_prev.iloc[-5:, sensor_idx])
+        next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
+        shift = prev_avg - next_avg
+
+        df_next[sensor_idx] = (
+            pd.to_numeric(df_next[sensor_idx], errors="coerce") + shift
         )
+        output_name = output_file_name(next_file)
+
+        return {
+            "Series": series_id,
+            "Year_Pair_Outlier": year_pair_str,
+            "Sensor": sensor_name,
+            "Original_Difference_Summary": orig_diff,
+            "Calculated_Level_Shift": shift,
+            "Correction_Type": "Level Shift",
+            "File_Corrected": output_name,
+            "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
+        }
 
     except Exception:
         print(
@@ -253,14 +231,13 @@ def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, outp
 
 
 def _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections):
-    sorted_series_ids = sorted(raw_file_map)
     for year_pair, sensor, diff in zip(
         outliers_df["Year_Pair"].to_numpy(),
         outliers_df["Sensor"].to_numpy(),
         outliers_df["Difference"].to_numpy(),
     ):
         result = apply_level_shift_correction(
-            (year_pair, sensor, diff), raw_file_map, raw_dataframes, sorted_series_ids
+            (year_pair, sensor, diff), raw_file_map, raw_dataframes
         )
         if result:
             applied_corrections.append(result)

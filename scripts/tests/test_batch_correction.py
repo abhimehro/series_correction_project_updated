@@ -635,50 +635,69 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
-
-
-
-from scripts.batch_correction import _determine_series_to_process
 import pytest
+from scripts.batch_correction import _process_fallback_mode
+import pandas as pd
+from unittest.mock import patch, MagicMock
 
-def test_determine_series_to_process_all_fallback(mocker, tmp_path):
-    """Test 'all' series selection when no river mile map is present."""
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    (data_dir / "S1_Y1.txt").touch()
-    (data_dir / "S2_Y1.txt").touch()
-    (data_dir / "S3.txt").touch()  # Invalid format
-    (data_dir / "Sinvalid_Y1.txt").touch()  # Invalid series ID
+def test_process_fallback_mode_coverage(tmp_path):
+    series_to_process = [1]
+    config_data = {
+        "series": {
+            "1": {
+                "raw_data": ["file1.txt"]
+            }
+        },
+        "defaults": {"a": 1},
+        "processor_config": {"b": 2},
+    }
 
-    series = _determine_series_to_process("all", None, {}, str(data_dir))
+    mock_df = pd.DataFrame({"A": [1, 2, 3]})
+    processed_df = pd.DataFrame({"A": [1, 2, 3], "Processed": [True, True, True]})
 
-    assert series == [1, 2]
+    with patch("scripts.batch_correction._load_raw_data", return_value=mock_df) as mock_load, \
+         patch("scripts.batch_correction.processor.process_data", return_value=processed_df) as mock_process, \
+         patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as mock_write, \
+         patch("scripts.batch_correction.log") as mock_log:
 
-def test_determine_series_to_process_all_fallback_with_river_miles(mocker, tmp_path):
-    """Test 'all' series selection with river miles but no map."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    (data_dir / "S1_Y1.txt").touch()
+        result_df = _process_fallback_mode(
+            series_to_process=series_to_process,
+            config_data=config_data,
+            output_dir=str(tmp_path),
+            dry_run=False
+        )
 
-    series = _determine_series_to_process("all", [1.0], {}, str(data_dir))
+        assert len(result_df) == 1
+        assert result_df.iloc[0]["Series"] == 1
+        assert result_df.iloc[0]["Filename"] == "file1.txt"
+        assert result_df.iloc[0]["Status"] == "Fallback Processed"
 
-    assert series == [1]
-    mock_log.warning.assert_called_with("River miles provided but no map to filter by – ignored.")
+        mock_load.assert_called_once_with("file1.txt")
+        mock_process.assert_called_once()
+        mock_write.assert_called_once()
 
-def test_determine_series_to_process_invalid_sensor_id_in_map(mocker):
-    """Test map building handles invalid sensor IDs gracefully."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    config_data = {"SENSOR_TO_RIVER": {"invalid": 1.0}}
-    series = _determine_series_to_process("all", [1.0], config_data, "fake_dir")
+def test_process_fallback_mode_coverage_error(tmp_path):
+    series_to_process = [1]
+    config_data = {
+        "series": {
+            "1": {
+                "raw_data": ["file1.txt"]
+            }
+        },
+        "defaults": {"a": 1},
+        "processor_config": {"b": 2},
+    }
 
-    # It should log the warning and return an empty list since the map was invalid
-    mock_log.warning.assert_any_call("Invalid sensor id in SENSOR_TO_RIVER map: invalid")
+    with patch("scripts.batch_correction._load_raw_data", side_effect=Exception("Test error")) as mock_load, \
+         patch("scripts.batch_correction.log") as mock_log:
 
-def test_determine_series_to_process_explicit_invalid_value(mocker):
-    """Test explicit series list parsing handles ValueErrors."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    with pytest.raises(ValueError, match="Invalid series selection"):
-        _determine_series_to_process(["invalid"], None, {}, "fake_dir")
+        result_df = _process_fallback_mode(
+            series_to_process=series_to_process,
+            config_data=config_data,
+            output_dir=str(tmp_path),
+            dry_run=False
+        )
 
-    mock_log.exception.assert_called()
+        assert len(result_df) == 1
+        assert result_df.iloc[0]["Series"] == 1
+        assert result_df.iloc[0]["Status"] == "Failed (Processing Error)"

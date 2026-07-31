@@ -16,13 +16,9 @@ OUTPUT_DIR = os.path.abspath(
 COMPARISON_DIR = os.path.join(OUTPUT_DIR, "comparisons")
 os.makedirs(COMPARISON_DIR, exist_ok=True)
 
-SERIES_FILE_RE = re.compile(r"Series(\d+)_File(\d+)_Processed")
-YEAR_DATA_RE = re.compile(r"Year_(\d+) \(Y(\d+)\)_Data")
-YEAR_FILE_RE = re.compile(r"_Y(\d+)\.txt$")
-
 
 def _find_series_file_match(processed_filename):
-    m = SERIES_FILE_RE.search(processed_filename)
+    m = re.search(r"Series(\d+)_File(\d+)_Processed", processed_filename)
     if m:
         series = int(m.group(1))
         file_idx = int(m.group(2))
@@ -34,7 +30,7 @@ def _find_series_file_match(processed_filename):
 
 
 def _find_year_file_match(processed_filename):
-    m = YEAR_DATA_RE.search(processed_filename)
+    m = re.search(r"Year_(\d+) \(Y(\d+)\)_Data", processed_filename)
     if not m:
         return None
 
@@ -42,7 +38,7 @@ def _find_year_file_match(processed_filename):
     if not hasattr(_find_year_file_match, "_cache"):
         _find_year_file_match._cache = {}
         for f in os.listdir(RAW_DATA_DIR):
-            fm = YEAR_FILE_RE.search(f)
+            fm = re.search(r"_Y(\d+)\.txt$", f)
             if fm:
                 _find_year_file_match._cache[int(fm.group(1))] = f
 
@@ -174,7 +170,7 @@ def load_raw_file(raw_file):
             skip_blank_lines=True,
         )
         return _rename_raw_columns(raw_df)
-    except (OSError, ValueError):
+    except (IOError, ValueError):
         print(f"[WARN] Could not load raw file {raw_file}")
         return None
     except Exception:
@@ -185,7 +181,7 @@ def load_raw_file(raw_file):
 def load_processed_file(proc_file):
     try:
         return read_excel(proc_file)
-    except (OSError, ValueError):
+    except (IOError, ValueError):
         print(f"[WARN] Could not load processed file {proc_file}")
         return None
     except Exception:

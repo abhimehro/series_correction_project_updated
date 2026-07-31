@@ -267,9 +267,9 @@ def _convert_time_col_to_numeric(processed_data, time_col):
             processed_data[time_col] - pd.Timestamp("1970-01-01")
         ) // pd.Timedelta("1s")
         log.info("Converted time column '%s' to numeric (Unix timestamp).", time_col)
-    except Exception:
+    except Exception as exc:
         log.exception(
-            f"Time column '{time_col}' is not numeric and could not be converted"
+            f"Time column '{time_col}' is not numeric and could not be converted: {exc}"
         )
         raise ValueError(
             "Time column is not numeric and could not be converted"

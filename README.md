@@ -360,8 +360,7 @@ Based on the audit report and potential enhancements:
   needed.
 - **Packaging**: Consider using pyproject.toml for modern packaging standards.
 - **Dependency Pinning**: Runtime and dev dependencies are pinned with exact
-  `==` versions in `scripts/requirements.txt` and
-  `scripts/requirements-dev.txt`.
+  `==` versions in `scripts/requirements.txt` and `scripts/requirements-dev.txt`.
 
 ## Workflow for Efficient Batch Processing, QA, and Visualization Updates (2025)
 

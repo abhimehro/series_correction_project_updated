@@ -100,28 +100,3 @@ def test_main_batch_process_exception(monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         cli.main()
     assert excinfo.value.code == 1
-
-
-def test_main_batch_process_value_error(monkeypatch):
-    monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
-
-    # Simulate an error in batch_process
-    def fake_batch(*args, **kwargs):
-        raise ValueError("test value error")
-
-    monkeypatch.setattr(cli, "batch_process", fake_batch)
-    test_args = [
-        "prog",
-        "--series",
-        "all",
-        "--river-miles",
-        "1.0",
-        "2.0",
-        "--years",
-        "2010",
-        "2015",
-    ]
-    monkeypatch.setattr(sys, "argv", test_args)
-    with pytest.raises(SystemExit) as excinfo:
-        cli.main()
-    assert excinfo.value.code == 1

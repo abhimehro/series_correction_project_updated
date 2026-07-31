@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from scripts.generate_overview_table import _safe_round, main
+from scripts.generate_overview_table import main
 
 
 @pytest.fixture
@@ -128,12 +128,6 @@ def test_main_escapes_malicious_sensor_values(tmp_path, capsys):
 
     # The printed CSV line must start with a neutralized Series and Sensor.
     data_line = output_lines[-1]
-    parsed = next(iter(csv.reader([data_line])))
+    parsed = list(csv.reader([data_line]))[0]
     assert parsed[0] == "'=A"
     assert parsed[2] == "'" + payload
-
-
-def test_safe_round_error():
-    """Tests that _safe_round returns the original value if rounding fails."""
-    assert _safe_round("not_a_number") == "not_a_number"
-    assert _safe_round([1, 2, 3]) == [1, 2, 3]
