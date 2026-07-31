@@ -9,6 +9,7 @@ from scripts.apply_refined_corrections import (
     calculate_non_zero_average,
     load_identified_outliers,
     output_file_name,
+    parse_sensor_index,
     save_corrected_files,
 )
 
@@ -202,3 +203,25 @@ def test_save_corrected_files_escapes_malicious_cells(tmp_path):
     assert len(rows[0]) == 2
     assert rows[0][1] == "'" + payload
     assert rows[1][1] == "safe"
+
+
+def test_parse_sensor_index_valid():
+    """Test parse_sensor_index with valid sensor names."""
+    assert parse_sensor_index("Sensor 1") == 0
+    assert parse_sensor_index("Sensor 32") == 31
+    assert parse_sensor_index("Sensor 16") == 15
+
+
+def test_parse_sensor_index_invalid_format():
+    """Test parse_sensor_index with invalid sensor name format (triggers ValueError)."""
+    assert parse_sensor_index("Sensor A") is None
+    assert parse_sensor_index("Invalid 1") is None
+    assert parse_sensor_index("Sensor") is None
+    assert parse_sensor_index("Sensor1") is None
+
+
+def test_parse_sensor_index_out_of_bounds():
+    """Test parse_sensor_index with out-of-bounds sensor numbers."""
+    assert parse_sensor_index("Sensor 0") is None
+    assert parse_sensor_index("Sensor 33") is None
+    assert parse_sensor_index("Sensor -1") is None
