@@ -42,9 +42,23 @@
 
 **Merged pull requests:**
 
+- fix\(lint\): flake8 cleanup for discontinuity unit tests [\#334](https://github.com/abhimehro/series_correction_project_updated/pull/334) ([cursor[bot]](https://github.com/apps/cursor))
+- 🧹 \[code health improvement\] Remove unused logging import [\#330](https://github.com/abhimehro/series_correction_project_updated/pull/330) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize finding year files by preventing redundant sorting [\#328](https://github.com/abhimehro/series_correction_project_updated/pull/328) ([abhimehro](https://github.com/abhimehro))
+- ⚡ \[compile static regular expressions\] [\#325](https://github.com/abhimehro/series_correction_project_updated/pull/325) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[code health improvement\] Remove unused annotations import [\#324](https://github.com/abhimehro/series_correction_project_updated/pull/324) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Optimize regex compilation in year pair parsing [\#319](https://github.com/abhimehro/series_correction_project_updated/pull/319) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[Code Health\] Refactor detect\_outliers function for readability [\#318](https://github.com/abhimehro/series_correction_project_updated/pull/318) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[Code Health\] Remove unused future annotations import [\#317](https://github.com/abhimehro/series_correction_project_updated/pull/317) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add tests for parse\_sensor\_index [\#316](https://github.com/abhimehro/series_correction_project_updated/pull/316) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix broken authentication logic in dummy\_todos.py [\#315](https://github.com/abhimehro/series_correction_project_updated/pull/315) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Remove unused annotations import [\#314](https://github.com/abhimehro/series_correction_project_updated/pull/314) ([abhimehro](https://github.com/abhimehro))
+- 🧪 \[testing improvement\] Add test for \_safe\_round exception handling [\#312](https://github.com/abhimehro/series_correction_project_updated/pull/312) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add unit tests for discontinuity\_utils.py [\#311](https://github.com/abhimehro/series_correction_project_updated/pull/311) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump release-drafter/release-drafter from 7.6.0 to 7.7.0 [\#310](https://github.com/abhimehro/series_correction_project_updated/pull/310) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Update seatek-testing skill for runtime/dev dependency split [\#309](https://github.com/abhimehro/series_correction_project_updated/pull/309) ([abhimehro](https://github.com/abhimehro))
 - fix\(deps\): pin runtime deps and split dev requirements \(ABHI-1591\) [\#308](https://github.com/abhimehro/series_correction_project_updated/pull/308) ([abhimehro](https://github.com/abhimehro))
+- chore: minor ruff fixes [\#307](https://github.com/abhimehro/series_correction_project_updated/pull/307) ([abhimehro](https://github.com/abhimehro))
 - Add Seatek testing skill [\#305](https://github.com/abhimehro/series_correction_project_updated/pull/305) ([abhimehro](https://github.com/abhimehro))
 - chore: bump minimum Python to 3.10 [\#304](https://github.com/abhimehro/series_correction_project_updated/pull/304) ([abhimehro](https://github.com/abhimehro))
 - ci: re-enable Python Tests workflow \(3.10–3.11, non-blocking Codecov\) [\#303](https://github.com/abhimehro/series_correction_project_updated/pull/303) ([abhimehro](https://github.com/abhimehro))

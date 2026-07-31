@@ -1,5 +1,7 @@
 import hashlib
 import os
+import hmac
+import secrets
 
 
 def generate_salt_and_hash(password: str) -> tuple[bytes, bytes]:
@@ -34,16 +36,11 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     stored_hash = user_record.get("hash")
 
     if not salt or not stored_hash:
-        return {"success": False, "error": "Invalid user record"}
+        return {"success": False, "error": "Invalid credentials"}
 
-    # Verify the password
     computed_hash = hashlib.pbkdf2_hmac(
         "sha256", password.encode("utf-8"), salt, 100000
     )
-
-    # Use hmac.compare_digest to prevent timing attacks
-    import hmac
-    import secrets
 
     if hmac.compare_digest(computed_hash, stored_hash):
         session_token = secrets.token_hex(32)
@@ -54,16 +51,10 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
 
 def _is_json_array(file_obj):
     """Detect if the file object starts with a JSON array."""
-    count = 0
     while char := file_obj.read(1):
         if char.strip():
             return char == b"["
-        count += 1
-        if count > 1024:  # limit reading to avoid infinite loop / memory issues on whitespace
-            break
     return False
-
-
 
 
 def _parse_json_lines(file_obj):
