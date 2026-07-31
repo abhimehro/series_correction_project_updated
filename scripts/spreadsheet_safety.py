@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Tuple
+from typing import Any
 
 import pandas as pd
 
@@ -58,14 +58,14 @@ def _sanitize_label(value: Any, context: str = "") -> Any:
     return escape_spreadsheet_formula(value)
 
 
-def _find_null_in_index_name(index: pd.Index) -> Tuple[str, Any] | None:
+def _find_null_in_index_name(index: pd.Index) -> tuple[str, Any] | None:
     """Return the first null byte found in an Index name."""
     if _label_has_null_byte(index.name):
         return ("index name", index.name)
     return None
 
 
-def _find_null_in_plain_index_labels(index: pd.Index) -> Tuple[str, Any] | None:
+def _find_null_in_plain_index_labels(index: pd.Index) -> tuple[str, Any] | None:
     """Return the first null byte in a regular (non-categorical) Index."""
     bad = next(
         (label for label in index if _label_has_null_byte(label)),
@@ -78,7 +78,7 @@ def _find_null_in_plain_index_labels(index: pd.Index) -> Tuple[str, Any] | None:
 
 def _find_null_in_categorical_index(
     index: pd.CategoricalIndex,
-) -> Tuple[str, Any] | None:
+) -> tuple[str, Any] | None:
     """Return the first null byte in a CategoricalIndex category."""
     bad = next(
         (label for label in index.categories if _label_has_null_byte(label)),
@@ -91,7 +91,7 @@ def _find_null_in_categorical_index(
 
 def _find_null_in_multiindex_level(
     level_index: int, level: pd.Index
-) -> Tuple[str, Any] | None:
+) -> tuple[str, Any] | None:
     """Return the first null byte in a single MultiIndex level."""
     bad = _find_null_byte_in_index(level)
     if bad is not None:
@@ -100,7 +100,7 @@ def _find_null_in_multiindex_level(
     return None
 
 
-def _find_null_in_multiindex_levels(index: pd.MultiIndex) -> Tuple[str, Any] | None:
+def _find_null_in_multiindex_levels(index: pd.MultiIndex) -> tuple[str, Any] | None:
     """Return the first null byte across all MultiIndex levels."""
     for level_index, level in enumerate(index.levels):
         bad = _find_null_in_multiindex_level(level_index, level)
@@ -109,7 +109,7 @@ def _find_null_in_multiindex_levels(index: pd.MultiIndex) -> Tuple[str, Any] | N
     return None
 
 
-def _find_null_in_multiindex_names(index: pd.MultiIndex) -> Tuple[str, Any] | None:
+def _find_null_in_multiindex_names(index: pd.MultiIndex) -> tuple[str, Any] | None:
     """Return the first null byte in MultiIndex level names."""
     for name_index, name in enumerate(index.names):
         if _label_has_null_byte(name):
@@ -117,7 +117,7 @@ def _find_null_in_multiindex_names(index: pd.MultiIndex) -> Tuple[str, Any] | No
     return None
 
 
-def _find_null_in_multiindex(index: pd.MultiIndex) -> Tuple[str, Any] | None:
+def _find_null_in_multiindex(index: pd.MultiIndex) -> tuple[str, Any] | None:
     """Return the first null byte in a MultiIndex (levels or names)."""
     level_bad = _find_null_in_multiindex_levels(index)
     if level_bad is not None:
@@ -125,7 +125,7 @@ def _find_null_in_multiindex(index: pd.MultiIndex) -> Tuple[str, Any] | None:
     return _find_null_in_multiindex_names(index)
 
 
-def _find_null_byte_in_index(index: pd.Index) -> Tuple[str, Any] | None:
+def _find_null_byte_in_index(index: pd.Index) -> tuple[str, Any] | None:
     """Return (location, offending_value) for the first null byte in an Index."""
     if isinstance(index, pd.MultiIndex):
         return _find_null_in_multiindex(index)

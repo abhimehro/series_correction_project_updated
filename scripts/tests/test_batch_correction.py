@@ -138,7 +138,7 @@ def patch_load_config(monkeypatch):
 
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
     import importlib
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -217,7 +217,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
     import importlib
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -635,10 +635,12 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
+from unittest.mock import MagicMock, patch
+
 import pytest
+
 from scripts.batch_correction import _process_fallback_mode
-import pandas as pd
-from unittest.mock import patch, MagicMock
+
 
 def test_process_fallback_mode_coverage(tmp_path):
     series_to_process = [1]
@@ -701,3 +703,287 @@ def test_process_fallback_mode_coverage_error(tmp_path):
         assert len(result_df) == 1
         assert result_df.iloc[0]["Series"] == 1
         assert result_df.iloc[0]["Status"] == "Failed (Processing Error)"
+
+
+def test_process_fallback_mode_coverage_empty(tmp_path):
+    # Test line 560 (empty dataframe return)
+    series_to_process = [1]
+    config_data = {} # Missing "series" key
+
+    result_df = _process_fallback_mode(
+        series_to_process=series_to_process,
+        config_data=config_data,
+        output_dir=str(tmp_path),
+        dry_run=False
+    )
+
+    assert isinstance(result_df, pd.DataFrame)
+    assert result_df.empty
+
+def test_determine_series_to_process_invalid_sensor():
+
+    from scripts.batch_correction import _determine_series_to_process
+    config_data = {"SENSOR_TO_RIVER": {"invalid": 10.0}}
+    # The function catches ValueError and logs a warning instead of raising, so we assert the result is []
+    result = _determine_series_to_process("all", None, config_data, "/fake")
+    assert result == []
+
+
+def test_determine_series_to_process_scan_dir(monkeypatch):
+    from scripts.batch_correction import _determine_series_to_process
+    config_data = {}
+
+    # Mock os.listdir
+    monkeypatch.setattr("os.listdir", lambda d: ["S25_Y01.txt", "S26_Y01.txt", "invalid_file.txt", "Sinvalid_Y01.txt"])
+
+    result = _determine_series_to_process("all", None, config_data, "/fake")
+    assert result == [25, 26]
+
+def test_determine_series_to_process_scan_dir_with_rm(monkeypatch, caplog):
+    from scripts.batch_correction import _determine_series_to_process
+    config_data = {}
+
+    # Mock os.listdir
+    monkeypatch.setattr("os.listdir", lambda d: ["S25_Y01.txt"])
+
+    result = _determine_series_to_process("all", [1.0], config_data, "/fake")
+    assert result == [25]
+    assert "River miles provided but no map to filter by" in caplog.text
+
+def test_determine_series_to_process_scan_dir_exception(monkeypatch):
+    from scripts.batch_correction import _determine_series_to_process
+    config_data = {}
+
+    # Mock os.listdir
+    monkeypatch.setattr("os.listdir", lambda d: ["S25_Y01.txt"])
+
+    # Instead of patching builtins.int, just provide an unparseable filename
+    # the existing logic catches Exception, so let's trigger one inside int()
+    monkeypatch.setattr("os.listdir", lambda d: ["S25_Y01.txt", "SXX_Y01.txt"])
+
+    result = _determine_series_to_process("all", None, config_data, "/fake")
+    assert result == [25]
+
+
+def test_determine_series_to_process_explicit_with_rm():
+    from scripts.batch_correction import _determine_series_to_process
+    config_data = {"SENSOR_TO_RIVER": {"10": 1.0, "20": 2.0}}
+    result = _determine_series_to_process([10, 20, 30], [1.0], config_data, "/fake")
+    assert result == [10]
+
+
+def test_determine_series_to_process_explicit_with_rm_missing():
+    from scripts.batch_correction import _determine_series_to_process
+    config_data = {"SENSOR_TO_RIVER": {"10": 1.0, "20": 2.0}}
+    result = _determine_series_to_process([10], [3.0], config_data, "/fake")
+    assert result == []
+
+
+def test_determine_year_for_index_no_map():
+    from scripts.batch_correction import _determine_year_for_index
+    assert _determine_year_for_index(3, {}, range(2000, 2010)) == 2002
+    assert _determine_year_for_index(15, {}, range(2000, 2010)) is None
+
+def test_parse_and_validate_file_invalid_match():
+    from scripts.batch_correction import _parse_and_validate_file
+    # Ends with .txt and starts with S but no _Y
+    result = _parse_and_validate_file("S25.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake")
+    assert result is None
+
+def test_parse_and_validate_file_invalid_year():
+    from scripts.batch_correction import _parse_and_validate_file
+    result = _parse_and_validate_file("S25_Y15.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake")
+    assert result is None
+
+def test_parse_and_validate_file_missing_series():
+    from scripts.batch_correction import _parse_and_validate_file
+    result = _parse_and_validate_file("S99_Y15.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake")
+    assert result is None
+
+def test_parse_and_validate_file_out_of_range_year():
+    from scripts.batch_correction import _parse_and_validate_file
+    result = _parse_and_validate_file("S25_Y01.txt", {"25": 25}, {1: 1999}, range(2000, 2010), 2000, 2010, "/fake")
+    assert result is None
+
+
+def test_determine_year_for_index_with_map_match():
+    from scripts.batch_correction import _determine_year_for_index
+    assert _determine_year_for_index(3, {3: 2002}, range(2000, 2010)) == 2002
+
+def test_determine_year_for_index_with_map_no_match():
+    from scripts.batch_correction import _determine_year_for_index
+    # The year mapped is outside of years_to_process range
+    assert _determine_year_for_index(3, {3: 1999}, range(2000, 2010)) is None
+    # No map entry
+    assert _determine_year_for_index(4, {3: 2002}, range(2000, 2010)) is None
+
+def test_find_files_to_process_data_dir_not_exist(monkeypatch):
+    from scripts.batch_correction import _find_files_to_process
+    monkeypatch.setattr("os.path.isdir", lambda d: False)
+    result = _find_files_to_process([25], (2000, 2010), "/fake")
+    assert result == []
+
+
+def test_load_raw_data_safe_numeric_exception(tmp_path):
+    from scripts.batch_correction import _load_raw_data
+    file_path = tmp_path / "S25_Y01.txt"
+    file_path.write_text("1 2 3\n4 5 invalid_data\n")
+    # This shouldn't crash, the invalid_data column will just remain non-numeric
+    result = _load_raw_data(str(file_path))
+    assert not result.empty
+
+def test_ensure_output_directory_creates_dir(tmp_path, monkeypatch):
+    from scripts.batch_correction import _ensure_output_directory
+    output_dir = tmp_path / "new_dir"
+    _ensure_output_directory(str(output_dir), False)
+    assert output_dir.exists()
+
+def test_ensure_output_directory_exception(monkeypatch):
+    from scripts.batch_correction import ProcessingError, _ensure_output_directory
+
+    def mock_makedirs(name, exist_ok):
+        raise OSError("Permission denied")
+
+    monkeypatch.setattr("os.makedirs", mock_makedirs)
+    monkeypatch.setattr("os.path.isdir", lambda d: False)
+    import pytest
+    with pytest.raises(ProcessingError, match="Unable to create output directory"):
+        _ensure_output_directory("/fake/new_dir", False)
+
+
+def test_get_data_directory_creates_dir(monkeypatch):
+    from scripts.batch_correction import _get_data_directory
+    monkeypatch.setattr("os.path.isdir", lambda d: False)
+
+    makedirs_called = []
+    def mock_makedirs(d, exist_ok):
+        makedirs_called.append(d)
+
+    monkeypatch.setattr("os.makedirs", mock_makedirs)
+
+    result = _get_data_directory({}, create_if_missing=True)
+    assert len(makedirs_called) == 1
+    assert result.endswith("data")
+
+def test_get_data_directory_creates_dir_exception(monkeypatch):
+    from scripts.batch_correction import _get_data_directory
+    monkeypatch.setattr("os.path.isdir", lambda d: False)
+
+    def mock_makedirs(d, exist_ok):
+        raise OSError("Permission denied")
+
+    monkeypatch.setattr("os.makedirs", mock_makedirs)
+
+    import pytest
+    with pytest.raises(FileNotFoundError, match="Cannot create default data directory"):
+        _get_data_directory({}, create_if_missing=True)
+
+def test_optional_import_coverage(monkeypatch):
+    from scripts.batch_correction import _optional_import
+    # Trigger ModuleNotFoundError
+    assert _optional_import("non_existent_module_for_test", "Msg") is None
+
+    # Trigger ImportError
+    original_import = __import__
+    def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "mock_import_error_module":
+            raise ImportError("Mock error")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr("builtins.__import__", mock_import)
+    assert _optional_import("mock_import_error_module", "Msg") is None
+
+    # Trigger TypeError/ValueError
+    def mock_import_err(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "mock_type_error_module":
+            raise TypeError("Mock error")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr("builtins.__import__", mock_import_err)
+    import pytest
+    with pytest.raises(TypeError):
+        _optional_import("mock_type_error_module", "Msg")
+
+
+def test_batch_process_empty_series_returns_empty_df():
+    import pandas as pd
+
+    from scripts.batch_correction import BatchConfig, batch_process
+    config = BatchConfig("all", None, (2000, 2010), dry_run=True)
+
+    with patch("scripts.batch_correction._determine_series_to_process", return_value=[]):
+        result = batch_process(config)
+        assert isinstance(result, pd.DataFrame)
+        assert result.empty
+
+
+def test_load_and_enrich_config_file_not_found(monkeypatch, caplog):
+    from scripts.batch_correction import _load_and_enrich_config
+    def mock_load(path):
+        raise FileNotFoundError("Simulated not found")
+    monkeypatch.setattr("scripts.batch_correction.load_config_func", mock_load)
+    result = _load_and_enrich_config("/fake/config.json")
+    assert result == {}
+    assert "not found" in caplog.text
+
+def test_load_and_enrich_config_load_error(monkeypatch):
+    from scripts.batch_correction import ProcessingError, _load_and_enrich_config
+
+    # We must patch the function pointer directly if possible, or trigger an exception inside it
+    # We can patch 'scripts.batch_correction.load_config_func' since it's used inside the module
+    def mock_load(path):
+        raise ValueError("Simulated load error")
+
+    monkeypatch.setattr("scripts.batch_correction.load_config_func", mock_load)
+
+    import pytest
+    with pytest.raises(ProcessingError, match="Failed to load configuration"):
+        _load_and_enrich_config("/fake/config.json")
+
+
+def test_batch_process_empty_series_from_selection(monkeypatch):
+    import pandas as pd
+
+    from scripts.batch_correction import BatchConfig, batch_process
+
+    # If determine_series_to_process returns []
+    monkeypatch.setattr("scripts.batch_correction._determine_series_to_process", lambda *args: [])
+    config = BatchConfig(series_selection="all", river_miles=None, years=(2000, 2010), dry_run=True)
+    result = batch_process(config)
+    assert isinstance(result, pd.DataFrame)
+    assert result.empty
+
+
+def test_process_main_mode_empty_or_unreadable(tmp_path, monkeypatch):
+    import pandas as pd
+
+    from scripts.batch_correction import _process_main_mode
+
+    # We will trigger the ProcessingError exception at line 590.
+    def mock_load(fp):
+        return pd.DataFrame()
+
+    monkeypatch.setattr("scripts.batch_correction._load_raw_data", mock_load)
+
+    file_path = tmp_path / "S25_Y01.txt"
+    file_path.write_text("not empty but load will return empty")
+
+    result = _process_main_mode([(25, 2000, 1, str(file_path))], {}, str(tmp_path), dry_run=True)
+    assert len(result) == 1
+    assert result.iloc[0]["Status"] == "Failed (Processing Error)"
+
+
+def test_load_raw_data_safe_numeric_type_error(tmp_path):
+    from scripts.batch_correction import _load_raw_data
+    file_path = tmp_path / "S25_Y01.txt"
+    # To force a TypeError from to_numeric, we pass something very un-numeric
+    # But read_csv might read it as strings, which raises ValueError.
+    # We can mock to_numeric to raise TypeError.
+    from unittest.mock import patch
+    import pandas as pd
+
+    file_path.write_text("1 2 3\n4 5 6\n")
+
+    with patch("pandas.to_numeric", side_effect=TypeError("Mock type error")):
+        result = _load_raw_data(str(file_path))
+        assert not result.empty

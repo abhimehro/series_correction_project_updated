@@ -2,7 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from scripts.batch_correction import BatchConfig, batch_process  # noqa: E402
+from scripts.batch_correction import BatchConfig, batch_process
 
 if __name__ == "__main__":
     print("[DEBUG] Running manual batch_process call...")
