@@ -4,11 +4,18 @@ Unit tests for the batch_correction module.
 """
 
 import fnmatch
+import importlib
 import os
+import sys
+import types
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd  # type: ignore
 import pytest
+
+import scripts.batch_correction as bc
+import scripts.loaders
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
@@ -16,6 +23,8 @@ import pytest
 from scripts.batch_correction import (
     BatchConfig,
     _determine_series_to_process,
+    _get_data_directory,
+    _load_raw_data,
     batch_process,
 )
 
@@ -127,7 +136,6 @@ def patch_load_config(monkeypatch):
         "SENSOR_TO_RIVER": {26: 54.0, 27: 53.0},
     }
     try:
-        import scripts.loaders
 
         monkeypatch.setattr(
             scripts.loaders, "load_config", lambda path=None: config_dict
@@ -141,8 +149,6 @@ def patch_load_config(monkeypatch):
 
 
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
-    import importlib
-    from unittest.mock import MagicMock, patch
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -160,7 +166,6 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
     ), patch(
         "pandas.DataFrame.to_excel"
     ) as mock_to_excel:
-        import scripts.batch_correction as bc
 
         importlib.reload(bc)
 
@@ -220,8 +225,6 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
 
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
-    import importlib
-    from unittest.mock import MagicMock, patch
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -239,7 +242,6 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
     ), patch(
         "pandas.DataFrame.to_excel"
     ) as mock_to_excel:
-        import scripts.batch_correction as bc
 
         importlib.reload(bc)
 
@@ -382,8 +384,6 @@ def test_batch_process_data_dir_not_found(mock_dependencies):
 def test_get_data_directory_creates_dir(mock_dependencies):
     from unittest.mock import patch
 
-    from scripts.batch_correction import _get_data_directory
-
     config_data = {}
     with patch("os.path.isdir", return_value=False), patch(
         "os.makedirs"
@@ -401,14 +401,10 @@ def test_get_data_directory_creates_dir(mock_dependencies):
 def test_get_data_directory_creates_dir_oserror(mock_dependencies):
     from unittest.mock import patch
 
-    from scripts.batch_correction import _get_data_directory
-
     config_data = {}
     with patch("os.path.isdir", return_value=False), patch(
         "os.makedirs", side_effect=OSError("Perm denied")
-    ), pytest.raises(
-        FileNotFoundError, match="Cannot create default data directory"
-    ):
+    ), pytest.raises(FileNotFoundError, match="Cannot create default data directory"):
         _get_data_directory(config_data, create_if_missing=True)
 
 
@@ -551,9 +547,6 @@ def test_batch_process_invalid_series_selection(monkeypatch):
 
 def test_minimal_happy_path(monkeypatch):
     """Minimal working happy path test for batch_process."""
-    import importlib
-    import sys
-    import types
 
     import pandas as pd
 
@@ -609,7 +602,6 @@ def test_minimal_happy_path(monkeypatch):
     sys.modules["scripts.processor"] = processor_mod
 
     # --- Act ---
-    import scripts.batch_correction as bc
 
     importlib.reload(bc)
     try:
@@ -661,7 +653,6 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
 def test_load_raw_data_empty_file(caplog):
     """Test that _load_raw_data handles EmptyDataError correctly."""
     caplog.set_level("DEBUG")
-    from scripts.batch_correction import _load_raw_data
 
     with mock.patch("pandas.read_csv") as mock_read_csv:
         mock_read_csv.side_effect = pd.errors.EmptyDataError(
