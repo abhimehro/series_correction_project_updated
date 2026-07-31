@@ -98,6 +98,10 @@ def _calculate_rolling_mad(values_np, rolling_median, window_size):
 
         chunk_windows = sliding_window_view(chunk, window_shape=window_size)
 
+        # Calculate nan count per window to mimic pandas min_periods=window_size behavior
+        nan_counts = np.isnan(chunk_windows).sum(axis=1)
+        invalid_mask = nan_counts > 0
+
         # Reuse precomputed rolling_median instead of recalculating np.nanmedian per window.
         pad = window_size // 2
         chunk_medians = rolling_median[start_idx + pad : end_idx + pad, np.newaxis]
@@ -107,6 +111,8 @@ def _calculate_rolling_mad(values_np, rolling_median, window_size):
             warnings.simplefilter("ignore", category=RuntimeWarning)
             chunk_mads = np.median(chunk_abs_diffs, axis=1)
 
+        # Invalidate windows that contain any NaNs, matching the pandas rolling behavior
+        chunk_mads[invalid_mask] = np.nan
         mads_list.append(chunk_mads)
 
     if mads_list:
