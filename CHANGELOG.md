@@ -42,6 +42,7 @@
 
 **Merged pull requests:**
 
+- fix\(lint\): flake8 cleanup for discontinuity unit tests [\#334](https://github.com/abhimehro/series_correction_project_updated/pull/334) ([cursor[bot]](https://github.com/apps/cursor))
 - 🧹 \[code health improvement\] Remove unused logging import [\#330](https://github.com/abhimehro/series_correction_project_updated/pull/330) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Optimize finding year files by preventing redundant sorting [\#328](https://github.com/abhimehro/series_correction_project_updated/pull/328) ([abhimehro](https://github.com/abhimehro))
 - ⚡ \[compile static regular expressions\] [\#325](https://github.com/abhimehro/series_correction_project_updated/pull/325) ([abhimehro](https://github.com/abhimehro))
