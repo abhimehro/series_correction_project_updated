@@ -9,8 +9,6 @@ Typical usage
 • Show help / commands:           python setup.py --help
 """
 
-from __future__ import annotations
-
 import sys
 import warnings
 from pathlib import Path
