@@ -9,6 +9,7 @@ from unittest import mock
 
 import pandas as pd  # type: ignore
 import pytest
+from scripts.batch_correction import _determine_series_to_process
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
@@ -374,13 +375,16 @@ def test_batch_process_data_dir_not_found(mock_dependencies):
     actual_calls = mock_dependencies["isdir"].call_args_list
     assert any(call in actual_calls for call in expected_calls)
 
+
 def test_get_data_directory_creates_dir(mock_dependencies):
-    from scripts.batch_correction import _get_data_directory
-    import os
     from unittest.mock import patch
 
+    from scripts.batch_correction import _get_data_directory
+
     config_data = {}
-    with patch("os.path.isdir", return_value=False), patch("os.makedirs") as mock_makedirs:
+    with patch("os.path.isdir", return_value=False), patch(
+        "os.makedirs"
+    ) as mock_makedirs:
         result = _get_data_directory(config_data, create_if_missing=True)
         # Note: Depending on where __file__ is relative to the project root, the path changes.
         # But we know it evaluates to something ending with /data.
@@ -390,14 +394,19 @@ def test_get_data_directory_creates_dir(mock_dependencies):
         assert kwargs.get("exist_ok") is True
         assert result.endswith("data")
 
+
 def test_get_data_directory_creates_dir_oserror(mock_dependencies):
-    from scripts.batch_correction import _get_data_directory
     from unittest.mock import patch
-    import os
+
+    from scripts.batch_correction import _get_data_directory
 
     config_data = {}
-    with patch("os.path.isdir", return_value=False), patch("os.makedirs", side_effect=OSError("Perm denied")):
-        with pytest.raises(FileNotFoundError, match="Cannot create default data directory"):
+    with patch("os.path.isdir", return_value=False), patch(
+        "os.makedirs", side_effect=OSError("Perm denied")
+    ):
+        with pytest.raises(
+            FileNotFoundError, match="Cannot create default data directory"
+        ):
             _get_data_directory(config_data, create_if_missing=True)
 
 
@@ -664,11 +673,6 @@ def test_load_raw_data_empty_file(caplog):
         assert "dummy_empty_file.txt empty." in caplog.text
 
 
-import pytest
-
-from scripts.batch_correction import _determine_series_to_process
-
-
 def test_determine_series_to_process_all_fallback(mocker, tmp_path):
     """Test 'all' series selection when no river mile map is present."""
     data_dir = tmp_path / "data"
@@ -702,7 +706,7 @@ def test_determine_series_to_process_invalid_sensor_id_in_map(mocker):
     """Test map building handles invalid sensor IDs gracefully."""
     mock_log = mocker.patch("scripts.batch_correction.log")
     config_data = {"SENSOR_TO_RIVER": {"invalid": 1.0}}
-    series = _determine_series_to_process("all", [1.0], config_data, "fake_dir")
+    _determine_series_to_process("all", [1.0], config_data, "fake_dir")
 
     # It should log the warning and return an empty list since the map was invalid
     mock_log.warning.assert_any_call(
