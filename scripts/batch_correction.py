@@ -152,71 +152,6 @@ def _get_data_directory(
     return default_data_dir
 
 
-def _build_rm_to_sensors_map(sensor_to_rm_map: dict) -> dict:
-    rm_to_sensors_map = {}
-    for sensor_str, rm_val in sensor_to_rm_map.items():
-        try:
-            rm_str = str(float(rm_val))
-            rm_to_sensors_map.setdefault(rm_str, []).append(int(sensor_str))
-        except ValueError:
-            log.warning(f"Invalid sensor id in SENSOR_TO_RIVER map: {sensor_str}")
-    return rm_to_sensors_map
-
-
-def _get_series_from_all(
-    river_miles: list[float] | None,
-    rm_to_sensors_map: dict,
-    sensor_to_rm_map: dict,
-    data_dir: str,
-) -> list[int]:
-    if river_miles and rm_to_sensors_map:
-        selected = set()
-        for rm in river_miles:
-            selected.update(rm_to_sensors_map.get(str(float(rm)), []))
-        series_list = sorted(selected)
-        log.info(f"Series selected from river miles {river_miles} ➜ {series_list}")
-    elif sensor_to_rm_map:
-        series_list = sorted(int(s) for s in sensor_to_rm_map.keys())
-        log.info(f"Selecting every series in SENSOR_TO_RIVER map: {series_list}")
-    else:
-        found = set()
-        for fname in os.listdir(data_dir):
-            if fname.startswith("S") and "_Y" in fname and fname.endswith(".txt"):
-                try:
-                    found.add(int(fname.split("_")[0][1:]))
-                except Exception:
-                    continue
-        series_list = sorted(found)
-        if river_miles:
-            log.warning("River miles provided but no map to filter by – ignored.")
-    return series_list
-
-
-def _get_explicit_series(
-    series_selection: int | list[int] | str,
-    river_miles: list[float] | None,
-    rm_to_sensors_map: dict,
-) -> list[int]:
-    raw = (
-        [series_selection]
-        if not isinstance(series_selection, (list, tuple))
-        else series_selection
-    )
-    try:
-        series_list = [int(s) for s in raw]
-    except ValueError as exc:
-        log.exception(f"Invalid series selection {raw!r}: {exc}")
-        raise ValueError("Invalid series selection") from None
-
-    if river_miles and rm_to_sensors_map:
-        allowed = set()
-        for rm in river_miles:
-            allowed.update(rm_to_sensors_map.get(str(float(rm)), []))
-        series_list = sorted(set(series_list) & allowed)
-        log.info(f"After RM filter ({river_miles}) series ➜ {series_list}")
-    return series_list
-
-
 def _determine_series_to_process(
     series_selection,
     river_miles,
@@ -229,16 +164,60 @@ def _determine_series_to_process(
     """
     rm_map_key = "SENSOR_TO_RIVER"
     sensor_to_rm_map = config_data.get(rm_map_key, {})
-    rm_to_sensors_map = _build_rm_to_sensors_map(sensor_to_rm_map)
+    # Build reverse map river‑mile ➜ [sensor ids]
+    rm_to_sensors_map = {}
+    for sensor_str, rm_val in sensor_to_rm_map.items():
+        try:
+            rm_str = str(float(rm_val))
+            rm_to_sensors_map.setdefault(rm_str, []).append(int(sensor_str))
+        except ValueError:
+            log.warning(f"Invalid sensor id in {rm_map_key} map: {sensor_str}")
 
+    # ------------------------------------------------------------------ #
+    # 'all' – derive by either RM filter or scanning directory
+    # ------------------------------------------------------------------ #
     if isinstance(series_selection, str) and series_selection.lower() == "all":
-        series_list = _get_series_from_all(
-            river_miles, rm_to_sensors_map, sensor_to_rm_map, data_dir
-        )
+        if river_miles and rm_to_sensors_map:
+            selected = set()
+            for rm in river_miles:
+                selected.update(rm_to_sensors_map.get(str(float(rm)), []))
+            series_list = sorted(selected)
+            log.info(f"Series selected from river miles {river_miles} ➜ {series_list}")
+        elif sensor_to_rm_map:
+            series_list = sorted(int(s) for s in sensor_to_rm_map)
+            log.info(f"Selecting every series in {rm_map_key} map: {series_list}")
+        else:
+            # Fallback: scan the directory for SXX_Y??.txt files
+            found = set()
+            for fname in os.listdir(data_dir):
+                if fname.startswith("S") and "_Y" in fname and fname.endswith(".txt"):
+                    try:
+                        found.add(int(fname.split("_")[0][1:]))
+                    except Exception:
+                        log.exception("Error extracting series number from filename %s", fname)
+                        continue
+            series_list = sorted(found)
+            if river_miles:
+                log.warning("River miles provided but no map to filter by – ignored.")
     else:
-        series_list = _get_explicit_series(
-            series_selection, river_miles, rm_to_sensors_map
+        # Explicit list/int provided
+        raw = (
+            [series_selection]
+            if not isinstance(series_selection, (list, tuple))
+            else series_selection
         )
+        try:
+            series_list = [int(s) for s in raw]
+        except ValueError:
+            log.exception(f"Invalid series selection {raw!r}")
+            raise ValueError("Invalid series selection") from None
+
+        if river_miles and rm_to_sensors_map:
+            allowed = set()
+            for rm in river_miles:
+                allowed.update(rm_to_sensors_map.get(str(float(rm)), []))
+            series_list = sorted(set(series_list) & allowed)
+            log.info(f"After RM filter ({river_miles}) series ➜ {series_list}")
 
     if not series_list:
         log.warning("No series selected for processing.")

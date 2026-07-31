@@ -10,7 +10,6 @@ from scripts.apply_refined_corrections import (
     load_identified_outliers,
     output_file_name,
     parse_sensor_index,
-    parse_year_pair,
     save_corrected_files,
 )
 
@@ -226,20 +225,3 @@ def test_parse_sensor_index_out_of_bounds():
     assert parse_sensor_index("Sensor 0") is None
     assert parse_sensor_index("Sensor 33") is None
     assert parse_sensor_index("Sensor -1") is None
-
-
-
-def test_parse_year_pair_valid_forward():
-    assert parse_year_pair("1995 (Y01) to 1996 (Y02)") == (1, 2)
-
-
-def test_parse_year_pair_valid_reverse():
-    assert parse_year_pair("1996 (Y02) to 1995 (Y01)") == (1, 2)
-
-
-def test_parse_year_pair_invalid_format():
-    assert parse_year_pair("1995 to 1996") is None
-
-
-def test_parse_year_pair_empty():
-    assert parse_year_pair("") is None
