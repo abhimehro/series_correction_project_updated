@@ -635,6 +635,8 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
+
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -645,11 +647,7 @@ from scripts.batch_correction import _process_fallback_mode
 def test_process_fallback_mode_coverage(tmp_path):
     series_to_process = [1]
     config_data = {
-        "series": {
-            "1": {
-                "raw_data": ["file1.txt"]
-            }
-        },
+        "series": {"1": {"raw_data": ["file1.txt"]}},
         "defaults": {"a": 1},
         "processor_config": {"b": 2},
     }
@@ -657,16 +655,21 @@ def test_process_fallback_mode_coverage(tmp_path):
     mock_df = pd.DataFrame({"A": [1, 2, 3]})
     processed_df = pd.DataFrame({"A": [1, 2, 3], "Processed": [True, True, True]})
 
-    with patch("scripts.batch_correction._load_raw_data", return_value=mock_df) as mock_load, \
-         patch("scripts.batch_correction.processor.process_data", return_value=processed_df) as mock_process, \
-         patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as mock_write, \
-         patch("scripts.batch_correction.log") as mock_log:
+    with patch(
+        "scripts.batch_correction._load_raw_data", return_value=mock_df
+    ) as mock_load, patch(
+        "scripts.batch_correction.processor.process_data", return_value=processed_df
+    ) as mock_process, patch(
+        "scripts.batch_correction.spreadsheet_safety.write_excel_safely"
+    ) as mock_write, patch(
+        "scripts.batch_correction.log"
+    ) as mock_log:
 
         result_df = _process_fallback_mode(
             series_to_process=series_to_process,
             config_data=config_data,
             output_dir=str(tmp_path),
-            dry_run=False
+            dry_run=False,
         )
 
         assert len(result_df) == 1
@@ -678,26 +681,24 @@ def test_process_fallback_mode_coverage(tmp_path):
         mock_process.assert_called_once()
         mock_write.assert_called_once()
 
+
 def test_process_fallback_mode_coverage_error(tmp_path):
     series_to_process = [1]
     config_data = {
-        "series": {
-            "1": {
-                "raw_data": ["file1.txt"]
-            }
-        },
+        "series": {"1": {"raw_data": ["file1.txt"]}},
         "defaults": {"a": 1},
         "processor_config": {"b": 2},
     }
 
-    with patch("scripts.batch_correction._load_raw_data", side_effect=Exception("Test error")) as mock_load, \
-         patch("scripts.batch_correction.log") as mock_log:
+    with patch(
+        "scripts.batch_correction._load_raw_data", side_effect=Exception("Test error")
+    ) as mock_load, patch("scripts.batch_correction.log") as mock_log:
 
         result_df = _process_fallback_mode(
             series_to_process=series_to_process,
             config_data=config_data,
             output_dir=str(tmp_path),
-            dry_run=False
+            dry_run=False,
         )
 
         assert len(result_df) == 1
@@ -708,21 +709,23 @@ def test_process_fallback_mode_coverage_error(tmp_path):
 def test_process_fallback_mode_coverage_empty(tmp_path):
     # Test line 560 (empty dataframe return)
     series_to_process = [1]
-    config_data = {} # Missing "series" key
+    config_data = {}  # Missing "series" key
 
     result_df = _process_fallback_mode(
         series_to_process=series_to_process,
         config_data=config_data,
         output_dir=str(tmp_path),
-        dry_run=False
+        dry_run=False,
     )
 
     assert isinstance(result_df, pd.DataFrame)
     assert result_df.empty
 
+
 def test_determine_series_to_process_invalid_sensor():
 
     from scripts.batch_correction import _determine_series_to_process
+
     config_data = {"SENSOR_TO_RIVER": {"invalid": 10.0}}
     # The function catches ValueError and logs a warning instead of raising, so we assert the result is []
     result = _determine_series_to_process("all", None, config_data, "/fake")
@@ -731,16 +734,27 @@ def test_determine_series_to_process_invalid_sensor():
 
 def test_determine_series_to_process_scan_dir(monkeypatch):
     from scripts.batch_correction import _determine_series_to_process
+
     config_data = {}
 
     # Mock os.listdir
-    monkeypatch.setattr("os.listdir", lambda d: ["S25_Y01.txt", "S26_Y01.txt", "invalid_file.txt", "Sinvalid_Y01.txt"])
+    monkeypatch.setattr(
+        "os.listdir",
+        lambda d: [
+            "S25_Y01.txt",
+            "S26_Y01.txt",
+            "invalid_file.txt",
+            "Sinvalid_Y01.txt",
+        ],
+    )
 
     result = _determine_series_to_process("all", None, config_data, "/fake")
     assert result == [25, 26]
 
+
 def test_determine_series_to_process_scan_dir_with_rm(monkeypatch, caplog):
     from scripts.batch_correction import _determine_series_to_process
+
     config_data = {}
 
     # Mock os.listdir
@@ -750,8 +764,10 @@ def test_determine_series_to_process_scan_dir_with_rm(monkeypatch, caplog):
     assert result == [25]
     assert "River miles provided but no map to filter by" in caplog.text
 
+
 def test_determine_series_to_process_scan_dir_exception(monkeypatch):
     from scripts.batch_correction import _determine_series_to_process
+
     config_data = {}
 
     # Mock os.listdir
@@ -767,6 +783,7 @@ def test_determine_series_to_process_scan_dir_exception(monkeypatch):
 
 def test_determine_series_to_process_explicit_with_rm():
     from scripts.batch_correction import _determine_series_to_process
+
     config_data = {"SENSOR_TO_RIVER": {"10": 1.0, "20": 2.0}}
     result = _determine_series_to_process([10, 20, 30], [1.0], config_data, "/fake")
     assert result == [10]
@@ -774,6 +791,7 @@ def test_determine_series_to_process_explicit_with_rm():
 
 def test_determine_series_to_process_explicit_with_rm_missing():
     from scripts.batch_correction import _determine_series_to_process
+
     config_data = {"SENSOR_TO_RIVER": {"10": 1.0, "20": 2.0}}
     result = _determine_series_to_process([10], [3.0], config_data, "/fake")
     assert result == []
@@ -781,44 +799,66 @@ def test_determine_series_to_process_explicit_with_rm_missing():
 
 def test_determine_year_for_index_no_map():
     from scripts.batch_correction import _determine_year_for_index
+
     assert _determine_year_for_index(3, {}, range(2000, 2010)) == 2002
     assert _determine_year_for_index(15, {}, range(2000, 2010)) is None
 
+
 def test_parse_and_validate_file_invalid_match():
     from scripts.batch_correction import _parse_and_validate_file
+
     # Ends with .txt and starts with S but no _Y
-    result = _parse_and_validate_file("S25.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake")
+    result = _parse_and_validate_file(
+        "S25.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake"
+    )
     assert result is None
+
 
 def test_parse_and_validate_file_invalid_year():
     from scripts.batch_correction import _parse_and_validate_file
-    result = _parse_and_validate_file("S25_Y15.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake")
+
+    result = _parse_and_validate_file(
+        "S25_Y15.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake"
+    )
     assert result is None
+
 
 def test_parse_and_validate_file_missing_series():
     from scripts.batch_correction import _parse_and_validate_file
-    result = _parse_and_validate_file("S99_Y15.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake")
+
+    result = _parse_and_validate_file(
+        "S99_Y15.txt", {"25": 25}, {}, range(2000, 2010), 2000, 2010, "/fake"
+    )
     assert result is None
+
 
 def test_parse_and_validate_file_out_of_range_year():
     from scripts.batch_correction import _parse_and_validate_file
-    result = _parse_and_validate_file("S25_Y01.txt", {"25": 25}, {1: 1999}, range(2000, 2010), 2000, 2010, "/fake")
+
+    result = _parse_and_validate_file(
+        "S25_Y01.txt", {"25": 25}, {1: 1999}, range(2000, 2010), 2000, 2010, "/fake"
+    )
     assert result is None
 
 
 def test_determine_year_for_index_with_map_match():
     from scripts.batch_correction import _determine_year_for_index
+
     assert _determine_year_for_index(3, {3: 2002}, range(2000, 2010)) == 2002
+
 
 def test_determine_year_for_index_with_map_no_match():
     from scripts.batch_correction import _determine_year_for_index
+
     # The year mapped is outside of years_to_process range
     assert _determine_year_for_index(3, {3: 1999}, range(2000, 2010)) is None
     # No map entry
     assert _determine_year_for_index(4, {3: 2002}, range(2000, 2010)) is None
 
+
 def test_find_files_to_process_data_dir_not_exist(monkeypatch):
     from scripts.batch_correction import _find_files_to_process
+
     monkeypatch.setattr("os.path.isdir", lambda d: False)
     result = _find_files_to_process([25], (2000, 2010), "/fake")
     assert result == []
@@ -826,17 +866,21 @@ def test_find_files_to_process_data_dir_not_exist(monkeypatch):
 
 def test_load_raw_data_safe_numeric_exception(tmp_path):
     from scripts.batch_correction import _load_raw_data
+
     file_path = tmp_path / "S25_Y01.txt"
     file_path.write_text("1 2 3\n4 5 invalid_data\n")
     # This shouldn't crash, the invalid_data column will just remain non-numeric
     result = _load_raw_data(str(file_path))
     assert not result.empty
 
+
 def test_ensure_output_directory_creates_dir(tmp_path, monkeypatch):
     from scripts.batch_correction import _ensure_output_directory
+
     output_dir = tmp_path / "new_dir"
     _ensure_output_directory(str(output_dir), False)
     assert output_dir.exists()
+
 
 def test_ensure_output_directory_exception(monkeypatch):
     from scripts.batch_correction import ProcessingError, _ensure_output_directory
@@ -847,15 +891,18 @@ def test_ensure_output_directory_exception(monkeypatch):
     monkeypatch.setattr("os.makedirs", mock_makedirs)
     monkeypatch.setattr("os.path.isdir", lambda d: False)
     import pytest
+
     with pytest.raises(ProcessingError, match="Unable to create output directory"):
         _ensure_output_directory("/fake/new_dir", False)
 
 
 def test_get_data_directory_creates_dir(monkeypatch):
     from scripts.batch_correction import _get_data_directory
+
     monkeypatch.setattr("os.path.isdir", lambda d: False)
 
     makedirs_called = []
+
     def mock_makedirs(d, exist_ok):
         makedirs_called.append(d)
 
@@ -865,8 +912,10 @@ def test_get_data_directory_creates_dir(monkeypatch):
     assert len(makedirs_called) == 1
     assert result.endswith("data")
 
+
 def test_get_data_directory_creates_dir_exception(monkeypatch):
     from scripts.batch_correction import _get_data_directory
+
     monkeypatch.setattr("os.path.isdir", lambda d: False)
 
     def mock_makedirs(d, exist_ok):
@@ -875,16 +924,20 @@ def test_get_data_directory_creates_dir_exception(monkeypatch):
     monkeypatch.setattr("os.makedirs", mock_makedirs)
 
     import pytest
+
     with pytest.raises(FileNotFoundError, match="Cannot create default data directory"):
         _get_data_directory({}, create_if_missing=True)
 
+
 def test_optional_import_coverage(monkeypatch):
     from scripts.batch_correction import _optional_import
+
     # Trigger ModuleNotFoundError
     assert _optional_import("non_existent_module_for_test", "Msg") is None
 
     # Trigger ImportError
     original_import = __import__
+
     def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
         if name == "mock_import_error_module":
             raise ImportError("Mock error")
@@ -901,6 +954,7 @@ def test_optional_import_coverage(monkeypatch):
 
     monkeypatch.setattr("builtins.__import__", mock_import_err)
     import pytest
+
     with pytest.raises(TypeError):
         _optional_import("mock_type_error_module", "Msg")
 
@@ -909,9 +963,12 @@ def test_batch_process_empty_series_returns_empty_df():
     import pandas as pd
 
     from scripts.batch_correction import BatchConfig, batch_process
+
     config = BatchConfig("all", None, (2000, 2010), dry_run=True)
 
-    with patch("scripts.batch_correction._determine_series_to_process", return_value=[]):
+    with patch(
+        "scripts.batch_correction._determine_series_to_process", return_value=[]
+    ):
         result = batch_process(config)
         assert isinstance(result, pd.DataFrame)
         assert result.empty
@@ -919,12 +976,15 @@ def test_batch_process_empty_series_returns_empty_df():
 
 def test_load_and_enrich_config_file_not_found(monkeypatch, caplog):
     from scripts.batch_correction import _load_and_enrich_config
+
     def mock_load(path):
         raise FileNotFoundError("Simulated not found")
+
     monkeypatch.setattr("scripts.batch_correction.load_config_func", mock_load)
     result = _load_and_enrich_config("/fake/config.json")
     assert result == {}
     assert "not found" in caplog.text
+
 
 def test_load_and_enrich_config_load_error(monkeypatch):
     from scripts.batch_correction import ProcessingError, _load_and_enrich_config
@@ -937,6 +997,7 @@ def test_load_and_enrich_config_load_error(monkeypatch):
     monkeypatch.setattr("scripts.batch_correction.load_config_func", mock_load)
 
     import pytest
+
     with pytest.raises(ProcessingError, match="Failed to load configuration"):
         _load_and_enrich_config("/fake/config.json")
 
@@ -947,8 +1008,12 @@ def test_batch_process_empty_series_from_selection(monkeypatch):
     from scripts.batch_correction import BatchConfig, batch_process
 
     # If determine_series_to_process returns []
-    monkeypatch.setattr("scripts.batch_correction._determine_series_to_process", lambda *args: [])
-    config = BatchConfig(series_selection="all", river_miles=None, years=(2000, 2010), dry_run=True)
+    monkeypatch.setattr(
+        "scripts.batch_correction._determine_series_to_process", lambda *args: []
+    )
+    config = BatchConfig(
+        series_selection="all", river_miles=None, years=(2000, 2010), dry_run=True
+    )
     result = batch_process(config)
     assert isinstance(result, pd.DataFrame)
     assert result.empty
@@ -968,19 +1033,22 @@ def test_process_main_mode_empty_or_unreadable(tmp_path, monkeypatch):
     file_path = tmp_path / "S25_Y01.txt"
     file_path.write_text("not empty but load will return empty")
 
-    result = _process_main_mode([(25, 2000, 1, str(file_path))], {}, str(tmp_path), dry_run=True)
+    result = _process_main_mode(
+        [(25, 2000, 1, str(file_path))], {}, str(tmp_path), dry_run=True
+    )
     assert len(result) == 1
     assert result.iloc[0]["Status"] == "Failed (Processing Error)"
 
 
 def test_load_raw_data_safe_numeric_type_error(tmp_path):
     from scripts.batch_correction import _load_raw_data
+
     file_path = tmp_path / "S25_Y01.txt"
     # To force a TypeError from to_numeric, we pass something very un-numeric
     # But read_csv might read it as strings, which raises ValueError.
     # We can mock to_numeric to raise TypeError.
     from unittest.mock import patch
-    import pandas as pd
+
 
     file_path.write_text("1 2 3\n4 5 6\n")
 
