@@ -228,7 +228,6 @@ def test_parse_sensor_index_out_of_bounds():
     assert parse_sensor_index("Sensor -1") is None
 
 
-
 def test_parse_year_pair_valid_forward():
     assert parse_year_pair("1995 (Y01) to 1996 (Y02)") == (1, 2)
 

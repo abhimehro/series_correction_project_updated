@@ -637,9 +637,10 @@ def test_load_raw_data_empty_file(caplog):
         assert "dummy_empty_file.txt empty." in caplog.text
 
 
+import pytest
 
 from scripts.batch_correction import _determine_series_to_process
-import pytest
+
 
 def test_determine_series_to_process_all_fallback(mocker, tmp_path):
     """Test 'all' series selection when no river mile map is present."""
@@ -654,6 +655,7 @@ def test_determine_series_to_process_all_fallback(mocker, tmp_path):
 
     assert series == [1, 2]
 
+
 def test_determine_series_to_process_all_fallback_with_river_miles(mocker, tmp_path):
     """Test 'all' series selection with river miles but no map."""
     mock_log = mocker.patch("scripts.batch_correction.log")
@@ -664,7 +666,10 @@ def test_determine_series_to_process_all_fallback_with_river_miles(mocker, tmp_p
     series = _determine_series_to_process("all", [1.0], {}, str(data_dir))
 
     assert series == [1]
-    mock_log.warning.assert_called_with("River miles provided but no map to filter by – ignored.")
+    mock_log.warning.assert_called_with(
+        "River miles provided but no map to filter by – ignored."
+    )
+
 
 def test_determine_series_to_process_invalid_sensor_id_in_map(mocker):
     """Test map building handles invalid sensor IDs gracefully."""
@@ -673,7 +678,10 @@ def test_determine_series_to_process_invalid_sensor_id_in_map(mocker):
     series = _determine_series_to_process("all", [1.0], config_data, "fake_dir")
 
     # It should log the warning and return an empty list since the map was invalid
-    mock_log.warning.assert_any_call("Invalid sensor id in SENSOR_TO_RIVER map: invalid")
+    mock_log.warning.assert_any_call(
+        "Invalid sensor id in SENSOR_TO_RIVER map: invalid"
+    )
+
 
 def test_determine_series_to_process_explicit_invalid_value(mocker):
     """Test explicit series list parsing handles ValueErrors."""

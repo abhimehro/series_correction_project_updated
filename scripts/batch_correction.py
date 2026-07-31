@@ -9,7 +9,6 @@ The implementation has been aligned with the requirements asserted in
 scripts/tests/test_batch_correction.py.
 """
 
-
 # ---------------------------------------------------------------------------
 # Imports
 # ---------------------------------------------------------------------------
