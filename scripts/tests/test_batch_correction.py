@@ -662,3 +662,50 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
+
+
+
+from scripts.batch_correction import _determine_series_to_process
+import pytest
+
+def test_determine_series_to_process_all_fallback(mocker, tmp_path):
+    """Test 'all' series selection when no river mile map is present."""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "S1_Y1.txt").touch()
+    (data_dir / "S2_Y1.txt").touch()
+    (data_dir / "S3.txt").touch()  # Invalid format
+    (data_dir / "Sinvalid_Y1.txt").touch()  # Invalid series ID
+
+    series = _determine_series_to_process("all", None, {}, str(data_dir))
+
+    assert series == [1, 2]
+
+def test_determine_series_to_process_all_fallback_with_river_miles(mocker, tmp_path):
+    """Test 'all' series selection with river miles but no map."""
+    mock_log = mocker.patch("scripts.batch_correction.log")
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "S1_Y1.txt").touch()
+
+    series = _determine_series_to_process("all", [1.0], {}, str(data_dir))
+
+    assert series == [1]
+    mock_log.warning.assert_called_with("River miles provided but no map to filter by – ignored.")
+
+def test_determine_series_to_process_invalid_sensor_id_in_map(mocker):
+    """Test map building handles invalid sensor IDs gracefully."""
+    mock_log = mocker.patch("scripts.batch_correction.log")
+    config_data = {"SENSOR_TO_RIVER": {"invalid": 1.0}}
+    series = _determine_series_to_process("all", [1.0], config_data, "fake_dir")
+
+    # It should log the warning and return an empty list since the map was invalid
+    mock_log.warning.assert_any_call("Invalid sensor id in SENSOR_TO_RIVER map: invalid")
+
+def test_determine_series_to_process_explicit_invalid_value(mocker):
+    """Test explicit series list parsing handles ValueErrors."""
+    mock_log = mocker.patch("scripts.batch_correction.log")
+    with pytest.raises(ValueError, match="Invalid series selection"):
+        _determine_series_to_process(["invalid"], None, {}, "fake_dir")
+
+    mock_log.exception.assert_called()
