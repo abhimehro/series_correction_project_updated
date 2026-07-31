@@ -9,12 +9,15 @@ from unittest import mock
 
 import pandas as pd  # type: ignore
 import pytest
-from scripts.batch_correction import _determine_series_to_process
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
 # Import ProcessingError only if you add a test that specifically catches it
-from scripts.batch_correction import BatchConfig, batch_process
+from scripts.batch_correction import (
+    BatchConfig,
+    _determine_series_to_process,
+    batch_process,
+)
 
 
 # Extracted helper functions for test_batch_process_happy_path_all_series_with_config
@@ -403,11 +406,10 @@ def test_get_data_directory_creates_dir_oserror(mock_dependencies):
     config_data = {}
     with patch("os.path.isdir", return_value=False), patch(
         "os.makedirs", side_effect=OSError("Perm denied")
+    ), pytest.raises(
+        FileNotFoundError, match="Cannot create default data directory"
     ):
-        with pytest.raises(
-            FileNotFoundError, match="Cannot create default data directory"
-        ):
-            _get_data_directory(config_data, create_if_missing=True)
+        _get_data_directory(config_data, create_if_missing=True)
 
 
 def test_batch_process_skip_empty_file(mock_dependencies, caplog):
