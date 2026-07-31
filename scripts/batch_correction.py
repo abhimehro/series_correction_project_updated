@@ -582,6 +582,65 @@ def _process_fallback_mode(
     return pd.DataFrame()
 
 
+def _process_single_file(
+    series: int,
+    year: int,
+    yi: int,
+    file_path: str,
+    processor_config: dict[str, Any],
+    output_dir: str,
+    dry_run: bool,
+) -> dict[str, Any] | None:
+    """Helper function to process a single file in main mode, reducing cognitive complexity."""
+    fname = os.path.basename(file_path)
+    log.info(f"Processing {fname} (Series {series}, Year {year}, Y{yi:02d})")
+
+    if os.path.getsize(file_path) == 0:
+        log.info(f"Skipping empty file: {fname}")
+        return None
+
+    try:
+        raw_df = _load_raw_data(file_path)
+        if raw_df.empty:
+            raise ProcessingError("Empty or unreadable data")
+
+        processed_df = None
+        if processor:
+            processed_df = processor.process_data(raw_df.copy(), processor_config)
+            status = "Processed"
+        else:
+            processed_df = raw_df.copy()
+            status = "Processed (No Processor Module)"
+
+        if not dry_run:
+            out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
+            out_path = os.path.join(output_dir, out_name)
+            spreadsheet_safety.write_excel_safely(
+                processed_df, out_path, index=False, header=False
+            )
+            log.info(f"Saved corrected data to {out_path}")
+
+    except ProcessingError:
+        status = "Failed (Processing Error)"
+        processed_df = None
+    except Exception:  # pragma: no cover
+        status = "Failed (Unexpected Error)"
+        processed_df = None
+
+    return {
+        "Series": series,
+        "Year": year,
+        "Y-Index": yi,
+        "Filename": fname,
+        "Status": status,
+        "Records": (
+            len(processed_df)
+            if processed_df is not None and not processed_df.empty
+            else 0
+        ),
+    }
+
+
 def _process_main_mode(
     files_to_process: list[tuple[int, int, int, str]],
     processor_config: dict[str, Any],
@@ -591,51 +650,11 @@ def _process_main_mode(
     summary_records = []
     for series, year, yi, file_path in files_to_process:
         log.debug(f"Processing series: {series}, year: {year}, file: {file_path}")
-        fname = os.path.basename(file_path)
-        log.info(f"Processing {fname} (Series {series}, Year {year}, Y{yi:02d})")
-
-        if os.path.getsize(file_path) == 0:
-            log.info(f"Skipping empty file: {fname}")
-            continue
-
-        try:
-            raw_df = _load_raw_data(file_path)
-            if raw_df.empty:
-                raise ProcessingError("Empty or unreadable data")
-
-            processed_df = None
-            if processor:
-                processed_df = processor.process_data(raw_df.copy(), processor_config)
-                status = "Processed"
-            else:
-                processed_df = raw_df.copy()
-                status = "Processed (No Processor Module)"
-
-            if not dry_run:
-                out_name = f"Year_{year} (Y{yi:02d})_Data.xlsx"
-                out_path = os.path.join(output_dir, out_name)
-                spreadsheet_safety.write_excel_safely(
-                    processed_df, out_path, index=False, header=False
-                )
-                log.info(f"Saved corrected data to {out_path}")
-
-        except ProcessingError:
-            status = "Failed (Processing Error)"
-            processed_df = pd.DataFrame()
-        except Exception:  # pragma: no cover
-            status = "Failed (Unexpected Error)"
-            processed_df = pd.DataFrame()
-
-        summary_records.append(
-            {
-                "Series": series,
-                "Year": year,
-                "Y-Index": yi,
-                "Filename": fname,
-                "Status": status,
-                "Records": len(processed_df) if not processed_df.empty else 0,
-            }
+        record = _process_single_file(
+            series, year, yi, file_path, processor_config, output_dir, dry_run
         )
+        if record:
+            summary_records.append(record)
 
     # Create a summary DataFrame and return it
     summary_df = pd.DataFrame(summary_records)
