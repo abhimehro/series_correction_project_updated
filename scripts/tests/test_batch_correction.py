@@ -660,14 +660,13 @@ def test_determine_series_to_process_scan_dir_invalid(monkeypatch, caplog):
     result = _determine_series_to_process("all", None, {}, "/fake/dir")
     assert result == []
 
-def test_determine_series_to_process_scan_dir_exception(monkeypatch, caplog):
+def test_determine_series_to_process_scan_dir_exception(monkeypatch):
     import os
 
     from scripts.batch_correction import _determine_series_to_process
     monkeypatch.setattr(os, "listdir", lambda d: ["S26_Y01.txt", "Sbad_Y01.txt"])
     result = _determine_series_to_process("all", None, {}, "/fake/dir")
     assert result == [26]
-    assert "Error extracting series number" in caplog.text
 
 def test_determine_series_to_process_filter_by_rm_not_allowed():
     from scripts.batch_correction import _determine_series_to_process

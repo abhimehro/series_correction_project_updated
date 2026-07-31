@@ -193,8 +193,7 @@ def _determine_series_to_process(
                 if fname.startswith("S") and "_Y" in fname and fname.endswith(".txt"):
                     try:
                         found.add(int(fname.split("_")[0][1:]))
-                    except Exception:
-                        log.exception("Error extracting series number from filename %s", fname)
+                    except (ValueError, IndexError):
                         continue
             series_list = sorted(found)
             if river_miles:
