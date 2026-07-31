@@ -43,14 +43,18 @@
 **Merged pull requests:**
 
 - fix\(lint\): flake8 cleanup for discontinuity unit tests [\#334](https://github.com/abhimehro/series_correction_project_updated/pull/334) ([cursor[bot]](https://github.com/apps/cursor))
+- test: parse\_year\_pair unit tests \(salvages \#329\) [\#333](https://github.com/abhimehro/series_correction_project_updated/pull/333) ([abhimehro](https://github.com/abhimehro))
+- chore\(setup\): remove unused \_\_future\_\_ import \(salvages \#313\) [\#332](https://github.com/abhimehro/series_correction_project_updated/pull/332) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[code health improvement\] Remove unused logging import [\#330](https://github.com/abhimehro/series_correction_project_updated/pull/330) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Optimize finding year files by preventing redundant sorting [\#328](https://github.com/abhimehro/series_correction_project_updated/pull/328) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Code Health: Extract helper functions from \_determine\_series\_to\_process [\#327](https://github.com/abhimehro/series_correction_project_updated/pull/327) ([abhimehro](https://github.com/abhimehro))
 - ⚡ \[compile static regular expressions\] [\#325](https://github.com/abhimehro/series_correction_project_updated/pull/325) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[code health improvement\] Remove unused annotations import [\#324](https://github.com/abhimehro/series_correction_project_updated/pull/324) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Optimize regex compilation in year pair parsing [\#319](https://github.com/abhimehro/series_correction_project_updated/pull/319) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[Code Health\] Refactor detect\_outliers function for readability [\#318](https://github.com/abhimehro/series_correction_project_updated/pull/318) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[Code Health\] Remove unused future annotations import [\#317](https://github.com/abhimehro/series_correction_project_updated/pull/317) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add tests for parse\_sensor\_index [\#316](https://github.com/abhimehro/series_correction_project_updated/pull/316) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix broken authentication logic in dummy\_todos.py [\#315](https://github.com/abhimehro/series_correction_project_updated/pull/315) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Remove unused annotations import [\#314](https://github.com/abhimehro/series_correction_project_updated/pull/314) ([abhimehro](https://github.com/abhimehro))
 - 🧪 \[testing improvement\] Add test for \_safe\_round exception handling [\#312](https://github.com/abhimehro/series_correction_project_updated/pull/312) ([abhimehro](https://github.com/abhimehro))
 - 🧪 Add unit tests for discontinuity\_utils.py [\#311](https://github.com/abhimehro/series_correction_project_updated/pull/311) ([abhimehro](https://github.com/abhimehro))
