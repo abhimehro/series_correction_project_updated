@@ -211,10 +211,9 @@ def _find_null_in_string_series(series: pd.Series) -> Any:
 
 def _find_null_in_object_series(series: pd.Series) -> Any:
     """Return the first null byte in an object-dtype Series."""
-    mask = series.apply(lambda x: _label_has_null_byte(x))
-    if mask.any():
-        return series[mask].iloc[0]
-    return None
+    # Bolt: Short-circuiting generator expression avoids O(N) pass when a null byte is found early
+    # Use 'is True' to safely handle truth-value ambiguity from missing values like pd.NA
+    return next((x for x in series if _label_has_null_byte(x) is True), None)
 
 
 def _find_null_byte_in_series(series: pd.Series) -> Any:
