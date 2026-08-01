@@ -42,6 +42,8 @@
 
 **Merged pull requests:**
 
+- 🧹 Daily QA: Code Health Fixes [\#338](https://github.com/abhimehro/series_correction_project_updated/pull/338) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Remove redundant NaN masking before np.median [\#337](https://github.com/abhimehro/series_correction_project_updated/pull/337) ([abhimehro](https://github.com/abhimehro))
 - fix\(lint\): flake8 cleanup for discontinuity unit tests [\#334](https://github.com/abhimehro/series_correction_project_updated/pull/334) ([cursor[bot]](https://github.com/apps/cursor))
 - test: parse\_year\_pair unit tests \(salvages \#329\) [\#333](https://github.com/abhimehro/series_correction_project_updated/pull/333) ([abhimehro](https://github.com/abhimehro))
 - chore\(setup\): remove unused \_\_future\_\_ import \(salvages \#313\) [\#332](https://github.com/abhimehro/series_correction_project_updated/pull/332) ([abhimehro](https://github.com/abhimehro))
