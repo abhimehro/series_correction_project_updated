@@ -8,6 +8,8 @@
 
 - 🔒 Supply Chain: Pin and update dependencies to current versions [\#300](https://github.com/abhimehro/series_correction_project_updated/issues/300)
 - P0: Spreadsheet Formula Injection Vulnerability [\#279](https://github.com/abhimehro/series_correction_project_updated/issues/279)
+- \[Medium\] Formula injection in generated Excel outputs [\#30](https://github.com/abhimehro/series_correction_project_updated/issues/30)
+- \[Medium\] Spreadsheet formula injection in generated outputs [\#28](https://github.com/abhimehro/series_correction_project_updated/issues/28)
 
 **Closed issues:**
 
@@ -42,6 +44,7 @@
 
 **Merged pull requests:**
 
+- chore: daily QA review \(no findings\) [\#340](https://github.com/abhimehro/series_correction_project_updated/pull/340) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Daily QA: Code Health Fixes [\#338](https://github.com/abhimehro/series_correction_project_updated/pull/338) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Remove redundant NaN masking before np.median [\#337](https://github.com/abhimehro/series_correction_project_updated/pull/337) ([abhimehro](https://github.com/abhimehro))
 - fix\(lint\): flake8 cleanup for discontinuity unit tests [\#334](https://github.com/abhimehro/series_correction_project_updated/pull/334) ([cursor[bot]](https://github.com/apps/cursor))
