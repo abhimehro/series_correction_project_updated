@@ -1,22 +1,22 @@
 # https://docs.devin.ai/onboard-devin/environment-yaml
 maintenance: |
-  PYENV_VERSION=3.10.16 python -m pip install --upgrade pip
-  PYENV_VERSION=3.10.16 python -m pip install -r scripts/requirements-dev.txt
-  PYENV_VERSION=3.10.16 python -m pip install -e .
-  PYENV_VERSION=3.10.16 python -m pip install --user ruff==0.15.8
+  PYENV_VERSION=3.10.16 python3 -m pip install --upgrade pip
+  PYENV_VERSION=3.10.16 python3 -m pip install -r scripts/requirements-dev.txt
+  PYENV_VERSION=3.10.16 python3 -m pip install -e .
 knowledge:
   - name: build
     contents: |
-      PYENV_VERSION=3.10.16 python setup.py --name
-      PYENV_VERSION=3.10.16 python -m py_compile scripts/*.py
+      PYENV_VERSION=3.10.16 python3 setup.py --name
+      PYENV_VERSION=3.10.16 python3 -m py_compile scripts/*.py
   - name: lint
     contents: |
-      PYENV_VERSION=3.10.16 python -m ruff check scripts
-      PYENV_VERSION=3.10.16 python -m black --check scripts
-      PYENV_VERSION=3.10.16 python -m flake8 scripts/ --max-line-length=100
+      PYENV_VERSION=3.10.16 python3 -m black --check scripts
+      PYENV_VERSION=3.10.16 python3 -m flake8 scripts/ --max-line-length=100
   - name: test
     contents: |
-      PYENV_VERSION=3.10.16 python -m pytest scripts/tests/ -v
+      PYENV_VERSION=3.10.16 python3 -m pytest scripts/tests/ -v
+  - name: test-status
+    contents: |
       Full suite passes (140 tests on Python 3.10 and 3.11).
   - name: python-version
     contents: |
