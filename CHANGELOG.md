@@ -13,6 +13,10 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-03 [\#343](https://github.com/abhimehro/series_correction_project_updated/issues/343)
+- Daily QA & Agentic Review — 2026-08-02 [\#341](https://github.com/abhimehro/series_correction_project_updated/issues/341)
+- Daily QA & Agentic Review — 2026-08-01 [\#339](https://github.com/abhimehro/series_correction_project_updated/issues/339)
+- Daily QA & Agentic Review — 2026-07-30 [\#335](https://github.com/abhimehro/series_correction_project_updated/issues/335)
 - Daily QA & Agentic Review — 2026-07-29 [\#306](https://github.com/abhimehro/series_correction_project_updated/issues/306)
 - Daily QA & Agentic Review — 2026-07-28 [\#302](https://github.com/abhimehro/series_correction_project_updated/issues/302)
 - \[repo-health\] Re-enable Python Tests workflow \(disabled\_manually\) [\#298](https://github.com/abhimehro/series_correction_project_updated/issues/298)
@@ -44,6 +48,7 @@
 
 **Merged pull requests:**
 
+- chore\(devin\): add environment blueprint for reproducible setup [\#344](https://github.com/abhimehro/series_correction_project_updated/pull/344) ([abhimehro](https://github.com/abhimehro))
 - chore: daily QA review \(no findings\) [\#340](https://github.com/abhimehro/series_correction_project_updated/pull/340) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Daily QA: Code Health Fixes [\#338](https://github.com/abhimehro/series_correction_project_updated/pull/338) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Remove redundant NaN masking before np.median [\#337](https://github.com/abhimehro/series_correction_project_updated/pull/337) ([abhimehro](https://github.com/abhimehro))
