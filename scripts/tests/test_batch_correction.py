@@ -710,7 +710,10 @@ def test_determine_series_to_process_explicit_invalid_value(mocker):
 
     mock_log.exception.assert_called()
 
-def test_batch_process_fallback_mode_exception(mock_dependencies, mock_config_loader, mocker):
+
+def test_batch_process_fallback_mode_exception(
+    mock_dependencies, mock_config_loader, mocker
+):
     """Test exception handling in _process_fallback_mode."""
     series = 26
     years = (1995, 1995)
@@ -722,11 +725,15 @@ def test_batch_process_fallback_mode_exception(mock_dependencies, mock_config_lo
     mocker.patch("scripts.batch_correction.processor", None)
 
     # Mock _load_raw_data to raise Exception
-    mocker.patch("scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed"))
+    mocker.patch(
+        "scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed")
+    )
 
     # Call batch_process
-    summary_df = __import__('scripts.batch_correction').batch_correction.batch_process(
-        __import__('scripts.batch_correction').batch_correction.BatchConfig(series, None, years, dry_run=False)
+    summary_df = __import__("scripts.batch_correction").batch_correction.batch_process(
+        __import__("scripts.batch_correction").batch_correction.BatchConfig(
+            series, None, years, dry_run=False
+        )
     )
 
     assert len(summary_df) == 1
