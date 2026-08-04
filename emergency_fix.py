@@ -1,3 +1,4 @@
+import logging
 import glob
 import os
 import sys
@@ -94,8 +95,11 @@ if raw_files:
         print(f"Explicitly saved file to: {output_path}")
         print(f"Check if file exists: {os.path.exists(output_path)}")
 
-    except Exception as e:
-        print(f"Error processing test file: {e}")
+    except Exception:
+
+        logging.exception("Exception occurred while processing test file")
+        print("An error occurred during file processing. Please check the logs.")
+
 else:
     print("No raw data files found to process")
 
