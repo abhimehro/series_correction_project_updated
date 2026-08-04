@@ -62,15 +62,11 @@ def _read_csv_side_effect_all_series(path, *args, **kwargs):
 
 # Extracted helper functions for test_batch_process_happy_path_specific_series_no_config
 def _isfile_side_effect_specific_series(path):
-    import os
-
     fname = os.path.basename(path)
     return fname in ["S30_Y01.txt", "S31_Y01.txt"]
 
 
 def _isfile_side_effect_data_specific_series(path):
-    import os
-
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
         return True
@@ -88,26 +84,26 @@ def create_dummy_df(rows=5):
 
 # Patch pandas.read_csv globally for all tests to handle both river mile map and sensor data files
 def read_csv_side_effect(path, *args, **kwargs):
-    import os
-
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
         return pd.DataFrame(
             {"SENSOR_ID": [26, 27, 30, 31], "RIVER_MILE": [54.0, 53.0, 52.0, 51.0]}
         )
-    else:
-        # Simulate sensor data: 5 rows, 2 columns with integer columns
-        return pd.DataFrame({0: range(5), 1: range(5)})
+    # Simulate sensor data: 5 rows, 2 columns with integer columns
+    return pd.DataFrame({0: range(5), 1: range(5)})
 
 
 @pytest.fixture(autouse=True)
 def patch_read_csv():
+    """Patch read_csv."""
     with mock.patch("pandas.read_csv", side_effect=read_csv_side_effect):
         yield
 
 
 @pytest.fixture(autouse=True)
 def patch_pd_read_csv(monkeypatch):
+    """Patch pd.read_csv."""
+
     def read_csv_side_effect(path, *_args, **_kwargs):
         if isinstance(path, str) and path.endswith("river_mile_map.csv"):
             return pd.DataFrame(
@@ -126,6 +122,7 @@ def patch_pd_read_csv(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def patch_load_config(monkeypatch):
+    """Patch load_config."""
     # Always patch scripts.loaders.load_config to return a valid config dict
     config_dict = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -147,6 +144,7 @@ def patch_load_config(monkeypatch):
 
 
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
+    """Test batch process happy path all series."""
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -223,6 +221,7 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
 
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
+    """Test batch process happy path specific series."""
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -380,6 +379,7 @@ def test_batch_process_data_dir_not_found(mock_dependencies):
 
 
 def test_get_data_directory_creates_dir(mock_dependencies):
+    """Test get_data_directory creates dir."""
     from unittest.mock import patch
 
     config_data = {}
@@ -397,6 +397,7 @@ def test_get_data_directory_creates_dir(mock_dependencies):
 
 
 def test_get_data_directory_creates_dir_oserror(mock_dependencies):
+    """Test get_data_directory handles OSError."""
     from unittest.mock import patch
 
     config_data = {}
@@ -582,8 +583,7 @@ def test_minimal_happy_path(monkeypatch):
     def read_csv_side_effect(path, *args, **kwargs):
         if str(path).endswith("river_mile_map.csv"):
             return pd.DataFrame({"SENSOR_ID": [26], "RIVER_MILE": [54.0]})
-        else:
-            return pd.DataFrame({0: range(5), 1: range(5)})
+        return pd.DataFrame({0: range(5), 1: range(5)})
 
     monkeypatch.setattr("pandas.read_csv", read_csv_side_effect)
 
