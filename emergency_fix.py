@@ -1,8 +1,11 @@
 import glob
 import os
 import sys
+import logging
 
 import pandas as pd
+
+log = logging.getLogger(__name__)
 
 # Add project to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -94,8 +97,9 @@ if raw_files:
         print(f"Explicitly saved file to: {output_path}")
         print(f"Check if file exists: {os.path.exists(output_path)}")
 
-    except Exception as e:
-        print(f"Error processing test file: {e}")
+    except Exception:
+        log.exception("Error processing test file")
+        print("Error processing test file: An internal error occurred")
 else:
     print("No raw data files found to process")
 

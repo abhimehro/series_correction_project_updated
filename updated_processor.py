@@ -1,10 +1,13 @@
 import glob
 import os
+import logging
 
 import numpy as np
 import pandas as pd
 
 from scripts.spreadsheet_safety import write_excel_safely
+
+log = logging.getLogger(__name__)
 
 # Paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -100,7 +103,8 @@ for i, file_path in enumerate(all_files):
         write_excel_safely(df, out_path, index=False)
         print(f"  Saved: {out_filename}")
 
-    except Exception as e:
-        print(f"  Error processing {filename}: {e}")
+    except Exception:
+        log.exception(f"Error processing {filename}")
+        print(f"  Error processing {filename}: An internal error occurred")
 
 print(f"\nProcessing complete! All files saved to: {OUTPUT_DIR}")
