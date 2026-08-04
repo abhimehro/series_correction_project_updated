@@ -3,6 +3,7 @@ import pandas as pd
 
 from scripts.discontinuity_utils import (
     _calculate_normal_step,
+    _generate_missing_times,
     _is_valid_step,
     _validate_gap_parameters,
 )
@@ -84,3 +85,46 @@ def test_validate_gap_parameters_negative_missing_points():
     # step = 10, time_before = 10, time_after = 15
     # num_missing_points = round((15 - 10) / 10) - 1 = 0 - 1 = -1
     assert _validate_gap_parameters(1, 10, 10, 15) is None
+
+
+def test_generate_missing_times_timestamp():
+    time_before = pd.Timestamp("2023-01-01 00:00:00")
+    time_after = pd.Timestamp("2023-01-01 00:00:04")
+    normal_step = pd.Timedelta("1s")
+    num_missing_points = 3
+
+    res = _generate_missing_times(time_before, time_after, normal_step, num_missing_points)
+    assert len(res) == 3
+    assert res[0] == pd.Timestamp("2023-01-01 00:00:01")
+    assert res[2] == pd.Timestamp("2023-01-01 00:00:03")
+
+def test_generate_missing_times_numeric():
+    time_before = 10
+    time_after = 50
+    normal_step = 10
+    num_missing_points = 3
+
+    res = _generate_missing_times(time_before, time_after, normal_step, num_missing_points)
+    assert len(res) == 3
+    assert res[0] == 20
+    assert res[2] == 40
+    assert res.dtype == np.int64
+
+def test_generate_missing_times_hasattr_value():
+    class MockTime:
+        def __init__(self, value):
+            self.value = value
+        def __add__(self, other):
+            return MockTime(self.value + other)
+        def __sub__(self, other):
+            return MockTime(self.value - other)
+
+    time_before = MockTime(1672531200000000000) # 2023-01-01 00:00:00 in ns
+    time_after = MockTime(1672531204000000000)
+    normal_step = 1000000000 # 1s in ns
+    num_missing_points = 3
+
+    res = _generate_missing_times(time_before, time_after, normal_step, num_missing_points)
+    assert len(res) == 3
+    assert res[0] == pd.Timestamp("2023-01-01 00:00:01")
+    assert res[2] == pd.Timestamp("2023-01-01 00:00:03")
