@@ -28,6 +28,33 @@ from scripts.discontinuity_utils import (
 log = logging.getLogger(__name__)
 
 
+def _calculate_median_time_diff(
+    time_col_np: np.ndarray,
+) -> tuple[np.ndarray, float | None]:
+    """Calculate time differences and their median."""
+    time_diffs_np = np.diff(time_col_np)
+    if len(time_diffs_np) == 0:
+        return time_diffs_np, None
+
+    median_diff = np.median(time_diffs_np)
+    if median_diff <= 0:
+        return time_diffs_np, None
+
+    return time_diffs_np, median_diff
+
+
+def _find_gap_indices(
+    time_diffs_np: np.ndarray, gap_threshold: float, data_index: pd.Index
+) -> list[int]:
+    """Find indices where time differences exceed the threshold."""
+    # The index corresponds to the row *after* the gap.
+    # Since np.diff reduces length by 1, index i in time_diffs_np corresponds to i+1 in original array
+    gap_indices_np = np.where(time_diffs_np > gap_threshold)[0] + 1
+
+    # Map back to original DataFrame index
+    return data_index[gap_indices_np].tolist()
+
+
 def detect_gaps(
     data: pd.DataFrame, time_col: str = "Time (Seconds)", threshold_factor: float = 3.0
 ) -> list[int]:
@@ -56,33 +83,23 @@ def detect_gaps(
     # instead of pandas Series.diff() and .median() for significant performance improvement
     time_col_np = data[time_col].to_numpy()
 
-    # np.diff computes a[n+1] - a[n], returning an array of length N-1
-    time_diffs_np = np.diff(time_col_np)
+    time_diffs_np, median_diff = _calculate_median_time_diff(time_col_np)
 
-    if len(time_diffs_np) == 0:
-        log.debug("No valid time differences to calculate median.")
-        return []
-
-    # Calculate the median time difference
-    median_diff = np.median(time_diffs_np)
-
-    if median_diff <= 0:
-        log.warning(
-            "Median time difference is non-positive (%s). Cannot reliably detect gaps.",
-            median_diff,
-        )
+    if median_diff is None:
+        if len(time_diffs_np) == 0:
+            log.debug("No valid time differences to calculate median.")
+        else:
+            # We know it must be <= 0 if it's not length 0 and is None
+            log.warning(
+                "Median time difference is non-positive. Cannot reliably detect gaps."
+            )
         return []
 
     # Define the gap threshold
     gap_threshold = threshold_factor * median_diff
 
     # Identify indices where the time difference exceeds the threshold
-    # The index corresponds to the row *after* the gap.
-    # Since np.diff reduces length by 1, index i in time_diffs_np corresponds to i+1 in original array
-    gap_indices_np = np.where(time_diffs_np > gap_threshold)[0] + 1
-
-    # Map back to original DataFrame index
-    gap_indices = data.index[gap_indices_np].tolist()
+    gap_indices = _find_gap_indices(time_diffs_np, gap_threshold, data.index)
 
     if gap_indices:
         log.info(
