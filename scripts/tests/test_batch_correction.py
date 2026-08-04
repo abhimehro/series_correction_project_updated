@@ -714,3 +714,25 @@ def test_determine_series_to_process_explicit_invalid_value(mocker):
         _determine_series_to_process(["invalid"], None, {}, "fake_dir")
 
     mock_log.exception.assert_called()
+
+def test_batch_process_fallback_mode_exception(mock_dependencies, mock_config_loader, mocker):
+    """Test exception handling in _process_fallback_mode."""
+    series = 26
+    years = (1995, 1995)
+
+    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
+    mock_dependencies["isfile"].return_value = True
+
+    # Force _process_main_mode to fail so it falls back to _process_fallback_mode
+    mocker.patch("scripts.batch_correction.processor", None)
+
+    # Mock _load_raw_data to raise Exception
+    mocker.patch("scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed"))
+
+    # Call batch_process
+    summary_df = __import__('scripts.batch_correction').batch_correction.batch_process(
+        __import__('scripts.batch_correction').batch_correction.BatchConfig(series, None, years, dry_run=False)
+    )
+
+    assert len(summary_df) == 1
+    assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
