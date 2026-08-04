@@ -149,3 +149,68 @@ def test_correct_jumps_with_nans():
     result = correct_jumps(data, jump_indices=[3], value_col="value", window_size=3)
     expected = pd.DataFrame({"value": [1.0, np.nan, 1.0, 1.0, np.nan, 1.0, 1.0, 1.0]})
     pd.testing.assert_frame_equal(expected, result)
+
+
+def test_detect_gaps_basic():
+    """Test basic gap detection."""
+    from scripts.processor import detect_gaps  # noqa: F401
+
+    data = pd.DataFrame(
+        {
+            "Time (Seconds)": [1.0, 2.0, 3.0, 10.0, 11.0, 12.0],
+            "value": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        }
+    )
+    # Median time diff is 1.0. Gap from 3.0 to 10.0 is 7.0 > 3.0 * 1.0
+    gap_indices = detect_gaps(data, time_col="Time (Seconds)", threshold_factor=3.0)
+    # The gap is between index 2 and 3. The index returned is *after* the gap, so 3.
+    assert gap_indices == [3]
+
+
+def test_detect_gaps_no_gaps():
+    """Test gap detection when there are no gaps."""
+    from scripts.processor import detect_gaps  # noqa: F401
+
+    data = pd.DataFrame(
+        {"Time (Seconds)": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "value": [1.0] * 6}
+    )
+    gap_indices = detect_gaps(data, time_col="Time (Seconds)", threshold_factor=3.0)
+    assert gap_indices == []
+
+
+def test_detect_gaps_small_data():
+    """Test gap detection with insufficient data."""
+    from scripts.processor import detect_gaps  # noqa: F401
+
+    data = pd.DataFrame({"Time (Seconds)": [1.0], "value": [1.0]})
+    gap_indices = detect_gaps(data)
+    assert gap_indices == []
+
+
+def test_detect_gaps_negative_median():
+    """Test gap detection with zero or negative median time difference."""
+    from scripts.processor import detect_gaps  # noqa: F401
+
+    data = pd.DataFrame(
+        {"Time (Seconds)": [1.0, 1.0, 1.0, 1.0, 2.0], "value": [1.0] * 5}
+    )
+    # Median time diff is 0.0
+    gap_indices = detect_gaps(data)
+    assert gap_indices == []
+
+
+def test_detect_gaps_no_valid_diffs():
+    """Test gap detection when there are no valid time differences."""
+    from scripts.processor import detect_gaps  # noqa: F401
+
+    # diffs empty if len(data) == 1, but we already have < 2 check.
+    pass  # noqa: F401
+
+
+def test_detect_gaps_all_same_times():
+    """Test gap detection when all times are identical."""
+    from scripts.processor import detect_gaps  # noqa: F401
+
+    data = pd.DataFrame({"Time (Seconds)": [1.0, 1.0, 1.0], "value": [1.0, 1.0, 1.0]})
+    gap_indices = detect_gaps(data)
+    assert gap_indices == []

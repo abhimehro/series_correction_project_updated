@@ -6,8 +6,6 @@ Unit tests for the batch_correction module.
 import fnmatch
 import importlib
 import os
-import sys
-import types
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -593,13 +591,10 @@ def test_minimal_happy_path(monkeypatch):
     monkeypatch.setattr("pandas.DataFrame.to_excel", lambda self, path, **kwargs: None)
 
     # Patch processor module with a real module and function
-    processor_mod = types.ModuleType("scripts.processor")
-
     def process_data(df, config=None):
         return df
 
-    processor_mod.process_data = process_data
-    sys.modules["scripts.processor"] = processor_mod
+    monkeypatch.setattr("scripts.processor.process_data", process_data)
 
     # --- Act ---
 
