@@ -56,8 +56,8 @@ def main():
             dry_run=args.dry_run,
         )
         batch_process(config)
-    except (OSError, ValueError) as e:
-        logging.error("Known error in processing: %s", e)
+    except (OSError, ValueError):
+        logging.exception("Known error in processing")
         sys.exit(1)
     except Exception:
         logging.exception("Unexpected error in processing")
