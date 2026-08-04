@@ -17,18 +17,16 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output")
 SUMMARY_FILE = os.path.join(OUTPUT_DIR, "Summary_Report.xlsx")
 
 
-def main():
-    # Find all processed Excel files
-    processed_files = sorted(
-        [f for f in os.listdir(OUTPUT_DIR) if f.endswith("_Processed.xlsx")]
-    )
-    if not processed_files:
-        print(f"No processed files found in {OUTPUT_DIR}")
-        return
+def get_processed_files(output_dir):
+    """Finds and returns all processed Excel files in the output directory."""
+    return sorted([f for f in os.listdir(output_dir) if f.endswith("_Processed.xlsx")])
 
+
+def process_summary_data(output_dir, processed_files):
+    """Reads processed files and compiles summary statistics."""
     summary_data = []
     for file in processed_files:
-        file_path = os.path.join(OUTPUT_DIR, file)
+        file_path = os.path.join(output_dir, file)
         try:
             df = pd.read_excel(file_path)
             mean_value = df["Processed_Value"].mean()
@@ -45,12 +43,12 @@ def main():
         except Exception:
             log.exception(f"Internal error processing {file}")
             print(f"Error processing {file}: An unexpected error occurred.")
+    return summary_data
 
-    summary_df = pd.DataFrame(summary_data)
-    write_excel_safely(summary_df, SUMMARY_FILE, index=False)
 
-    # Format the summary Excel file
-    wb = load_workbook(SUMMARY_FILE)
+def format_summary_excel(summary_file):
+    """Formats the summary Excel file by bolding headers, adjusting widths, and adding a chart."""
+    wb = load_workbook(summary_file)
     ws = wb.active
 
     # Bold headers and adjust column widths
@@ -75,7 +73,21 @@ def main():
     # Place the chart below the data
     ws.add_chart(chart, f"A{ws.max_row + 3}")
 
-    wb.save(SUMMARY_FILE)
+    wb.save(summary_file)
+
+
+def main():
+    processed_files = get_processed_files(OUTPUT_DIR)
+    if not processed_files:
+        print(f"No processed files found in {OUTPUT_DIR}")
+        return
+
+    summary_data = process_summary_data(OUTPUT_DIR, processed_files)
+
+    summary_df = pd.DataFrame(summary_data)
+    write_excel_safely(summary_df, SUMMARY_FILE, index=False)
+
+    format_summary_excel(SUMMARY_FILE)
     print(f"Summary report with chart saved to: {SUMMARY_FILE}")
 
 
