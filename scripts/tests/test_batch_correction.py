@@ -714,3 +714,12 @@ def test_determine_series_to_process_explicit_invalid_value(mocker):
         _determine_series_to_process(["invalid"], None, {}, "fake_dir")
 
     mock_log.exception.assert_called()
+
+def test_ensure_output_directory_oserror(mock_dependencies):
+    from unittest.mock import patch
+    import scripts.batch_correction as bc
+
+    with patch("os.path.isdir", return_value=False), patch(
+        "os.makedirs", side_effect=OSError("Perm denied")
+    ), pytest.raises(bc.ProcessingError, match="Unable to create output directory"):
+        bc._ensure_output_directory("dummy_dir", dry_run=False)
