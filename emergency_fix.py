@@ -1,5 +1,5 @@
-import glob
 import os
+import pathlib
 import sys
 
 import pandas as pd
@@ -30,14 +30,14 @@ print(f"\nCreated output directory: {output_dir}")
 
 # 3. Process a single file manually to see where it goes
 print("\n===== PROCESSING A SINGLE FILE =====")
-from scripts.processor import process_data  # noqa: E402
-from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
+from scripts.processor import process_data
+from scripts.spreadsheet_safety import write_excel_safely
 
 # Find a raw data file
 raw_files = []
 data_dir = os.path.join(PROJECT_ROOT, "data")
-for file in glob.glob(os.path.join(data_dir, "S*.txt")):
-    raw_files.append(file)
+for file in pathlib.Path(data_dir).glob("S*.txt"):
+    raw_files.append(str(file))
 
 if raw_files:
     test_file = raw_files[0]
