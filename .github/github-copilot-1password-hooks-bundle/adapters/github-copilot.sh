@@ -19,14 +19,17 @@ source "${_ADAPTER_DIR}/_lib.sh"
 normalize_input() {
 	local raw_payload="$1"
 
-	local cwd tool_name command workspace_roots_json
+	local cwd tool_name command workspace_roots_json parsed_roots
 	cwd=$(extract_json_string "$raw_payload" "cwd")
 	tool_name=$(extract_json_string "$raw_payload" "tool_name")
 	command=$(extract_json_string "$raw_payload" "command")
 
-	# Copilot currently provides cwd as the single workspace root.
-	# TODO: If Copilot adds multi-root workspace support, parse roots from the payload instead.
-	workspace_roots_json=$(paths_to_json_array "$cwd")
+	parsed_roots=$(parse_json_workspace_roots "$raw_payload")
+	if [[ -n $parsed_roots ]]; then
+		workspace_roots_json=$(paths_to_json_array "$parsed_roots")
+	else
+		workspace_roots_json=$(paths_to_json_array "$cwd")
+	fi
 
 	build_canonical_input \
 		"github-copilot" \
