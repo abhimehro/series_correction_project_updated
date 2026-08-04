@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import csv
 
 import numpy as np
@@ -242,3 +243,14 @@ def test_parse_year_pair_invalid_format():
 
 def test_parse_year_pair_empty():
     assert parse_year_pair("") is None
+
+
+@patch("pandas.read_csv")
+def test_load_identified_outliers_exception(mock_read_csv, capsys):
+    """Test that an unexpected Exception during read_csv returns an empty DataFrame and prints an error."""
+    mock_read_csv.side_effect = Exception("Mocked unexpected error")
+    df = load_identified_outliers("dummy_path.csv")
+    assert df.empty
+
+    captured = capsys.readouterr()
+    assert "An unexpected error occurred while loading outliers." in captured.out
