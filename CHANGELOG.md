@@ -48,7 +48,21 @@
 
 **Merged pull requests:**
 
+- 🧹 \[code health analysis\] Verify and reject false positive unused pandas import [\#359](https://github.com/abhimehro/series_correction_project_updated/pull/359) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Refactor detect\_gaps for improved readability [\#356](https://github.com/abhimehro/series_correction_project_updated/pull/356) ([abhimehro](https://github.com/abhimehro))
+- 🧹 \[code health\] Refactor generate\_summary.py to reduce main\(\) complexity [\#355](https://github.com/abhimehro/series_correction_project_updated/pull/355) ([abhimehro](https://github.com/abhimehro))
+- feat: parse workspace roots in github copilot adapter [\#354](https://github.com/abhimehro/series_correction_project_updated/pull/354) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Extract jump deviation calculation to helper function [\#353](https://github.com/abhimehro/series_correction_project_updated/pull/353) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Remove unused pandas import from fix\_output.py [\#352](https://github.com/abhimehro/series_correction_project_updated/pull/352) ([abhimehro](https://github.com/abhimehro))
+- 🧹 Remove unused glob import from emergency\_fix.py [\#351](https://github.com/abhimehro/series_correction_project_updated/pull/351) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix logging observability downgrade via warning [\#350](https://github.com/abhimehro/series_correction_project_updated/pull/350) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Compile file name regex outside loop [\#349](https://github.com/abhimehro/series_correction_project_updated/pull/349) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add missing tests for \_generate\_missing\_times [\#348](https://github.com/abhimehro/series_correction_project_updated/pull/348) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Fix Information Exposure in CLI Output [\#347](https://github.com/abhimehro/series_correction_project_updated/pull/347) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add test for unexpected exception during outlier loading [\#346](https://github.com/abhimehro/series_correction_project_updated/pull/346) ([abhimehro](https://github.com/abhimehro))
+- 🔒 Restore exception logging in batch correction [\#345](https://github.com/abhimehro/series_correction_project_updated/pull/345) ([abhimehro](https://github.com/abhimehro))
 - chore\(devin\): add environment blueprint for reproducible setup [\#344](https://github.com/abhimehro/series_correction_project_updated/pull/344) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Remove redundant NaN masking for sliding window medians [\#342](https://github.com/abhimehro/series_correction_project_updated/pull/342) ([abhimehro](https://github.com/abhimehro))
 - chore: daily QA review \(no findings\) [\#340](https://github.com/abhimehro/series_correction_project_updated/pull/340) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Daily QA: Code Health Fixes [\#338](https://github.com/abhimehro/series_correction_project_updated/pull/338) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Remove redundant NaN masking before np.median [\#337](https://github.com/abhimehro/series_correction_project_updated/pull/337) ([abhimehro](https://github.com/abhimehro))
