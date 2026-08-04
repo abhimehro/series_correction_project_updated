@@ -22,6 +22,9 @@ import pandas as pd
 
 from scripts import spreadsheet_safety
 
+# ⚡ Bolt: Compile regex once for performance
+_FILE_NAME_REGEX = re.compile(r"S(.+?)_Y(\d+)\.txt$")
+
 # Import optional dependencies from the helper module if possible
 try:
     from batch_correction import load_config_func, processor
@@ -271,7 +274,7 @@ def _parse_and_validate_file(
     if not (file_name.startswith("S") and file_name.endswith(".txt")):
         return None
 
-    match = re.search(r"S(.+?)_Y(\d+)\.txt$", file_name)
+    match = _FILE_NAME_REGEX.search(file_name)
     if not match:
         return None
 
