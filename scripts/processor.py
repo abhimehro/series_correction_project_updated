@@ -98,6 +98,31 @@ def detect_gaps(
     return gap_indices
 
 
+def _calculate_jump_deviations(
+    values: np.ndarray,
+    rolling_mean: np.ndarray,
+    rolling_std: np.ndarray,
+    window_size: int,
+    n: int,
+) -> np.ndarray:
+    # ⚡ Bolt: Vectorize normalized deviation calculation before CUSUM loop
+    mean_prev_window = np.roll(rolling_mean, 1)
+    std_prev_window = np.roll(rolling_std, 1)
+
+    valid_mask = np.arange(n) >= window_size
+
+    deviations = np.zeros(n)
+    np.subtract(values, mean_prev_window, out=deviations, where=valid_mask)
+
+    normalized_dev = np.zeros(n)
+
+    with np.errstate(invalid="ignore"):
+        std_mask = (std_prev_window > 1e-6) & valid_mask & ~np.isnan(std_prev_window)
+
+    np.divide(deviations, std_prev_window, out=normalized_dev, where=std_mask)
+    return normalized_dev
+
+
 def detect_jumps(
     data: pd.DataFrame, value_col: str, window_size: int = 5, threshold: float = 3.0
 ) -> list[int]:
@@ -132,21 +157,9 @@ def detect_jumps(
     rolling_std = data[value_col].rolling(window=window_size).std().to_numpy()
     values = data[value_col].to_numpy()
 
-    # ⚡ Bolt: Vectorize normalized deviation calculation before CUSUM loop
-    mean_prev_window = np.roll(rolling_mean, 1)
-    std_prev_window = np.roll(rolling_std, 1)
-
-    valid_mask = np.arange(n) >= window_size
-
-    deviations = np.zeros(n)
-    np.subtract(values, mean_prev_window, out=deviations, where=valid_mask)
-
-    normalized_dev = np.zeros(n)
-
-    with np.errstate(invalid="ignore"):
-        std_mask = (std_prev_window > 1e-6) & valid_mask & ~np.isnan(std_prev_window)
-
-    np.divide(deviations, std_prev_window, out=normalized_dev, where=std_mask)
+    normalized_dev = _calculate_jump_deviations(
+        values, rolling_mean, rolling_std, window_size, n
+    )
 
     # Initialize CUSUM variables and list for jump indices
     jumps = []
