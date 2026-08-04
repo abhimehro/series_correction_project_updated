@@ -558,8 +558,8 @@ def _process_fallback_mode(
                                     "Records": len(processed_df),
                                 }
                             )
-                    except Exception as e:
-                        log.error(f"Failed to process {file_path}: {e}")
+                    except Exception:
+                        log.exception(f"Failed to process {file_path}")
                         summary_records.append(
                             {
                                 "Series": series_id,
