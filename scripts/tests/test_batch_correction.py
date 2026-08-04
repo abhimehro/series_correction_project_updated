@@ -27,52 +27,6 @@ from scripts.batch_correction import (
 )
 
 
-# Extracted helper functions for test_batch_process_happy_path_all_series_with_config
-def _isfile_side_effect_all_series(path):
-    import os
-
-    if os.path.basename(path) == "river_mile_map.csv":
-        return True
-    fname = os.path.basename(path)
-    return fname in ["S26_Y01.txt", "S26_Y02.txt", "S27_Y01.txt", "S27_Y02.txt"]
-
-
-def _getsize_side_effect(*args, **kwargs):
-    return 100
-
-
-def _isdir_side_effect(path):
-    import os
-
-    expected_data_dir = "/fake/data/dir"
-    output_dir = os.path.join(expected_data_dir, "output")
-    return path in [expected_data_dir, output_dir]
-
-
-def _read_csv_side_effect_all_series(path, *args, **kwargs):
-    import pandas as pd
-
-    if str(path).endswith("river_mile_map.csv"):
-        return pd.DataFrame(
-            {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
-        )
-    else:
-        return pd.DataFrame({0: range(5), 1: range(5)})
-
-
-# Extracted helper functions for test_batch_process_happy_path_specific_series_no_config
-def _isfile_side_effect_specific_series(path):
-    fname = os.path.basename(path)
-    return fname in ["S30_Y01.txt", "S31_Y01.txt"]
-
-
-def _isfile_side_effect_data_specific_series(path):
-    fname = os.path.basename(path)
-    if fname == "river_mile_map.csv":
-        return True
-    return fname == "S30_Y01.txt"
-
-
 # Helper to create dummy dataframes
 def create_dummy_df(rows=5):
     """Creates a dummy pandas DataFrame for testing."""
@@ -145,6 +99,27 @@ def patch_load_config(monkeypatch):
 
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
     """Test batch process happy path all series."""
+
+    def _isfile_side_effect_all_series(path):
+        if os.path.basename(path) == "river_mile_map.csv":
+            return True
+        fname = os.path.basename(path)
+        return fname in ["S26_Y01.txt", "S26_Y02.txt", "S27_Y01.txt", "S27_Y02.txt"]
+
+    def _getsize_side_effect(*args, **kwargs):
+        return 100
+
+    def _isdir_side_effect(path):
+        expected_data_dir = "/fake/data/dir"
+        output_dir = os.path.join(expected_data_dir, "output")
+        return path in [expected_data_dir, output_dir]
+
+    def _read_csv_side_effect_all_series(path, *args, **kwargs):
+        if str(path).endswith("river_mile_map.csv"):
+            return pd.DataFrame(
+                {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
+            )
+        return pd.DataFrame({0: range(5), 1: range(5)})
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -223,6 +198,24 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
     """Test batch process happy path specific series."""
 
+    def _isfile_side_effect_specific_series(path):
+        fname = os.path.basename(path)
+        return fname in ["S30_Y01.txt", "S31_Y01.txt"]
+
+    def _getsize_side_effect(*args, **kwargs):
+        return 100
+
+    def _isdir_side_effect(path):
+        expected_data_dir = "/fake/data/dir"
+        output_dir = os.path.join(expected_data_dir, "output")
+        return path in [expected_data_dir, output_dir]
+
+    def _isfile_side_effect_data_specific_series(path):
+        fname = os.path.basename(path)
+        if fname == "river_mile_map.csv":
+            return True
+        return fname == "S30_Y01.txt"
+
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
@@ -282,6 +275,7 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
 
 
 def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
+    """Test batch process dry run."""
     """
     Test dry run mode - no output files should be written.
     """
@@ -327,6 +321,7 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
 
 
 def test_batch_process_no_files_found(mock_dependencies, mock_config_loader):
+    """Test batch process no files found."""
     """
     Test scenario where no matching files are found.
     """
@@ -349,6 +344,7 @@ def test_batch_process_no_files_found(mock_dependencies, mock_config_loader):
 
 
 def test_batch_process_data_dir_not_found(mock_dependencies):
+    """Test batch process data dir not found."""
     """
     Test scenario where the data directory doesn't exist (even default).
     """
@@ -524,6 +520,7 @@ def test_batch_process_process_error(
 
 
 def test_batch_process_invalid_series_selection(monkeypatch):
+    """Test batch process invalid series selection."""
     """Test invalid value for series selection."""
     # Arrange
     series_selection = "invalid-series"
@@ -545,6 +542,7 @@ def test_batch_process_invalid_series_selection(monkeypatch):
 
 
 def test_minimal_happy_path(monkeypatch):
+    """Test minimal happy path."""
     """Minimal working happy path test for batch_process."""
 
     import pandas as pd
@@ -620,6 +618,7 @@ def test_minimal_happy_path(monkeypatch):
 
 
 def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, caplog):
+    """Test batch process config not found."""
     """
     Test scenario where config file is not found.
     """
