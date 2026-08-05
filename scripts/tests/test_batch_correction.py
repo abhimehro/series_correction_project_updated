@@ -710,6 +710,7 @@ def test_determine_series_to_process_explicit_invalid_value(mocker):
 
     mock_log.exception.assert_called()
 
+
 def test_batch_process_fallback_mode_exception(mock_dependencies, mock_config_loader, mocker):
     """Test exception handling in _process_fallback_mode."""
     series = 26
