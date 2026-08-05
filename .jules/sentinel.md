@@ -166,3 +166,9 @@ debug. **Prevention:** Keep full error tracebacks in internal logs via
 error messages. Furthermore, `log.exception` automatically captures stack
 traces; changing the message string does not stop the stack trace from being
 logged.
+
+## 2025-03-05 - Avoid Cognitive Complexity During Security Refactoring
+
+**Vulnerability:** In an attempt to fix Username Enumeration via Timing Attacks (CWE-208), the added security logic introduced too many conditional checks (`if user_record:` / `if not salt:` / `if stored_hash:`), leading to a CodeScene 'Complex Method' check failure.
+**Learning:** Security fixes often add extra verification paths, which can rapidly increase cognitive complexity and trigger code health gating tools.
+**Prevention:** To resolve CodeScene 'Bumpy Road Ahead' or 'Complex Method' failures, always flatten complex nested structures by extracting the internal validation, hashing, and comparison logic into separate, clean module-level helper functions (e.g., `_verify_credentials`).
