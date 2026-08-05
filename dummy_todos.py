@@ -28,21 +28,28 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     if not username or not password:
         return {"success": False, "error": "Username and password are required"}
 
+    # SECURITY: Use a dummy salt to ensure PBKDF2 executes even for non-existent users,
+    # preventing user enumeration via timing attacks.
+    dummy_salt = b"\x00" * 16
     user_record = user_db.get(username)
-    if not user_record:
-        return {"success": False, "error": "Invalid credentials"}
 
-    salt = user_record.get("salt")
-    stored_hash = user_record.get("hash")
+    if user_record:
+        salt = user_record.get("salt")
+        stored_hash = user_record.get("hash")
+    else:
+        salt = None
+        stored_hash = None
 
     if not salt or not stored_hash:
-        return {"success": False, "error": "Invalid credentials"}
+        salt = dummy_salt
+        stored_hash = None
 
+    # Always compute the hash to mitigate timing side-channels
     computed_hash = hashlib.pbkdf2_hmac(
         "sha256", password.encode("utf-8"), salt, 100000
     )
 
-    if hmac.compare_digest(computed_hash, stored_hash):
+    if stored_hash and hmac.compare_digest(computed_hash, stored_hash):
         session_token = secrets.token_hex(32)
         return {"success": True, "token": session_token}
 
