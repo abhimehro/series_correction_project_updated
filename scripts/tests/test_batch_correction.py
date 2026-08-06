@@ -3,7 +3,6 @@
 Unit tests for the batch_correction module.
 """
 
-import contextlib
 import fnmatch
 import importlib
 import os
@@ -28,6 +27,56 @@ from scripts.batch_correction import (
 )
 
 
+# Extracted helper functions for test_batch_process_happy_path_all_series_with_config
+def _isfile_side_effect_all_series(path):
+    import os
+
+    if os.path.basename(path) == "river_mile_map.csv":
+        return True
+    fname = os.path.basename(path)
+    return fname in ["S26_Y01.txt", "S26_Y02.txt", "S27_Y01.txt", "S27_Y02.txt"]
+
+
+def _getsize_side_effect(*args, **kwargs):
+    return 100
+
+
+def _isdir_side_effect(path):
+    import os
+
+    expected_data_dir = "/fake/data/dir"
+    output_dir = os.path.join(expected_data_dir, "output")
+    return path in [expected_data_dir, output_dir]
+
+
+def _read_csv_side_effect_all_series(path, *args, **kwargs):
+    import pandas as pd
+
+    if str(path).endswith("river_mile_map.csv"):
+        return pd.DataFrame(
+            {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
+        )
+    else:
+        return pd.DataFrame({0: range(5), 1: range(5)})
+
+
+# Extracted helper functions for test_batch_process_happy_path_specific_series_no_config
+def _isfile_side_effect_specific_series(path):
+    import os
+
+    fname = os.path.basename(path)
+    return fname in ["S30_Y01.txt", "S31_Y01.txt"]
+
+
+def _isfile_side_effect_data_specific_series(path):
+    import os
+
+    fname = os.path.basename(path)
+    if fname == "river_mile_map.csv":
+        return True
+    return fname == "S30_Y01.txt"
+
+
 # Helper to create dummy dataframes
 def create_dummy_df(rows=5):
     """Creates a dummy pandas DataFrame for testing."""
@@ -39,26 +88,26 @@ def create_dummy_df(rows=5):
 
 # Patch pandas.read_csv globally for all tests to handle both river mile map and sensor data files
 def read_csv_side_effect(path, *args, **kwargs):
+    import os
+
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
         return pd.DataFrame(
             {"SENSOR_ID": [26, 27, 30, 31], "RIVER_MILE": [54.0, 53.0, 52.0, 51.0]}
         )
-    # Simulate sensor data: 5 rows, 2 columns with integer columns
-    return pd.DataFrame({0: range(5), 1: range(5)})
+    else:
+        # Simulate sensor data: 5 rows, 2 columns with integer columns
+        return pd.DataFrame({0: range(5), 1: range(5)})
 
 
 @pytest.fixture(autouse=True)
 def patch_read_csv():
-    """Patch read_csv."""
     with mock.patch("pandas.read_csv", side_effect=read_csv_side_effect):
         yield
 
 
 @pytest.fixture(autouse=True)
 def patch_pd_read_csv(monkeypatch):
-    """Patch pd.read_csv."""
-
     def read_csv_side_effect(path, *_args, **_kwargs):
         if isinstance(path, str) and path.endswith("river_mile_map.csv"):
             return pd.DataFrame(
@@ -77,7 +126,6 @@ def patch_pd_read_csv(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def patch_load_config(monkeypatch):
-    """Patch load_config."""
     # Always patch scripts.loaders.load_config to return a valid config dict
     config_dict = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -98,125 +146,76 @@ def patch_load_config(monkeypatch):
 # --- Test Cases ---
 
 
-def _setup_all_series_mocks():
-    """Setup common mocks for all series test scenarios."""
-    def _isfile_side_effect_all_series(path):
-        if os.path.basename(path) == "river_mile_map.csv":
-            return True
-        fname = os.path.basename(path)
-        return fname in ["S26_Y01.txt", "S26_Y02.txt", "S27_Y01.txt", "S27_Y02.txt"]
-
-    def _getsize_side_effect(*args, **kwargs):
-        return 100
-
-    def _isdir_side_effect(path):
-        expected_data_dir = "/fake/data/dir"
-        output_dir = os.path.join(expected_data_dir, "output")
-        return path in [expected_data_dir, output_dir]
-
-    def _read_csv_side_effect_all_series(path, *args, **kwargs):
-        if str(path).endswith("river_mile_map.csv"):
-            return pd.DataFrame(
-                {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
-            )
-        return pd.DataFrame({0: range(5), 1: range(5)})
-
-    return _isfile_side_effect_all_series, _getsize_side_effect, _isdir_side_effect, _read_csv_side_effect_all_series
-
-
-def _create_all_series_test_context(mock_dependencies):
-    """Create test context for all series scenarios with common setup."""
-    _isfile_side_effect_all_series, _getsize_side_effect, _isdir_side_effect, _read_csv_side_effect_all_series = _setup_all_series_mocks()
+def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
     }
 
-    patches = [
-        patch("scripts.loaders.load_config", MagicMock(return_value=config_mock)),
-        patch("os.makedirs"),
-        patch("os.path.isfile", side_effect=_isfile_side_effect_all_series),
-        patch("os.path.getsize", side_effect=_getsize_side_effect),
-        patch("os.path.isdir", side_effect=_isdir_side_effect),
-        patch("pandas.DataFrame.to_excel"),
-    ]
+    with patch(
+        "scripts.loaders.load_config", MagicMock(return_value=config_mock)
+    ), patch("os.makedirs"), patch(
+        "os.path.isfile", side_effect=_isfile_side_effect_all_series
+    ), patch(
+        "os.path.getsize", side_effect=_getsize_side_effect
+    ), patch(
+        "os.path.isdir", side_effect=_isdir_side_effect
+    ), patch(
+        "pandas.DataFrame.to_excel"
+    ) as mock_to_excel:
 
-    mock_dependencies["listdir"].return_value = [
-        "S26_Y01.txt", "S26_Y02.txt", "S27_Y01.txt", "S27_Y02.txt",
-        "S28_Y01.txt", "S28_Y02.txt", "other_file.csv",
-    ]
-    mock_dependencies["isfile"].side_effect = _isfile_side_effect_all_series
-    mock_dependencies["getsize"].side_effect = _getsize_side_effect
-
-    return patches, _read_csv_side_effect_all_series
-
-
-def test_batch_process_all_series_summary_structure(mock_dependencies):
-    """Test batch process summary DataFrame structure for all series."""
-    patches, _read_csv_side_effect_all_series = _create_all_series_test_context(mock_dependencies)
-
-    with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
         importlib.reload(bc)
-        with contextlib.ExitStack() as stack:
-            for p in patches:
-                stack.enter_context(p)
+
+        series_selection = "all"
+        river_miles = [54.0, 53.0]
+        years = (1995, 1996)
+        dry_run = False
+        expected_data_dir_inner = "/fake/data/dir"  # type: str
+
+        mock_dependencies["listdir"].return_value = [
+            "S26_Y01.txt",
+            "S26_Y02.txt",
+            "S27_Y01.txt",
+            "S27_Y02.txt",
+            "S28_Y01.txt",
+            "S28_Y02.txt",
+            "other_file.csv",
+        ]
+        mock_dependencies["isfile"].side_effect = _isfile_side_effect_all_series
+        mock_dependencies["getsize"].side_effect = _getsize_side_effect
+
+        with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
             summary_df = bc.batch_process(
-                bc.BatchConfig("all", [54.0, 53.0], (1995, 1996), dry_run=False)
+                bc.BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
             )
 
+        assert mock_to_excel.call_count >= 0
         assert isinstance(summary_df, pd.DataFrame)
         assert len(summary_df) == 4
         expected_cols = ["Series", "Year", "Y-Index", "Filename", "Status", "Records"]
         assert list(summary_df.columns) == expected_cols
-
-
-def test_batch_process_all_series_data_validation(mock_dependencies):
-    """Test batch process data validation for all series."""
-    patches, _read_csv_side_effect_all_series = _create_all_series_test_context(mock_dependencies)
-
-    with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
-        importlib.reload(bc)
-        with contextlib.ExitStack() as stack:
-            for p in patches:
-                stack.enter_context(p)
-            summary_df = bc.batch_process(
-                bc.BatchConfig("all", [54.0, 53.0], (1995, 1996), dry_run=False)
-            )
-
         assert summary_df["Series"].tolist() == [26, 26, 27, 27]
         assert summary_df["Year"].tolist() == [1995, 1996, 1995, 1996]
         assert summary_df["Y-Index"].tolist() == [1, 2, 1, 2]
 
         valid_statuses = [
-            "Processed", "Processed (No Processor Module)", "No Data", "Skipped",
+            "Processed",
+            "Processed (No Processor Module)",
+            "No Data",
+            "Skipped",
         ]
         assert all(status in valid_statuses for status in summary_df["Status"].tolist())
         assert (summary_df["Records"] == 5).all()
 
-
-def test_batch_process_all_series_output_paths(mock_dependencies):
-    """Test batch process output file paths for all series."""
-    patches, _read_csv_side_effect_all_series = _create_all_series_test_context(mock_dependencies)
-    expected_data_dir = "/fake/data/dir"
-
-    with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
-        importlib.reload(bc)
-        with contextlib.ExitStack() as stack:
-            mock_contexts = []
-            for p in patches:
-                mock_ctx = stack.enter_context(p)
-                mock_contexts.append(mock_ctx)
-            mock_to_excel = mock_contexts[-1]
-            bc.batch_process(
-                bc.BatchConfig("all", [54.0, 53.0], (1995, 1996), dry_run=False)
-            )
-
-        for year, yi in [
-            (1995, "Y01"), (1996, "Y02"), (1995, "Y01"), (1996, "Y02"),
+        for year, yi, _series in [
+            (1995, "Y01", 26),
+            (1996, "Y02", 26),
+            (1995, "Y01", 27),
+            (1996, "Y02", 27),
         ]:
             expected_output_path = os.path.join(
-                expected_data_dir, f"Year_{year} ({yi})_Data.xlsx"
+                expected_data_dir_inner, f"Year_{year} ({yi})_Data.xlsx"
             )
             mock_to_excel.assert_any_call(
                 expected_output_path, index=False, header=False
@@ -224,25 +223,6 @@ def test_batch_process_all_series_output_paths(mock_dependencies):
 
 
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
-    """Test batch process happy path specific series."""
-
-    def _isfile_side_effect_specific_series(path):
-        fname = os.path.basename(path)
-        return fname in ["S30_Y01.txt", "S31_Y01.txt"]
-
-    def _getsize_side_effect(*args, **kwargs):
-        return 100
-
-    def _isdir_side_effect(path):
-        expected_data_dir = "/fake/data/dir"
-        output_dir = os.path.join(expected_data_dir, "output")
-        return path in [expected_data_dir, output_dir]
-
-    def _isfile_side_effect_data_specific_series(path):
-        fname = os.path.basename(path)
-        if fname == "river_mile_map.csv":
-            return True
-        return fname == "S30_Y01.txt"
 
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
@@ -303,7 +283,6 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
 
 
 def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
-    """Test batch process dry run."""
     """
     Test dry run mode - no output files should be written.
     """
@@ -349,7 +328,6 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
 
 
 def test_batch_process_no_files_found(mock_dependencies, mock_config_loader):
-    """Test batch process no files found."""
     """
     Test scenario where no matching files are found.
     """
@@ -372,7 +350,6 @@ def test_batch_process_no_files_found(mock_dependencies, mock_config_loader):
 
 
 def test_batch_process_data_dir_not_found(mock_dependencies):
-    """Test batch process data dir not found."""
     """
     Test scenario where the data directory doesn't exist (even default).
     """
@@ -403,7 +380,6 @@ def test_batch_process_data_dir_not_found(mock_dependencies):
 
 
 def test_get_data_directory_creates_dir(mock_dependencies):
-    """Test get_data_directory creates dir."""
     from unittest.mock import patch
 
     config_data = {}
@@ -421,7 +397,6 @@ def test_get_data_directory_creates_dir(mock_dependencies):
 
 
 def test_get_data_directory_creates_dir_oserror(mock_dependencies):
-    """Test get_data_directory handles OSError."""
     from unittest.mock import patch
 
     config_data = {}
@@ -548,7 +523,6 @@ def test_batch_process_process_error(
 
 
 def test_batch_process_invalid_series_selection(monkeypatch):
-    """Test batch process invalid series selection."""
     """Test invalid value for series selection."""
     # Arrange
     series_selection = "invalid-series"
@@ -570,7 +544,6 @@ def test_batch_process_invalid_series_selection(monkeypatch):
 
 
 def test_minimal_happy_path(monkeypatch):
-    """Test minimal happy path."""
     """Minimal working happy path test for batch_process."""
 
     import pandas as pd
@@ -609,7 +582,8 @@ def test_minimal_happy_path(monkeypatch):
     def read_csv_side_effect(path, *args, **kwargs):
         if str(path).endswith("river_mile_map.csv"):
             return pd.DataFrame({"SENSOR_ID": [26], "RIVER_MILE": [54.0]})
-        return pd.DataFrame({0: range(5), 1: range(5)})
+        else:
+            return pd.DataFrame({0: range(5), 1: range(5)})
 
     monkeypatch.setattr("pandas.read_csv", read_csv_side_effect)
 
@@ -646,7 +620,6 @@ def test_minimal_happy_path(monkeypatch):
 
 
 def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, caplog):
-    """Test batch process config not found."""
     """
     Test scenario where config file is not found.
     """
@@ -738,9 +711,7 @@ def test_determine_series_to_process_explicit_invalid_value(mocker):
     mock_log.exception.assert_called()
 
 
-def test_batch_process_fallback_mode_exception(
-    mock_dependencies, mock_config_loader, mocker
-):
+def test_batch_process_fallback_mode_exception(mock_dependencies, mock_config_loader, mocker):
     """Test exception handling in _process_fallback_mode."""
     series = 26
     years = (1995, 1995)
@@ -752,15 +723,11 @@ def test_batch_process_fallback_mode_exception(
     mocker.patch("scripts.batch_correction.processor", None)
 
     # Mock _load_raw_data to raise Exception
-    mocker.patch(
-        "scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed")
-    )
+    mocker.patch("scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed"))
 
     # Call batch_process
-    summary_df = __import__("scripts.batch_correction").batch_correction.batch_process(
-        __import__("scripts.batch_correction").batch_correction.BatchConfig(
-            series, None, years, dry_run=False
-        )
+    summary_df = __import__('scripts.batch_correction').batch_correction.batch_process(
+        __import__('scripts.batch_correction').batch_correction.BatchConfig(series, None, years, dry_run=False)
     )
 
     assert len(summary_df) == 1
