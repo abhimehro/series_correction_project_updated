@@ -3,6 +3,7 @@
 Unit tests for the batch_correction module.
 """
 
+import contextlib
 import fnmatch
 import importlib
 import os
@@ -97,9 +98,8 @@ def patch_load_config(monkeypatch):
 # --- Test Cases ---
 
 
-def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
-    """Test batch process happy path all series."""
-
+def _setup_all_series_mocks():
+    """Setup common mocks for all series test scenarios."""
     def _isfile_side_effect_all_series(path):
         if os.path.basename(path) == "river_mile_map.csv":
             return True
@@ -121,74 +121,102 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
             )
         return pd.DataFrame({0: range(5), 1: range(5)})
 
+    return _isfile_side_effect_all_series, _getsize_side_effect, _isdir_side_effect, _read_csv_side_effect_all_series
+
+
+def _create_all_series_test_context(mock_dependencies):
+    """Create test context for all series scenarios with common setup."""
+    _isfile_side_effect_all_series, _getsize_side_effect, _isdir_side_effect, _read_csv_side_effect_all_series = _setup_all_series_mocks()
+
     config_mock = {
         "RAW_DATA_DIR": "/fake/data/dir",
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
     }
 
-    with patch(
-        "scripts.loaders.load_config", MagicMock(return_value=config_mock)
-    ), patch("os.makedirs"), patch(
-        "os.path.isfile", side_effect=_isfile_side_effect_all_series
-    ), patch(
-        "os.path.getsize", side_effect=_getsize_side_effect
-    ), patch(
-        "os.path.isdir", side_effect=_isdir_side_effect
-    ), patch(
-        "pandas.DataFrame.to_excel"
-    ) as mock_to_excel:
+    patches = [
+        patch("scripts.loaders.load_config", MagicMock(return_value=config_mock)),
+        patch("os.makedirs"),
+        patch("os.path.isfile", side_effect=_isfile_side_effect_all_series),
+        patch("os.path.getsize", side_effect=_getsize_side_effect),
+        patch("os.path.isdir", side_effect=_isdir_side_effect),
+        patch("pandas.DataFrame.to_excel"),
+    ]
 
+    mock_dependencies["listdir"].return_value = [
+        "S26_Y01.txt", "S26_Y02.txt", "S27_Y01.txt", "S27_Y02.txt",
+        "S28_Y01.txt", "S28_Y02.txt", "other_file.csv",
+    ]
+    mock_dependencies["isfile"].side_effect = _isfile_side_effect_all_series
+    mock_dependencies["getsize"].side_effect = _getsize_side_effect
+
+    return patches, _read_csv_side_effect_all_series
+
+
+def test_batch_process_all_series_summary_structure(mock_dependencies):
+    """Test batch process summary DataFrame structure for all series."""
+    patches, _read_csv_side_effect_all_series = _create_all_series_test_context(mock_dependencies)
+
+    with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
         importlib.reload(bc)
-
-        series_selection = "all"
-        river_miles = [54.0, 53.0]
-        years = (1995, 1996)
-        dry_run = False
-        expected_data_dir_inner = "/fake/data/dir"  # type: str
-
-        mock_dependencies["listdir"].return_value = [
-            "S26_Y01.txt",
-            "S26_Y02.txt",
-            "S27_Y01.txt",
-            "S27_Y02.txt",
-            "S28_Y01.txt",
-            "S28_Y02.txt",
-            "other_file.csv",
-        ]
-        mock_dependencies["isfile"].side_effect = _isfile_side_effect_all_series
-        mock_dependencies["getsize"].side_effect = _getsize_side_effect
-
-        with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
+        with contextlib.ExitStack() as stack:
+            for p in patches:
+                stack.enter_context(p)
             summary_df = bc.batch_process(
-                bc.BatchConfig(series_selection, river_miles, years, dry_run=dry_run)
+                bc.BatchConfig("all", [54.0, 53.0], (1995, 1996), dry_run=False)
             )
 
-        assert mock_to_excel.call_count >= 0
         assert isinstance(summary_df, pd.DataFrame)
         assert len(summary_df) == 4
         expected_cols = ["Series", "Year", "Y-Index", "Filename", "Status", "Records"]
         assert list(summary_df.columns) == expected_cols
+
+
+def test_batch_process_all_series_data_validation(mock_dependencies):
+    """Test batch process data validation for all series."""
+    patches, _read_csv_side_effect_all_series = _create_all_series_test_context(mock_dependencies)
+
+    with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
+        importlib.reload(bc)
+        with contextlib.ExitStack() as stack:
+            for p in patches:
+                stack.enter_context(p)
+            summary_df = bc.batch_process(
+                bc.BatchConfig("all", [54.0, 53.0], (1995, 1996), dry_run=False)
+            )
+
         assert summary_df["Series"].tolist() == [26, 26, 27, 27]
         assert summary_df["Year"].tolist() == [1995, 1996, 1995, 1996]
         assert summary_df["Y-Index"].tolist() == [1, 2, 1, 2]
 
         valid_statuses = [
-            "Processed",
-            "Processed (No Processor Module)",
-            "No Data",
-            "Skipped",
+            "Processed", "Processed (No Processor Module)", "No Data", "Skipped",
         ]
         assert all(status in valid_statuses for status in summary_df["Status"].tolist())
         assert (summary_df["Records"] == 5).all()
 
-        for year, yi, _series in [
-            (1995, "Y01", 26),
-            (1996, "Y02", 26),
-            (1995, "Y01", 27),
-            (1996, "Y02", 27),
+
+def test_batch_process_all_series_output_paths(mock_dependencies):
+    """Test batch process output file paths for all series."""
+    patches, _read_csv_side_effect_all_series = _create_all_series_test_context(mock_dependencies)
+    expected_data_dir = "/fake/data/dir"
+
+    with patch("pandas.read_csv", side_effect=_read_csv_side_effect_all_series):
+        importlib.reload(bc)
+        with contextlib.ExitStack() as stack:
+            mock_contexts = []
+            for p in patches:
+                mock_ctx = stack.enter_context(p)
+                mock_contexts.append(mock_ctx)
+            mock_to_excel = mock_contexts[-1]
+            bc.batch_process(
+                bc.BatchConfig("all", [54.0, 53.0], (1995, 1996), dry_run=False)
+            )
+
+        for year, yi in [
+            (1995, "Y01"), (1996, "Y02"), (1995, "Y01"), (1996, "Y02"),
         ]:
             expected_output_path = os.path.join(
-                expected_data_dir_inner, f"Year_{year} ({yi})_Data.xlsx"
+                expected_data_dir, f"Year_{year} ({yi})_Data.xlsx"
             )
             mock_to_excel.assert_any_call(
                 expected_output_path, index=False, header=False
