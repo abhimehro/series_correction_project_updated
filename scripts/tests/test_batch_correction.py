@@ -291,7 +291,6 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
     river_miles = [54.0]  # Series 26
     years = (1995, 1995)
     dry_run = True
-    "/fake/data/dir"
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt", "S27_Y01.txt"]
 
     def isfile_dry_run(path):
