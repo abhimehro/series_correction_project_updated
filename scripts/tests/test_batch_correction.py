@@ -29,7 +29,6 @@ from scripts.batch_correction import (
 
 # Extracted helper functions for test_batch_process_happy_path_all_series_with_config
 def _isfile_side_effect_all_series(path):
-    import os
 
     if os.path.basename(path) == "river_mile_map.csv":
         return True
@@ -42,7 +41,6 @@ def _getsize_side_effect(*args, **kwargs):
 
 
 def _isdir_side_effect(path):
-    import os
 
     expected_data_dir = "/fake/data/dir"
     output_dir = os.path.join(expected_data_dir, "output")
@@ -62,14 +60,12 @@ def _read_csv_side_effect_all_series(path, *args, **kwargs):
 
 # Extracted helper functions for test_batch_process_happy_path_specific_series_no_config
 def _isfile_side_effect_specific_series(path):
-    import os
 
     fname = os.path.basename(path)
     return fname in ["S30_Y01.txt", "S31_Y01.txt"]
 
 
 def _isfile_side_effect_data_specific_series(path):
-    import os
 
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
@@ -88,7 +84,6 @@ def create_dummy_df(rows=5):
 
 # Patch pandas.read_csv globally for all tests to handle both river mile map and sensor data files
 def read_csv_side_effect(path, *args, **kwargs):
-    import os
 
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
@@ -529,7 +524,6 @@ def test_batch_process_invalid_series_selection(monkeypatch):
     years = (2000, 2001)
     dry_run = False
     # Patch os.path.isdir for both /fake/data/dir and fallback path
-    import os
 
     fallback_path = os.path.join(os.getcwd(), "data")
     monkeypatch.setattr(
