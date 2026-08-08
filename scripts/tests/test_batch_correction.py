@@ -731,3 +731,18 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+class TestEnsureOutputDirectory:
+    """Tests for _ensure_output_directory function."""
+
+    def test_oserror(self, mock_dependencies):
+        """Regression: OSError creating output dir becomes ProcessingError."""
+        from unittest.mock import patch
+
+        with patch("os.path.isdir", return_value=False), patch(
+            "os.makedirs", side_effect=OSError("Perm denied")
+        ), pytest.raises(
+            bc.ProcessingError, match="Unable to create output directory"
+        ):
+            bc._ensure_output_directory("dummy_dir", dry_run=False)
