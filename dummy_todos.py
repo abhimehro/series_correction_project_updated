@@ -41,7 +41,7 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     if not username or not password:
         return {"success": False, "error": "Username and password are required"}
 
-    user_record = user_db.get(username, {})
+    user_record = user_db.get(username) or {}
 
     if _verify_credentials(password, user_record.get("salt"), user_record.get("hash")):
         session_token = secrets.token_hex(32)
