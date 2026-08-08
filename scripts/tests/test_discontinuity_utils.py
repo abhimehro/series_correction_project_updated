@@ -93,7 +93,9 @@ def test_generate_missing_times_timestamp():
     normal_step = pd.Timedelta("1s")
     num_missing_points = 3
 
-    res = _generate_missing_times(time_before, time_after, normal_step, num_missing_points)
+    res = _generate_missing_times(
+        time_before, time_after, normal_step, num_missing_points
+    )
     assert len(res) == 3
     assert res[0] == pd.Timestamp("2023-01-01 00:00:01")
     assert res[2] == pd.Timestamp("2023-01-01 00:00:03")
@@ -105,7 +107,9 @@ def test_generate_missing_times_numeric():
     normal_step = 10
     num_missing_points = 3
 
-    res = _generate_missing_times(time_before, time_after, normal_step, num_missing_points)
+    res = _generate_missing_times(
+        time_before, time_after, normal_step, num_missing_points
+    )
     assert len(res) == 3
     assert res[0] == 20
     assert res[2] == 40
@@ -128,7 +132,9 @@ def test_generate_missing_times_hasattr_value():
     normal_step = 1000000000  # 1s in ns
     num_missing_points = 3
 
-    res = _generate_missing_times(time_before, time_after, normal_step, num_missing_points)
+    res = _generate_missing_times(
+        time_before, time_after, normal_step, num_missing_points
+    )
     assert len(res) == 3
     assert res[0] == pd.Timestamp("2023-01-01 00:00:01")
     assert res[2] == pd.Timestamp("2023-01-01 00:00:03")

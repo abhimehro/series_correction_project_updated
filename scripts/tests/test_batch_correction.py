@@ -29,7 +29,6 @@ from scripts.batch_correction import (
 
 # Extracted helper functions for test_batch_process_happy_path_all_series_with_config
 def _isfile_side_effect_all_series(path):
-    import os
 
     if os.path.basename(path) == "river_mile_map.csv":
         return True
@@ -42,7 +41,6 @@ def _getsize_side_effect(*args, **kwargs):
 
 
 def _isdir_side_effect(path):
-    import os
 
     expected_data_dir = "/fake/data/dir"
     output_dir = os.path.join(expected_data_dir, "output")
@@ -62,14 +60,12 @@ def _read_csv_side_effect_all_series(path, *args, **kwargs):
 
 # Extracted helper functions for test_batch_process_happy_path_specific_series_no_config
 def _isfile_side_effect_specific_series(path):
-    import os
 
     fname = os.path.basename(path)
     return fname in ["S30_Y01.txt", "S31_Y01.txt"]
 
 
 def _isfile_side_effect_data_specific_series(path):
-    import os
 
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
@@ -88,7 +84,6 @@ def create_dummy_df(rows=5):
 
 # Patch pandas.read_csv globally for all tests to handle both river mile map and sensor data files
 def read_csv_side_effect(path, *args, **kwargs):
-    import os
 
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
@@ -291,7 +286,6 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
     river_miles = [54.0]  # Series 26
     years = (1995, 1995)
     dry_run = True
-    "/fake/data/dir"
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt", "S27_Y01.txt"]
 
     def isfile_dry_run(path):
@@ -530,7 +524,6 @@ def test_batch_process_invalid_series_selection(monkeypatch):
     years = (2000, 2001)
     dry_run = False
     # Patch os.path.isdir for both /fake/data/dir and fallback path
-    import os
 
     fallback_path = os.path.join(os.getcwd(), "data")
     monkeypatch.setattr(
@@ -711,7 +704,9 @@ def test_determine_series_to_process_explicit_invalid_value(mocker):
     mock_log.exception.assert_called()
 
 
-def test_batch_process_fallback_mode_exception(mock_dependencies, mock_config_loader, mocker):
+def test_batch_process_fallback_mode_exception(
+    mock_dependencies, mock_config_loader, mocker
+):
     """Test exception handling in _process_fallback_mode."""
     series = 26
     years = (1995, 1995)
@@ -723,11 +718,15 @@ def test_batch_process_fallback_mode_exception(mock_dependencies, mock_config_lo
     mocker.patch("scripts.batch_correction.processor", None)
 
     # Mock _load_raw_data to raise Exception
-    mocker.patch("scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed"))
+    mocker.patch(
+        "scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed")
+    )
 
     # Call batch_process
-    summary_df = __import__('scripts.batch_correction').batch_correction.batch_process(
-        __import__('scripts.batch_correction').batch_correction.BatchConfig(series, None, years, dry_run=False)
+    summary_df = __import__("scripts.batch_correction").batch_correction.batch_process(
+        __import__("scripts.batch_correction").batch_correction.BatchConfig(
+            series, None, years, dry_run=False
+        )
     )
 
     assert len(summary_df) == 1
