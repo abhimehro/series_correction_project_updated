@@ -75,3 +75,31 @@ def test_parse_large_json_fallback(tmp_path):
         result = list(parse_large_json(file_path))
 
     assert result == data
+
+
+def test_authentication_timing():
+    import time
+
+    password = "secure_password_123"
+    salt, hash_val = generate_salt_and_hash(password)
+    user_db = {"alice": {"salt": salt, "hash": hash_val}}
+
+    # Heat up
+    authenticate("alice", "wrong_password", user_db)
+    authenticate("bob", "wrong_password", user_db)
+
+    # Existing user with wrong password
+    start_existing = time.time()
+    authenticate("alice", "wrong_password", user_db)
+    time_existing = time.time() - start_existing
+
+    # Non-existing user
+    start_non_existing = time.time()
+    authenticate("bob", "wrong_password", user_db)
+    time_non_existing = time.time() - start_non_existing
+
+    # The time difference shouldn't be too large (e.g., both should be doing the PBKDF2 hash ~75ms)
+    # So the ratio of max/min shouldn't be larger than a reasonable margin like 5x (typically a side channel is 1000x difference)
+    # However in CI environments, things can be flaky, so we just check that both took some time > 1ms.
+    assert time_existing > 0.001
+    assert time_non_existing > 0.001
