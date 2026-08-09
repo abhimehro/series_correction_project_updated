@@ -166,3 +166,7 @@ debug. **Prevention:** Keep full error tracebacks in internal logs via
 error messages. Furthermore, `log.exception` automatically captures stack
 traces; changing the message string does not stop the stack trace from being
 logged.
+## 2025-02-12 - User Enumeration Timing Attack
+**Vulnerability:** The authentication endpoint allowed user enumeration via timing attacks by immediately returning on an invalid username before doing the expensive password hash check.
+**Learning:** Returning early allows an attacker to measure the time it takes to return an "Invalid credentials" error, telling them if the user exists.
+**Prevention:** In sensitive authentication pathways, enforce constant-time execution. Always perform the expensive hashing operation using a dummy salt and dummy hash for non-existent users before returning an error.

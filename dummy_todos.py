@@ -28,21 +28,29 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     if not username or not password:
         return {"success": False, "error": "Username and password are required"}
 
-    user_record = user_db.get(username)
-    if not user_record:
-        return {"success": False, "error": "Invalid credentials"}
+    # SECURITY: Prevent user enumeration via timing attacks
+    # We must always perform the expensive hashing operation.
+    dummy_salt = b"\x00" * 16
+    dummy_hash = b"\x00" * 32
 
+    user_record = user_db.get(username, {})
     salt = user_record.get("salt")
     stored_hash = user_record.get("hash")
 
-    if not salt or not stored_hash:
-        return {"success": False, "error": "Invalid credentials"}
-
-    computed_hash = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, 100000
+    is_valid = bool(
+        user_record and isinstance(salt, bytes) and isinstance(stored_hash, bytes)
     )
 
-    if hmac.compare_digest(computed_hash, stored_hash):
+    safe_salt = salt if is_valid else dummy_salt
+    safe_stored_hash = stored_hash if is_valid else dummy_hash
+
+    computed_hash = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), safe_salt, 100000
+    )
+
+    hashes_match = hmac.compare_digest(computed_hash, safe_stored_hash)
+
+    if hashes_match and is_valid:
         session_token = secrets.token_hex(32)
         return {"success": True, "token": session_token}
 
