@@ -29,8 +29,6 @@ from scripts.batch_correction import (
 
 # Extracted helper functions for test_batch_process_happy_path_all_series_with_config
 def _isfile_side_effect_all_series(path):
-    import os
-
     if os.path.basename(path) == "river_mile_map.csv":
         return True
     fname = os.path.basename(path)
@@ -42,16 +40,12 @@ def _getsize_side_effect(*args, **kwargs):
 
 
 def _isdir_side_effect(path):
-    import os
-
     expected_data_dir = "/fake/data/dir"
     output_dir = os.path.join(expected_data_dir, "output")
     return path in [expected_data_dir, output_dir]
 
 
 def _read_csv_side_effect_all_series(path, *args, **kwargs):
-    import pandas as pd
-
     if str(path).endswith("river_mile_map.csv"):
         return pd.DataFrame(
             {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
@@ -62,15 +56,11 @@ def _read_csv_side_effect_all_series(path, *args, **kwargs):
 
 # Extracted helper functions for test_batch_process_happy_path_specific_series_no_config
 def _isfile_side_effect_specific_series(path):
-    import os
-
     fname = os.path.basename(path)
     return fname in ["S30_Y01.txt", "S31_Y01.txt"]
 
 
 def _isfile_side_effect_data_specific_series(path):
-    import os
-
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
         return True
@@ -88,8 +78,6 @@ def create_dummy_df(rows=5):
 
 # Patch pandas.read_csv globally for all tests to handle both river mile map and sensor data files
 def read_csv_side_effect(path, *args, **kwargs):
-    import os
-
     fname = os.path.basename(path)
     if fname == "river_mile_map.csv":
         return pd.DataFrame(
@@ -291,7 +279,6 @@ def test_batch_process_dry_run(mock_dependencies, mock_config_loader):
     river_miles = [54.0]  # Series 26
     years = (1995, 1995)
     dry_run = True
-    "/fake/data/dir"
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt", "S27_Y01.txt"]
 
     def isfile_dry_run(path):
@@ -530,8 +517,6 @@ def test_batch_process_invalid_series_selection(monkeypatch):
     years = (2000, 2001)
     dry_run = False
     # Patch os.path.isdir for both /fake/data/dir and fallback path
-    import os
-
     fallback_path = os.path.join(os.getcwd(), "data")
     monkeypatch.setattr(
         "os.path.isdir", lambda d: d in ["/fake/data/dir", fallback_path]
