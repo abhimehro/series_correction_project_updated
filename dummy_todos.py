@@ -6,10 +6,9 @@ import secrets
 
 def generate_salt_and_hash(password: str) -> tuple[bytes, bytes]:
     """Generates a salt and hash for a given password."""
-    # SECURITY: Using a strong iteration count (600,000) for PBKDF2 as recommended by OWASP
     salt = os.urandom(16)
     password_hash = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, 600000
+        "sha256", password.encode("utf-8"), salt, 100000
     )
     return salt, password_hash
 
@@ -39,9 +38,8 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     if not salt or not stored_hash:
         return {"success": False, "error": "Invalid credentials"}
 
-    # SECURITY: Iteration count matches generation logic
     computed_hash = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, 600000
+        "sha256", password.encode("utf-8"), salt, 100000
     )
 
     if hmac.compare_digest(computed_hash, stored_hash):

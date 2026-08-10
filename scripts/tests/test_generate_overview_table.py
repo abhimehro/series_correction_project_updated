@@ -80,7 +80,7 @@ def test_main_file_not_found(capsys):
     assert "Please ensure the required input files are present" in output
 
 
-@patch("pandas.read_csv")
+@patch("scripts.generate_overview_table.pd.read_csv")
 def test_main_generic_exception(mock_read_csv, capsys):
     """Tests general exception handling."""
     mock_read_csv.side_effect = Exception("Test exception")
