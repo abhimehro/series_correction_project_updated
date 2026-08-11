@@ -148,8 +148,8 @@ def _get_data_directory(
         os.makedirs(default_data_dir, exist_ok=True)
         log.info(f"Created data directory: {default_data_dir}")
         return default_data_dir
-    except OSError as e:
-        log.exception(f"Cannot create default data directory {default_data_dir!r}: {e}")
+    except OSError:
+        log.exception("Cannot create default data directory %r", default_data_dir)
         raise FileNotFoundError("Cannot create default data directory") from None
 
 
@@ -205,8 +205,8 @@ def _get_explicit_series(
     )
     try:
         series_list = [int(s) for s in raw]
-    except ValueError as exc:
-        log.exception(f"Invalid series selection {raw!r}: {exc}")
+    except ValueError:
+        log.exception("Invalid series selection %r", raw)
         raise ValueError("Invalid series selection") from None
 
     if river_miles and rm_to_sensors_map:
