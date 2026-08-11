@@ -53,6 +53,8 @@
 
 **Merged pull requests:**
 
+- chore\(repo-health\): remove root one-shot scripts and add PR templates [\#381](https://github.com/abhimehro/series_correction_project_updated/pull/381) ([cursor[bot]](https://github.com/apps/cursor))
+- fix\(logging\): lazy log.exception in batch\_correction \(salvages \#372\) [\#379](https://github.com/abhimehro/series_correction_project_updated/pull/379) ([abhimehro](https://github.com/abhimehro))
 - Daily QA & Agentic Review — 2026-08-09 [\#377](https://github.com/abhimehro/series_correction_project_updated/pull/377) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Jules Daily QA: Auto-format Python scripts [\#371](https://github.com/abhimehro/series_correction_project_updated/pull/371) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump pnpm/action-setup from 6.0.9 to 6.0.10 [\#368](https://github.com/abhimehro/series_correction_project_updated/pull/368) ([dependabot[bot]](https://github.com/apps/dependabot))
