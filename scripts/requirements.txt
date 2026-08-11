@@ -1,7 +1,7 @@
 # Core runtime dependencies (pinned for supply-chain reproducibility)
 
 # pandas 2.3.3: latest 2.x line with wheels for Python 3.10+
-pandas==2.3.3
+pandas==3.0.5
 
 # numpy 2.2.6: latest 2.2.x supporting Python 3.10-3.13
 numpy==2.2.6
