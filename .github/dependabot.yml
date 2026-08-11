@@ -10,3 +10,8 @@ updates:
     labels:
       - "dependencies"
       - "github_actions"
+  - package-ecosystem: "pip"
+    directory: "/scripts"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

@@ -94,7 +94,7 @@ providing a consistent and efficient way to improve data quality.
 
    ```bash
    # Using venv
-   python -m venv venv
+   python3 -m venv venv
    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 
    # Or using conda
@@ -342,7 +342,6 @@ Alternatively, contact Abhi Mehrotra <AbhiMhrtr@pm.me>
 
 Based on the audit report and potential enhancements:
 
-- **Sample Data**: Add standardized, anonymized sample data files.
 - **Integration Tests**: Develop tests that run the full pipeline on sample
   data.
 - **Visualization**: Implement a visualization.py module (e.g., using
