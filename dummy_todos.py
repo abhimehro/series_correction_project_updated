@@ -33,9 +33,7 @@ def authenticate(username: str, password: str, user_db: dict) -> dict:
     dummy_salt = b"\x00" * 16
     dummy_hash = b"\x00" * 32
 
-    user_record = user_db.get(username)
-    if not isinstance(user_record, dict):
-        user_record = {}
+    user_record = user_db.get(username, {})
     salt = user_record.get("salt")
     stored_hash = user_record.get("hash")
 
