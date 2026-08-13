@@ -261,7 +261,9 @@ def sanitize_dataframe_for_spreadsheet(dataframe: pd.DataFrame) -> pd.DataFrame:
     if not isinstance(dataframe, pd.DataFrame):
         raise TypeError("Expected a pandas DataFrame")
 
-    sanitized = dataframe.copy()
+    # ⚡ Bolt: Use shallow copy instead of deep copy to avoid O(N) memory
+    # allocation and time overhead for numeric columns.
+    sanitized = dataframe.copy(deep=False)
     sanitized.columns = _sanitize_index(sanitized.columns)
     sanitized.index = _sanitize_index(sanitized.index)
 

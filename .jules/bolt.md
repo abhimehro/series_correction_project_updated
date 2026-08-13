@@ -101,3 +101,6 @@ and need to be actively ignored during the calculation.
 ## 2025-08-03 - Vectorized np.median NaN propagation
 **Learning:** Using `np.isnan(cw).sum(axis=1) > 0` to create a boolean mask and subsequently apply `np.nan` to a `np.median` array is mathematically redundant and computationally expensive inside a loop.
 **Action:** When applying operations like `np.median` that natively propagate `NaN`s, do not manually check for NaNs and apply masking. Let the operation natively return `NaN` when `NaN` is present, saving memory allocations and CPU time.
+## 2025-08-04 - Optimize spreadsheet sanitization with shallow copying
+**Learning:** The `sanitize_dataframe_for_spreadsheet` function currently calls `dataframe.copy()` (deep copy) before escaping strings, which allocates O(N) memory and time by duplicating large numeric blocks unnecessarily.
+**Action:** Replace `dataframe.copy()` with `dataframe.copy(deep=False)` (shallow copy). In pandas, a shallow copy creates a new DataFrame sharing the original column data. When the string columns are independently modified (e.g., via `sanitized[column] = _sanitize_object_series(...)`), pandas safely replaces those specific column references without mutating the original dataframe or deeply copying the unaltered numeric columns. This yields a massive performance boost for dataframes dominated by numeric columns.
