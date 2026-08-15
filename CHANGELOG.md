@@ -13,6 +13,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-14 [\#395](https://github.com/abhimehro/series_correction_project_updated/issues/395)
+- Daily QA & Agentic Review — 2026-08-13 [\#391](https://github.com/abhimehro/series_correction_project_updated/issues/391)
+- Daily QA & Agentic Review — 2026-08-12 [\#389](https://github.com/abhimehro/series_correction_project_updated/issues/389)
 - Daily QA & Agentic Review — 2026-08-11 [\#387](https://github.com/abhimehro/series_correction_project_updated/issues/387)
 - Daily QA & Agentic Review — 2026-08-10 [\#383](https://github.com/abhimehro/series_correction_project_updated/issues/383)
 - Daily QA & Agentic Review — 2026-08-09 [\#380](https://github.com/abhimehro/series_correction_project_updated/issues/380)
@@ -57,6 +60,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps-dev\): bump pylint from 4.0.6 to 4.0.7 in /scripts [\#394](https://github.com/abhimehro/series_correction_project_updated/pull/394) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🧹 Daily QA Review: Repository Healthy [\#388](https://github.com/abhimehro/series_correction_project_updated/pull/388) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): remove root one-shot scripts and add PR templates [\#381](https://github.com/abhimehro/series_correction_project_updated/pull/381) ([cursor[bot]](https://github.com/apps/cursor))
 - fix\(logging\): lazy log.exception in batch\_correction \(salvages \#372\) [\#379](https://github.com/abhimehro/series_correction_project_updated/pull/379) ([abhimehro](https://github.com/abhimehro))
