@@ -13,6 +13,13 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-14 [\#395](https://github.com/abhimehro/series_correction_project_updated/issues/395)
+- Daily QA & Agentic Review — 2026-08-13 [\#391](https://github.com/abhimehro/series_correction_project_updated/issues/391)
+- Daily QA & Agentic Review — 2026-08-12 [\#389](https://github.com/abhimehro/series_correction_project_updated/issues/389)
+- Daily QA & Agentic Review — 2026-08-11 [\#387](https://github.com/abhimehro/series_correction_project_updated/issues/387)
+- Daily QA & Agentic Review — 2026-08-10 [\#383](https://github.com/abhimehro/series_correction_project_updated/issues/383)
+- Daily QA & Agentic Review — 2026-08-09 [\#380](https://github.com/abhimehro/series_correction_project_updated/issues/380)
+- Daily QA & Agentic Review — 2026-08-08 [\#376](https://github.com/abhimehro/series_correction_project_updated/issues/376)
 - Daily QA & Agentic Review — 2026-08-07 [\#373](https://github.com/abhimehro/series_correction_project_updated/issues/373)
 - Daily QA & Agentic Review — 2026-08-06 [\#370](https://github.com/abhimehro/series_correction_project_updated/issues/370)
 - Daily QA & Agentic Review — 2026-08-05 \(Completed\) [\#367](https://github.com/abhimehro/series_correction_project_updated/issues/367)
@@ -53,11 +60,14 @@
 
 **Merged pull requests:**
 
+- chore\(deps-dev\): bump pylint from 4.0.6 to 4.0.7 in /scripts [\#394](https://github.com/abhimehro/series_correction_project_updated/pull/394) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🧹 Daily QA Review: Repository Healthy [\#388](https://github.com/abhimehro/series_correction_project_updated/pull/388) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): remove root one-shot scripts and add PR templates [\#381](https://github.com/abhimehro/series_correction_project_updated/pull/381) ([cursor[bot]](https://github.com/apps/cursor))
 - fix\(logging\): lazy log.exception in batch\_correction \(salvages \#372\) [\#379](https://github.com/abhimehro/series_correction_project_updated/pull/379) ([abhimehro](https://github.com/abhimehro))
 - Daily QA & Agentic Review — 2026-08-09 [\#377](https://github.com/abhimehro/series_correction_project_updated/pull/377) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Jules Daily QA: Auto-format Python scripts [\#371](https://github.com/abhimehro/series_correction_project_updated/pull/371) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump pnpm/action-setup from 6.0.9 to 6.0.10 [\#368](https://github.com/abhimehro/series_correction_project_updated/pull/368) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🛡️ Sentinel: \[MEDIUM\] Enhance PBKDF2 iteration count [\#364](https://github.com/abhimehro/series_correction_project_updated/pull/364) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[Code Health\] restore pandas import in fix\_output.py and fix flake8 formatting [\#363](https://github.com/abhimehro/series_correction_project_updated/pull/363) ([abhimehro](https://github.com/abhimehro))
 - 🧹 \[code health analysis\] Verify and reject false positive unused pandas import [\#359](https://github.com/abhimehro/series_correction_project_updated/pull/359) ([abhimehro](https://github.com/abhimehro))
 - 🧹 Refactor detect\_gaps for improved readability [\#356](https://github.com/abhimehro/series_correction_project_updated/pull/356) ([abhimehro](https://github.com/abhimehro))
