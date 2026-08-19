@@ -1,5 +1,5 @@
-from unittest.mock import patch
 import csv
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd

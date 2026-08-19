@@ -95,9 +95,23 @@ are intentionally injected as placeholders for specific elements (like outliers)
 and need to be actively ignored during the calculation.
 
 ## 2026-07-31 - Pandas apply() vs Short-Circuiting Generators
-**Learning:** Using `pd.Series.apply()` followed by `.any()` on object/mixed-type columns forces Pandas to evaluate the function on every single row (O(N) time) and allocates an entirely new boolean mask Series (O(N) memory), even if a match is found on the very first element.
-**Action:** For simple, early-exit search conditions over mixed-type `object` Pandas Series (like searching for a malicious null byte), use a standard Python generator expression with `next((x for x in series if condition(x)), None)`. This takes advantage of Python's lazy evaluation, short-circuiting instantly upon finding the first match, resulting in significant performance gains for early matches and zero boolean mask memory allocation.
+
+**Learning:** Using `pd.Series.apply()` followed by `.any()` on
+object/mixed-type columns forces Pandas to evaluate the function on every single
+row (O(N) time) and allocates an entirely new boolean mask Series (O(N) memory),
+even if a match is found on the very first element. **Action:** For simple,
+early-exit search conditions over mixed-type `object` Pandas Series (like
+searching for a malicious null byte), use a standard Python generator expression
+with `next((x for x in series if condition(x)), None)`. This takes advantage of
+Python's lazy evaluation, short-circuiting instantly upon finding the first
+match, resulting in significant performance gains for early matches and zero
+boolean mask memory allocation.
 
 ## 2025-08-03 - Vectorized np.median NaN propagation
-**Learning:** Using `np.isnan(cw).sum(axis=1) > 0` to create a boolean mask and subsequently apply `np.nan` to a `np.median` array is mathematically redundant and computationally expensive inside a loop.
-**Action:** When applying operations like `np.median` that natively propagate `NaN`s, do not manually check for NaNs and apply masking. Let the operation natively return `NaN` when `NaN` is present, saving memory allocations and CPU time.
+
+**Learning:** Using `np.isnan(cw).sum(axis=1) > 0` to create a boolean mask and
+subsequently apply `np.nan` to a `np.median` array is mathematically redundant
+and computationally expensive inside a loop. **Action:** When applying
+operations like `np.median` that natively propagate `NaN`s, do not manually
+check for NaNs and apply masking. Let the operation natively return `NaN` when
+`NaN` is present, saving memory allocations and CPU time.

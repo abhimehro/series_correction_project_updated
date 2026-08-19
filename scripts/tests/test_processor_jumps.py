@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from scripts.processor import detect_jumps, _calculate_jump_deviations
+
+from scripts.processor import _calculate_jump_deviations, detect_jumps
 
 
 def test_calculate_jump_deviations():
