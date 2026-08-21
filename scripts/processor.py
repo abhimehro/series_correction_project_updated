@@ -303,9 +303,9 @@ def correct_gaps(
         DataFrame with gaps filled. Returns a copy of the original if no gaps.
     """
     if not gap_indices:
-        return data.copy()
+        return data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
-    result_df = data.copy()
+    result_df = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
     if value_cols is None:
         value_cols = [
@@ -318,6 +318,10 @@ def correct_gaps(
     if not value_cols:
         log.warning("No numeric value columns found to interpolate for gap correction.")
         return result_df
+
+    # ⚡ Bolt: Explicitly copy the columns that will be mutated/interpolated in _perform_interpolation
+    for col in value_cols:
+        result_df[col] = result_df[col].copy()
 
     result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
     gaps_df = _build_gaps_dataframe(result_df, gap_indices, time_col)
@@ -359,9 +363,9 @@ def correct_jumps(
         DataFrame with jumps corrected. Returns a copy of the original if no jumps.
     """
     if not jump_indices:
-        return data.copy()
+        return data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
-    result_df = data.copy()
+    result_df = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
     n = len(result_df)
 
     sorted_jump_indices = sorted(
@@ -398,6 +402,7 @@ def correct_jumps(
     np.add.at(offsets, valid_jumps[valid_medians_mask], diffs)
 
     # Apply globally across the entire sequence
+    # ⚡ Bolt: Reassigning the column entirely avoids mutating the original dataframe's array in a shallow copy
     result_df[value_col] = values_np + np.cumsum(offsets)
 
     log.info("Jump correction complete for column '%s'.", value_col)
@@ -426,9 +431,9 @@ def correct_outliers(
         DataFrame with outliers corrected based on the chosen method.
     """
     if not outlier_indices:
-        return data.copy()
+        return data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
-    result_df = data.copy()
+    result_df = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -438,14 +443,19 @@ def correct_outliers(
     )
 
     if method == "interpolate":
-        result_df.loc[outlier_indices, value_col] = np.nan
-        result_df[value_col] = result_df[value_col].interpolate(
+        # ⚡ Bolt: Reassign column to avoid mutating original data array in shallow copy
+        new_col = result_df[value_col].copy()
+        new_col.loc[outlier_indices] = np.nan
+        result_df[value_col] = new_col.interpolate(
             method="linear", limit_direction="both"
         )
         log.info("Outliers replaced via linear interpolation.")
 
     elif method == "remove":
-        result_df.loc[outlier_indices, value_col] = np.nan
+        # ⚡ Bolt: Reassign column to avoid mutating original data array in shallow copy
+        new_col = result_df[value_col].copy()
+        new_col.loc[outlier_indices] = np.nan
+        result_df[value_col] = new_col
         log.info("Outliers replaced with NaN.")
 
     elif method in ["median", "mean"]:
@@ -453,6 +463,7 @@ def correct_outliers(
         values_np = _calculate_outlier_replacements(
             values_np, outlier_indices, window_size, method
         )
+        # ⚡ Bolt: Reassigning the column entirely avoids mutating the original dataframe's array in a shallow copy
         result_df[value_col] = values_np
     else:
         log.error(
@@ -552,7 +563,7 @@ def process_data(
     merged_config = _merge_config(config)
     log.info("Processing data with configuration: %s", merged_config)
 
-    processed_data = data.copy()
+    processed_data = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
     time_col = merged_config["time_col"]
     processed_data = _validate_and_convert_time_col(processed_data, time_col)
 
