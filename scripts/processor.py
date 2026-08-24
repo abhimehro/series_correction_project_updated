@@ -43,6 +43,13 @@ def _calculate_median_time_diff(
     return time_diffs_np, median_diff
 
 
+def _copy_columns_for_mutation(df: pd.DataFrame, columns: list[str]) -> None:
+    """Explicitly copy specified columns to ensure safe shallow copy mutation."""
+    for col in columns:
+        if col in df.columns:
+            df[col] = df[col].copy()
+
+
 def _find_gap_indices(
     time_diffs_np: np.ndarray, gap_threshold: float, data_index: pd.Index
 ) -> list[int]:
@@ -321,11 +328,7 @@ def correct_gaps(
         return result_df
 
     # ⚡ Bolt: Explicitly copy columns that might be mutated to ensure safe shallow copy
-    if time_col in result_df.columns:
-        result_df[time_col] = result_df[time_col].copy()
-    for col in value_cols:
-        if col in result_df.columns:
-            result_df[col] = result_df[col].copy()
+    _copy_columns_for_mutation(result_df, [time_col] + value_cols)
 
     result_df = result_df.sort_values(by=time_col).reset_index(drop=True)
     gaps_df = _build_gaps_dataframe(result_df, gap_indices, time_col)
