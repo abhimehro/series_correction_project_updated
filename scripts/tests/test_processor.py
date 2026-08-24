@@ -214,3 +214,29 @@ def test_detect_gaps_all_same_times():
     data = pd.DataFrame({"Time (Seconds)": [1.0, 1.0, 1.0], "value": [1.0, 1.0, 1.0]})
     gap_indices = detect_gaps(data)
     assert gap_indices == []
+
+
+def test_correct_gaps_shallow_copy():
+    from scripts.processor import correct_gaps
+
+    df = pd.DataFrame({"Time (Seconds)": [1.0, 2.0, 4.0], "Value": [1.0, 2.0, 4.0]})
+    res = correct_gaps(df, [2], time_col="Time (Seconds)", value_cols=["Value"])
+    assert len(res) > len(df)
+
+
+def test_correct_outliers_shallow_copy_interpolate():
+    from scripts.processor import correct_outliers
+
+    df = pd.DataFrame({"Value": [1.0, 100.0, 3.0]})
+    res = correct_outliers(df, [1], value_col="Value", method="interpolate")
+    assert res.loc[1, "Value"] == 2.0
+    assert df.loc[1, "Value"] == 100.0
+
+
+def test_correct_outliers_shallow_copy_remove():
+    from scripts.processor import correct_outliers
+
+    df = pd.DataFrame({"Value": [1.0, 100.0, 3.0]})
+    res = correct_outliers(df, [1], value_col="Value", method="remove")
+    assert np.isnan(res.loc[1, "Value"])
+    assert df.loc[1, "Value"] == 100.0
