@@ -115,3 +115,8 @@ and computationally expensive inside a loop. **Action:** When applying
 operations like `np.median` that natively propagate `NaN`s, do not manually
 check for NaNs and apply masking. Let the operation natively return `NaN` when
 `NaN` is present, saving memory allocations and CPU time.
+
+## 2025-08-25 - Use shallow DataFrame copies to avoid O(N) allocation when mutating columns
+
+**Learning:** Using `data.copy()` deep-copies all underlying arrays, taking O(N) time and memory, which is wasteful if we only intend to mutate a few specific columns, append rows, or if we won't mutate the data at all.
+**Action:** When a function needs to return a modified copy of a DataFrame but only mutates specific columns (using e.g. `df['A'] = new_values`) or just appends rows, use a shallow copy `data.copy(deep=False)`. Pandas 2.0+ handles shallow copies safely for entire-column reassignments, avoiding full DataFrame duplication and yielding a >10x speedup for large datasets. Note: To mutate a specific column in-place (e.g. `df.loc[...] = ...`) on a shallow copy, explicitly copy that column first (`df['A'] = df['A'].copy()`).
