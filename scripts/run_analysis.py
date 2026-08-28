@@ -1,8 +1,12 @@
 import json
+import logging
 import os
 
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+
 # Import your batch processing function directly
-from scripts.batch_correction import BatchConfig, batch_process
+from scripts.batch_correction import BatchConfig, batch_process  # noqa: E402
 
 # Use direct, absolute paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -29,6 +33,7 @@ try:
 
     print("Updated threshold to 3.0 for better outlier detection")
 except Exception:
+    log.exception("Error updating config")
     print("Error updating config")
     print("Will continue with existing config")
 
@@ -46,6 +51,7 @@ try:
     summary = batch_process(config)
     print(f"Successfully processed {len(summary)} files")
 except Exception:
+    log.exception("Error during processing")
     print("Error during processing")
 
 print("Processing complete! Check the output directory for Excel files.")
