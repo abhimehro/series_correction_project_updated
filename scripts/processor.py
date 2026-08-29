@@ -303,9 +303,13 @@ def correct_gaps(
         DataFrame with gaps filled. Returns a copy of the original if no gaps.
     """
     if not gap_indices:
-        return data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
+        return data.copy(
+            deep=False
+        )  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
-    result_df = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
+    result_df = data.copy(
+        deep=False
+    )  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
     if value_cols is None:
         value_cols = [
@@ -363,9 +367,13 @@ def correct_jumps(
         DataFrame with jumps corrected. Returns a copy of the original if no jumps.
     """
     if not jump_indices:
-        return data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
+        return data.copy(
+            deep=False
+        )  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
-    result_df = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
+    result_df = data.copy(
+        deep=False
+    )  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
     n = len(result_df)
 
     sorted_jump_indices = sorted(
@@ -431,9 +439,13 @@ def correct_outliers(
         DataFrame with outliers corrected based on the chosen method.
     """
     if not outlier_indices:
-        return data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
+        return data.copy(
+            deep=False
+        )  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
-    result_df = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
+    result_df = data.copy(
+        deep=False
+    )  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -563,7 +575,9 @@ def process_data(
     merged_config = _merge_config(config)
     log.info("Processing data with configuration: %s", merged_config)
 
-    processed_data = data.copy(deep=False)  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
+    processed_data = data.copy(
+        deep=False
+    )  # ⚡ Bolt: Use shallow copy to prevent unnecessary O(N) memory allocation and time overhead
     time_col = merged_config["time_col"]
     processed_data = _validate_and_convert_time_col(processed_data, time_col)
 
