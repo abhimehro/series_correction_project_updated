@@ -1,3 +1,4 @@
+import logging
 import argparse
 import re
 
@@ -5,12 +6,14 @@ import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
 
+log = logging.getLogger(__name__)
+
 
 def _safe_round(value):
     """Safely round a value, returning original if rounding fails."""
     try:
         return round(value, 3)
-    except Exception:
+    except (ValueError, TypeError):
         return value
 
 
@@ -121,6 +124,7 @@ def main(correction_log_path, updated_averages_csv_path):
             "Please ensure the required input files are present, or update the file paths."
         )
     except Exception:
+        log.exception("An error occurred while generating Overview table content.")
         print("\nAn error occurred while generating Overview table content.")
 
     print("\n--- Script Finished ---")

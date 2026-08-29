@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import warnings
@@ -19,6 +20,9 @@ os.makedirs(COMPARISON_DIR, exist_ok=True)
 SERIES_FILE_RE = re.compile(r"Series(\d+)_File(\d+)_Processed")
 YEAR_DATA_RE = re.compile(r"Year_(\d+) \(Y(\d+)\)_Data")
 YEAR_FILE_RE = re.compile(r"_Y(\d+)\.txt$")
+
+
+log = logging.getLogger(__name__)
 
 
 def _find_series_file_match(processed_filename):
@@ -173,6 +177,7 @@ def load_raw_file(raw_file):
         print(f"[WARN] Could not load raw file {raw_file}")
         return None
     except Exception:
+        log.exception(f"Unexpected error loading raw file {raw_file}")
         print(f"[WARN] Unexpected error loading raw file {raw_file}")
         return None
 
@@ -184,6 +189,7 @@ def load_processed_file(proc_file):
         print(f"[WARN] Could not load processed file {proc_file}")
         return None
     except Exception:
+        log.exception(f"Unexpected error loading processed file {proc_file}")
         print(f"[WARN] Unexpected error loading processed file {proc_file}")
         return None
 

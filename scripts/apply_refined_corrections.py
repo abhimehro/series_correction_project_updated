@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -16,6 +17,9 @@ CORRECTION_LOG_PATH = "../correction_log_refined_shift.csv"  # Updated path
 YTY_DIFF_CSV_PATH = (
     "../Seatek_Analysis_Summary.xlsx - Year-to-Year Differences.csv"  # Updated path
 )
+
+
+log = logging.getLogger(__name__)
 
 
 def calculate_non_zero_average(series):
@@ -73,6 +77,7 @@ def load_identified_outliers(csv_path):
         print(f"Error: The file '{csv_path}' was not found.")
         return pd.DataFrame()
     except Exception:
+        log.exception("An unexpected error occurred while loading outliers.")
         print("An unexpected error occurred while loading outliers.")
         return pd.DataFrame()
 
@@ -227,6 +232,9 @@ def apply_level_shift_correction(
         )
 
     except Exception:
+        log.exception(
+            f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
+        )
         print(
             f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
         )

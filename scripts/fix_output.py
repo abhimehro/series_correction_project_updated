@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -9,6 +10,8 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from scripts.processor import process_data  # noqa: E402
 from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
@@ -73,6 +76,7 @@ for i, file_path in enumerate(raw_files):
         )
 
     except Exception:
+        log.exception(f"Error processing {filename}")
         print(f"Error processing {filename}")
 
 print(f"\nAll done! {len(raw_files)} files processed.")
