@@ -66,6 +66,7 @@
 **Merged pull requests:**
 
 - ⚡ Bolt: Optimize outlier flag assignment in export comparison [\#417](https://github.com/abhimehro/series_correction_project_updated/pull/417) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: Use shallow copy instead of deep copy [\#405](https://github.com/abhimehro/series_correction_project_updated/pull/405) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pylint from 4.0.6 to 4.0.7 in /scripts [\#394](https://github.com/abhimehro/series_correction_project_updated/pull/394) ([dependabot[bot]](https://github.com/apps/dependabot))
 - 🧹 Daily QA Review: Repository Healthy [\#388](https://github.com/abhimehro/series_correction_project_updated/pull/388) ([abhimehro](https://github.com/abhimehro))
 - chore\(repo-health\): remove root one-shot scripts and add PR templates [\#381](https://github.com/abhimehro/series_correction_project_updated/pull/381) ([cursor[bot]](https://github.com/apps/cursor))
