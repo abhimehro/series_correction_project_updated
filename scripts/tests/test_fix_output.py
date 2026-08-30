@@ -28,3 +28,4 @@ def test_fix_output_imports():
         node.names[0].name for node in ast.walk(tree) if isinstance(node, ast.Import)
     ]
     assert "pandas" in imports, "pandas is not imported in fix_output.py"
+    assert "logging" in imports, "logging is not imported in fix_output.py"
