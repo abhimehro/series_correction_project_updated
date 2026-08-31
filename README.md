@@ -374,7 +374,7 @@ Based on the audit report and potential enhancements:
 
 - From the project root, run:
   ```bash
-  python scripts/manual_batch_run.py
+  python3 scripts/manual_batch_run.py
   ```
 - This processes all files listed in the config, corrects outliers/gaps/jumps,
   and writes output `.xlsx` files to `data/output/`.
@@ -384,7 +384,7 @@ Based on the audit report and potential enhancements:
 - To generate Excel files comparing raw and processed data (with outlier flags),
   run:
   ```bash
-  python scripts/export_comparison_sheets.py
+  python3 scripts/export_comparison_sheets.py
   ```
 - This creates a `comparisons/` subfolder in `data/output/`, with one comparison
   Excel file per processed dataset.
@@ -440,8 +440,8 @@ Based on the audit report and potential enhancements:
 
 ## Quick Reference
 
-- **Process all data:** `python scripts/manual_batch_run.py`
-- **Export comparison sheets:** `python scripts/export_comparison_sheets.py`
+- **Process all data:** `python3 scripts/manual_batch_run.py`
+- **Export comparison sheets:** `python3 scripts/export_comparison_sheets.py`
 - **Processed files:** `data/output/`
 - **Comparison files:** `data/output/comparisons/`
 - **Add new series:** Edit `scripts/config.json`
