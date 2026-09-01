@@ -13,22 +13,17 @@ your batch correction process.
    │   ├── input/       # Place your raw data files here
    │   └── output/      # Processed data will be saved here
    │       └── comparisons/  # Comparison files will be stored here
+   ├── notebooks/
+   │   └── visualization_qa_notebook.ipynb
    └── scripts/
-       ├── batch_correction.py
-       └── visualization_qa_notebook.ipynb
+       └── batch_correction.py
    ```
 
 2. Make sure you've run the batch correction process first:
 
    ```
    # Run from the project root directory
-   python batch_correction.py
-   ```
-
-   Alternatively, specify the full path:
-
-   ```
-   python /path/to/series_correction_project/batch_correction.py
+   python3 scripts/manual_batch_run.py
    ```
 
 ## Data Access and Structure
