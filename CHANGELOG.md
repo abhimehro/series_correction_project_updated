@@ -13,6 +13,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-08-31 [\#428](https://github.com/abhimehro/series_correction_project_updated/issues/428)
+- \[repo-health\] Retire leftover root one-shot scripts \(updated\_processor / generate\_summary / fix\_output\) [\#427](https://github.com/abhimehro/series_correction_project_updated/issues/427)
+- Daily QA & Agentic Review — 2026-08-30 [\#424](https://github.com/abhimehro/series_correction_project_updated/issues/424)
 - Daily QA & Agentic Review — 2026-08-28 [\#420](https://github.com/abhimehro/series_correction_project_updated/issues/420)
 - Daily QA & Agentic Review — 2026-08-25 [\#413](https://github.com/abhimehro/series_correction_project_updated/issues/413)
 - Daily QA & Agentic Review — 2026-08-23 [\#408](https://github.com/abhimehro/series_correction_project_updated/issues/408)
@@ -66,6 +69,8 @@
 
 **Merged pull requests:**
 
+- chore\(repo-health\): add conduct docs and drop mutating one-shots [\#426](https://github.com/abhimehro/series_correction_project_updated/pull/426) ([cursor[bot]](https://github.com/apps/cursor))
+- Daily QA & Agentic Review Summary [\#423](https://github.com/abhimehro/series_correction_project_updated/pull/423) ([abhimehro](https://github.com/abhimehro))
 - Jules Daily QA & Agentic Review - Formatting fixes [\#422](https://github.com/abhimehro/series_correction_project_updated/pull/422) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize outlier flag assignment in export comparison [\#417](https://github.com/abhimehro/series_correction_project_updated/pull/417) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Use shallow copy instead of deep copy [\#405](https://github.com/abhimehro/series_correction_project_updated/pull/405) ([abhimehro](https://github.com/abhimehro))
