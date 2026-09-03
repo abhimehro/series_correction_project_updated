@@ -13,6 +13,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-03 [\#432](https://github.com/abhimehro/series_correction_project_updated/issues/432)
+- Daily QA & Agentic Review — 2026-09-01 [\#431](https://github.com/abhimehro/series_correction_project_updated/issues/431)
 - Daily QA & Agentic Review — 2026-08-31 [\#428](https://github.com/abhimehro/series_correction_project_updated/issues/428)
 - \[repo-health\] Retire leftover root one-shot scripts \(updated\_processor / generate\_summary / fix\_output\) [\#427](https://github.com/abhimehro/series_correction_project_updated/issues/427)
 - Daily QA & Agentic Review — 2026-08-30 [\#424](https://github.com/abhimehro/series_correction_project_updated/issues/424)
@@ -27,6 +29,7 @@
 - Daily QA & Agentic Review — 2026-08-12 [\#389](https://github.com/abhimehro/series_correction_project_updated/issues/389)
 - Daily QA & Agentic Review — 2026-08-11 [\#387](https://github.com/abhimehro/series_correction_project_updated/issues/387)
 - Daily QA & Agentic Review — 2026-08-10 [\#383](https://github.com/abhimehro/series_correction_project_updated/issues/383)
+- \[repo-health\] Document pandas 3.x hold + consider pyproject.toml migration [\#382](https://github.com/abhimehro/series_correction_project_updated/issues/382)
 - Daily QA & Agentic Review — 2026-08-09 [\#380](https://github.com/abhimehro/series_correction_project_updated/issues/380)
 - Daily QA & Agentic Review — 2026-08-08 [\#376](https://github.com/abhimehro/series_correction_project_updated/issues/376)
 - Daily QA & Agentic Review — 2026-08-07 [\#373](https://github.com/abhimehro/series_correction_project_updated/issues/373)
@@ -70,6 +73,7 @@
 **Merged pull requests:**
 
 - chore\(repo-health\): add conduct docs and drop mutating one-shots [\#426](https://github.com/abhimehro/series_correction_project_updated/pull/426) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.0.8 to 1.1.1 [\#425](https://github.com/abhimehro/series_correction_project_updated/pull/425) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Daily QA & Agentic Review Summary [\#423](https://github.com/abhimehro/series_correction_project_updated/pull/423) ([abhimehro](https://github.com/abhimehro))
 - Jules Daily QA & Agentic Review - Formatting fixes [\#422](https://github.com/abhimehro/series_correction_project_updated/pull/422) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: Optimize outlier flag assignment in export comparison [\#417](https://github.com/abhimehro/series_correction_project_updated/pull/417) ([abhimehro](https://github.com/abhimehro))
