@@ -115,6 +115,14 @@ and computationally expensive inside a loop. **Action:** When applying
 operations like `np.median` that natively propagate `NaN`s, do not manually
 check for NaNs and apply masking. Let the operation natively return `NaN` when
 `NaN` is present, saving memory allocations and CPU time.
+
 ## 2024-10-24 - Pandas DataFrame Row Filtering Optimization
-**Learning:** Replaced an O(N) list comprehension checking if indices exist (`[idx for idx in indices if idx < len(df)]`) with Pandas' native vectorized operation `df.index.intersection(indices)`. This change, especially when combined with `.loc` for updating values, provides a significant performance boost (~5x faster) in operations with many rows, pushing the logic down to C-level execution.
-**Action:** When filtering DataFrame row indices for existence, always use native Pandas Index methods like `intersection()` or `isin()` instead of explicit loops or list comprehensions over row indices.
+
+**Learning:** Replaced an O(N) list comprehension checking if indices exist
+(`[idx for idx in indices if idx < len(df)]`) with Pandas' native vectorized
+operation `df.index.intersection(indices)`. This change, especially when
+combined with `.loc` for updating values, provides a significant performance
+boost (~5x faster) in operations with many rows, pushing the logic down to
+C-level execution. **Action:** When filtering DataFrame row indices for
+existence, always use native Pandas Index methods like `intersection()` or
+`isin()` instead of explicit loops or list comprehensions over row indices.

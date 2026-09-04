@@ -1,8 +1,9 @@
 import pandas as pd
+
 from scripts.processor import (
     correct_gaps,
-    correct_outliers,
     correct_jumps,
+    correct_outliers,
     process_data,
 )
 

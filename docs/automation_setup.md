@@ -26,11 +26,11 @@ python3 scripts/export_comparison_sheets.py
 
 ## Environment
 
-| Item | Value |
-|------|--------|
-| Python | 3.10 or 3.11 (CI matrix in `.github/workflows/python-tests.yml`) |
-| Runtime pins | `scripts/requirements.txt` (`pandas==2.3.3`, numpy, openpyxl) |
-| Config | `scripts/config.json` — do not mutate it from one-shot helpers |
+| Item         | Value                                                            |
+| ------------ | ---------------------------------------------------------------- |
+| Python       | 3.10 or 3.11 (CI matrix in `.github/workflows/python-tests.yml`) |
+| Runtime pins | `scripts/requirements.txt` (`pandas==2.3.3`, numpy, openpyxl)    |
+| Config       | `scripts/config.json` — do not mutate it from one-shot helpers   |
 
 `scripts/run_analysis.py` (removed) used to rewrite the config threshold as a
 side effect. Pass thresholds through `BatchConfig` / CLI flags instead.
