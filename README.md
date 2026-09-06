@@ -8,6 +8,7 @@
 [![CodeScene Hotspot Code Health](https://codescene.io/projects/80827/status-badges/hotspot-code-health)](https://codescene.io/projects/80827)
 [![CodeScene System Mastery](https://codescene.io/projects/80827/status-badges/system-mastery)](https://codescene.io/projects/80827)
 [![CodeScene Missed Goals](https://codescene.io/projects/80827/status-badges/missed-goals)](https://codescene.io/projects/80827)
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/abhimehro/series_correction_project_updated?utm_source=oss&utm_medium=github&utm_campaign=abhimehro%2Fseries_correction_project_updated&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 This project provides tools to automatically detect and correct discontinuities
 (such as jumps, gaps, or outliers) commonly found in time-series data from
