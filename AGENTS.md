@@ -15,7 +15,7 @@ database, no Docker required. See `README.md` for full details.
 | Install deps         | `pip3 install -r scripts/requirements-dev.txt && pip3 install -e .`                 |
 | Run tests            | `python3 -m pytest scripts/tests/ -v`                                               |
 | Run tests + coverage | `python3 -m pytest --cov=scripts scripts/tests/ -v`                                 |
-| Lint                 | `flake8 scripts/ --max-line-length=100`                                             |
+| Lint                 | `flake8 scripts/` (uses `setup.cfg`: max-line-length 150, E501 ignored)             |
 | CLI help             | `seatek-correction --help`                                                          |
 | CLI dry-run          | `seatek-correction --series 26 --river-miles 54.0 53.0 --years 1995 1996 --dry-run` |
 | Batch processing     | `python3 scripts/manual_batch_run.py`                                               |

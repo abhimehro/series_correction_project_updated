@@ -4,7 +4,6 @@ scripts.spreadsheet_safety.  Any direct DataFrame.to_csv/to_excel, csv.writer,
 ExcelWriter, xlsxwriter, or unreviewed openpyxl cell writes must fail CI.
 """
 
-import ast
 import re
 from pathlib import Path
 
@@ -27,7 +26,6 @@ EXCLUDE_DIRS = {
 # Files outside tests that are allowed to mention restricted libraries because
 # they have been reviewed and do not write attacker-controlled cell values.
 ALLOWED_OPENPYXL_FILES = {
-    "generate_summary.py",  # loads workbook, styles/chart/saves; no cell.value writes
     "setup.py",  # dependency declaration only
 }
 
@@ -51,24 +49,6 @@ def _is_excluded(path: Path) -> bool:
     )
 
 
-def _is_cell_value_target(target: ast.expr) -> bool:
-    """Return True if the assignment target writes to a worksheet/cell value."""
-    return isinstance(target, ast.Subscript) or (
-        isinstance(target, ast.Attribute) and target.attr == "value"
-    )
-
-
-def _has_cell_value_write(file_path: Path) -> bool:
-    """Return True if the file assigns to a worksheet/cell value."""
-    tree = ast.parse(file_path.read_text(encoding="utf-8"))
-    return any(
-        _is_cell_value_target(target)
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
-        for target in node.targets
-    )
-
-
 def _find_python_files():
     for path in REPO_ROOT.rglob("*.py"):
         if _is_excluded(path):
@@ -84,8 +64,6 @@ def _check_openpyxl(file_path: Path, rel_str: str) -> list[str]:
     """Return violations for openpyxl usage, or an empty list if allowed."""
     if not _is_allowed_openpyxl(file_path):
         return [f"{rel_str}: unauthorized openpyxl usage"]
-    if file_path.name == "generate_summary.py" and _has_cell_value_write(file_path):
-        return [f"{rel_str}: openpyxl cell value write detected"]
     return []
 
 
