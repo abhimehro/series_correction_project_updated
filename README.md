@@ -1,5 +1,6 @@
 # Series Correction Project (Seatek Sensor Data)
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/051eeb1815134a5ba7bab2772e937865)](https://app.codacy.com/gh/abhimehro/series_correction_project_updated?utm_source=github.com&utm_medium=referral&utm_content=abhimehro/series_correction_project_updated&utm_campaign=Badge_Grade)
 [![CodeScene general](https://codescene.io/images/analyzed-by-codescene-badge.svg)](https://codescene.io/projects/80827)
 [![Code Coverage](https://codecov.io/gh/abhimehro/series_correction_project_updated/branch/main/graph/badge.svg)](https://codecov.io/gh/abhimehro/series_correction_project_updated)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
