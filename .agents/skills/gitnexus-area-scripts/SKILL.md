@@ -1,17 +1,17 @@
 ---
 name: gitnexus-area-scripts
-description: "Skill for the Scripts area of series_correction_project_updated. 102 symbols across 14 files."
+description: "Skill for the Scripts area of series_correction_project_updated. 101 symbols across 14 files."
 ---
 
 # Scripts
 
-102 symbols | 14 files | Cohesion: 81%
+101 symbols | 14 files | Cohesion: 80%
 
 ## When to Use
 
 - Working with code in `scripts/`
 - Understanding how process_data, test_process_data_time_col_parsing_failure,
-  apply_level_shift_correction work
+  test_process_data_shallow_copy work
 - Modifying scripts-related functionality
 
 ## Key Files
@@ -21,8 +21,8 @@ description: "Skill for the Scripts area of series_correction_project_updated. 1
 | `scripts/spreadsheet_safety.py`                  | _find_null_byte_in_index, _find_null_in_categorical_index, _find_null_in_index_name, _find_null_in_multiindex, _find_null_in_multiindex_level (+26)                                                                                                              |
 | `scripts/export_comparison_sheets.py`            | _find_series_file_match, _find_year_file_match, find_matching_raw_file, _load_and_merge_data, _rename_raw_columns (+8)                                                                                                                                           |
 | `scripts/apply_refined_corrections.py`           | _calculate_and_apply_shift, apply_level_shift_correction, find_year_files, has_sensor_window, output_file_name (+5)                                                                                                                                              |
-| `scripts/discontinuity_utils.py`                 | _auto_detect_value_col, _convert_time_col_to_numeric, _process_discontinuity, _validate_and_convert_time_col, _validate_value_col (+4)                                                                                                                           |
 | `scripts/batch_correction.py`                    | _build_rm_to_sensors_map, _determine_series_to_process, _get_explicit_series, _get_series_from_all, _load_raw_data (+4)                                                                                                                                          |
+| `scripts/discontinuity_utils.py`                 | _auto_detect_value_col, _convert_time_col_to_numeric, _process_discontinuity, _validate_and_convert_time_col, _validate_value_col (+3)                                                                                                                           |
 | `scripts/processor.py`                           | _get_processing_steps, _merge_config, process_data, correct_gaps, correct_outliers                                                                                                                                                                               |
 | `scripts/tests/test_batch_correction.py`         | test_determine_series_to_process_all_fallback, test_determine_series_to_process_all_fallback_with_river_miles, test_determine_series_to_process_explicit_invalid_value, test_determine_series_to_process_invalid_sensor_id_in_map, test_load_raw_data_empty_file |
 | `scripts/tests/test_spreadsheet_safety.py`       | test_escape_spreadsheet_formula, test_escape_spreadsheet_formula_is_idempotent, test_escape_spreadsheet_formula_prefixes, test_write_csv_safely_neutralizes_payloads, test_write_csv_safely_sanitizes_custom_header_and_index_label                              |
@@ -33,21 +33,22 @@ description: "Skill for the Scripts area of series_correction_project_updated. 1
 
 Start here when exploring this area:
 
-- **`process_data`** (Function) — `scripts/processor.py:539`
+- **`process_data`** (Function) — `scripts/processor.py:562`
 - **`test_process_data_time_col_parsing_failure`** (Function) —
   `scripts/tests/test_processor.py:55`
+- **`test_process_data_shallow_copy`** (Function) —
+  `scripts/tests/test_processor_coverage.py:35`
 - **`apply_level_shift_correction`** (Function) —
   `scripts/apply_refined_corrections.py:196`
 - **`find_year_files`** (Function) — `scripts/apply_refined_corrections.py:140`
-- **`has_sensor_window`** (Function) —
-  `scripts/apply_refined_corrections.py:153`
 
 ## Key Symbols
 
 | Symbol                                                           | Type     | File                                              | Line |
 | ---------------------------------------------------------------- | -------- | ------------------------------------------------- | ---- |
-| `process_data`                                                   | Function | `scripts/processor.py`                            | 539  |
+| `process_data`                                                   | Function | `scripts/processor.py`                            | 562  |
 | `test_process_data_time_col_parsing_failure`                     | Function | `scripts/tests/test_processor.py`                 | 55   |
+| `test_process_data_shallow_copy`                                 | Function | `scripts/tests/test_processor_coverage.py`        | 35   |
 | `apply_level_shift_correction`                                   | Function | `scripts/apply_refined_corrections.py`            | 196  |
 | `find_year_files`                                                | Function | `scripts/apply_refined_corrections.py`            | 140  |
 | `has_sensor_window`                                              | Function | `scripts/apply_refined_corrections.py`            | 153  |
@@ -59,13 +60,12 @@ Start here when exploring this area:
 | `test_determine_series_to_process_all_fallback_with_river_miles` | Function | `scripts/tests/test_batch_correction.py`          | 670  |
 | `test_determine_series_to_process_explicit_invalid_value`        | Function | `scripts/tests/test_batch_correction.py`          | 697  |
 | `test_determine_series_to_process_invalid_sensor_id_in_map`      | Function | `scripts/tests/test_batch_correction.py`          | 685  |
-| `correct_gaps`                                                   | Function | `scripts/processor.py`                            | 278  |
-| `test_generate_missing_times_hasattr_value`                      | Function | `scripts/tests/test_discontinuity_utils.py`       | 118  |
-| `test_generate_missing_times_numeric`                            | Function | `scripts/tests/test_discontinuity_utils.py`       | 103  |
-| `test_generate_missing_times_timestamp`                          | Function | `scripts/tests/test_discontinuity_utils.py`       | 89   |
 | `test_load_raw_data_empty_file`                                  | Function | `scripts/tests/test_batch_correction.py`          | 640  |
 | `find_matching_raw_file`                                         | Function | `scripts/export_comparison_sheets.py`             | 53   |
 | `test_find_matching_raw_file_no_match`                           | Function | `scripts/tests/test_export_comparison_sheets.py`  | 59   |
+| `test_find_matching_raw_file_series_format`                      | Function | `scripts/tests/test_export_comparison_sheets.py`  | 42   |
+| `test_find_matching_raw_file_year_format`                        | Function | `scripts/tests/test_export_comparison_sheets.py`  | 51   |
+| `add_outlier_flags`                                              | Function | `scripts/export_comparison_sheets.py`             | 202  |
 
 ## Execution Flows
 
