@@ -28,3 +28,37 @@ def test_fix_output_imports():
         node.names[0].name for node in ast.walk(tree) if isinstance(node, ast.Import)
     ]
     assert "pandas" in imports, "pandas is not imported in fix_output.py"
+
+
+def test_fix_output_exception_logging():
+    """Verify that fix_output.py logs exceptions securely."""
+    import ast
+
+    script_path = os.path.join(PROJECT_ROOT, "scripts", "fix_output.py")
+    with open(script_path, "r") as f:
+        tree = ast.parse(f.read())
+
+    has_exception = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "exception"
+        for node in ast.walk(tree)
+    )
+    assert has_exception, "log.exception was not called in fix_output.py"
+
+
+def test_fix_output_execution(mocker, caplog):
+    """Executes fix_output.py under mock to cover exception logging path."""
+    import importlib
+    import logging
+
+    mocker.patch("os.listdir", return_value=["S26_Y01.txt"])
+    mocker.patch("pandas.read_csv", side_effect=RuntimeError("Test error"))
+
+    with caplog.at_level(logging.ERROR):
+        if "scripts.fix_output" in sys.modules:
+            importlib.reload(sys.modules["scripts.fix_output"])
+        else:
+            importlib.import_module("scripts.fix_output")
+
+    assert "Error processing S26_Y01.txt" in caplog.text

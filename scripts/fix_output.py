@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -9,6 +10,8 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from scripts.processor import process_data  # noqa: E402
 from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
@@ -73,7 +76,9 @@ for i, file_path in enumerate(raw_files):
         )
 
     except Exception:
-        print(f"Error processing {filename}")
+        # SECURITY: log exception details internally while presenting a generic message to users (CWE-209)
+        log.exception("Error processing %s", filename)
+        print(f"Error processing {filename}: An unexpected error occurred.")
 
 print(f"\nAll done! {len(raw_files)} files processed.")
 print(f"Check your files in: {NEW_OUTPUT_DIR}")
