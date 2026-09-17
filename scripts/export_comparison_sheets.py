@@ -258,14 +258,16 @@ def _process_single_file(proc_file):
 
 
 def export_comparisons():
-    # ⚡ Bolt: Replace glob with os.listdir to avoid pattern matching overhead while safely checking directory existence.
+    # ⚡ Bolt: Replace glob with os.listdir to avoid pattern matching overhead.
+    # Safely check directory existence before discovering files.
     if not os.path.exists(OUTPUT_DIR):
         processed_files = []
     else:
         processed_files = [
             os.path.join(OUTPUT_DIR, f)
             for f in os.listdir(OUTPUT_DIR)
-            if f.endswith(".xlsx")
+            if not f.startswith(".")
+            and os.path.normcase(f).endswith(os.path.normcase(".xlsx"))
         ]
     for proc_file in processed_files:
         _process_single_file(proc_file)
