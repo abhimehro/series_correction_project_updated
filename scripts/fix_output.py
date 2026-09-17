@@ -1,7 +1,10 @@
+import logging
 import os
 import sys
 
 import pandas as pd
+
+log = logging.getLogger(__name__)
 
 # Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -73,7 +76,9 @@ for i, file_path in enumerate(raw_files):
         )
 
     except Exception:
-        print(f"Error processing {filename}")
+        # SECURITY: log exception details internally while presenting a generic message to users (CWE-209)
+        log.exception("Error processing %s", filename)
+        print(f"Error processing {filename}: An unexpected error occurred.")
 
 print(f"\nAll done! {len(raw_files)} files processed.")
 print(f"Check your files in: {NEW_OUTPUT_DIR}")

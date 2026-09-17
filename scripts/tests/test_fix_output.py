@@ -28,3 +28,30 @@ def test_fix_output_imports():
         node.names[0].name for node in ast.walk(tree) if isinstance(node, ast.Import)
     ]
     assert "pandas" in imports, "pandas is not imported in fix_output.py"
+
+
+def test_fix_output_exception_logging(caplog):
+    """Verify that fix_output.py logs exceptions securely."""
+    import ast
+
+    script_path = os.path.join(PROJECT_ROOT, "scripts", "fix_output.py")
+    with open(script_path, "r") as f:
+        tree = ast.parse(f.read())
+
+    # Check AST for log.exception call inside except handler
+    except_handlers = [
+        node for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler)
+    ]
+    assert len(except_handlers) > 0, "No except handlers found in fix_output.py"
+
+    has_log_exception = False
+    for handler in except_handlers:
+        for stmt in handler.body:
+            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
+                func = stmt.value.func
+                if isinstance(func, ast.Attribute) and func.attr == "exception":
+                    has_log_exception = True
+
+    assert (
+        has_log_exception
+    ), "log.exception was not called in except handler in fix_output.py"
