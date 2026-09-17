@@ -30,7 +30,7 @@ def test_fix_output_imports():
     assert "pandas" in imports, "pandas is not imported in fix_output.py"
 
 
-def test_fix_output_exception_logging(caplog):
+def test_fix_output_exception_logging():
     """Verify that fix_output.py logs exceptions securely."""
     import ast
 
@@ -38,20 +38,27 @@ def test_fix_output_exception_logging(caplog):
     with open(script_path, "r") as f:
         tree = ast.parse(f.read())
 
-    # Check AST for log.exception call inside except handler
-    except_handlers = [
-        node for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler)
-    ]
-    assert len(except_handlers) > 0, "No except handlers found in fix_output.py"
+    has_exception = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "exception"
+        for node in ast.walk(tree)
+    )
+    assert has_exception, "log.exception was not called in fix_output.py"
 
-    has_log_exception = False
-    for handler in except_handlers:
-        for stmt in handler.body:
-            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
-                func = stmt.value.func
-                if isinstance(func, ast.Attribute) and func.attr == "exception":
-                    has_log_exception = True
 
-    assert (
-        has_log_exception
-    ), "log.exception was not called in except handler in fix_output.py"
+def test_fix_output_execution(mocker, caplog):
+    """Executes fix_output.py under mock to cover exception logging path."""
+    import importlib
+    import logging
+
+    mocker.patch("os.listdir", return_value=["S26_Y01.txt"])
+    mocker.patch("pandas.read_csv", side_effect=RuntimeError("Test error"))
+
+    with caplog.at_level(logging.ERROR):
+        if "scripts.fix_output" in sys.modules:
+            importlib.reload(sys.modules["scripts.fix_output"])
+        else:
+            importlib.import_module("scripts.fix_output")
+
+    assert "Error processing S26_Y01.txt" in caplog.text

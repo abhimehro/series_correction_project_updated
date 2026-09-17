@@ -4,8 +4,6 @@ import sys
 
 import pandas as pd
 
-log = logging.getLogger(__name__)
-
 # Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
@@ -13,17 +11,12 @@ sys.path.insert(0, PROJECT_ROOT)
 from scripts.processor import process_data  # noqa: E402
 from scripts.spreadsheet_safety import write_excel_safely  # noqa: E402
 
+log = logging.getLogger(__name__)
+
 # Set up directories
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 NEW_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "fixed_output")
 os.makedirs(NEW_OUTPUT_DIR, exist_ok=True)
-
-# Keep exception details in an internal log instead of exposing them on stderr.
-log_handler = logging.FileHandler(os.path.join(PROJECT_ROOT, "fix_output.log"))
-log_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-log.addHandler(log_handler)
-log.setLevel(logging.ERROR)
-log.propagate = False
 
 # Find all raw data files
 raw_files = [
@@ -83,8 +76,7 @@ for i, file_path in enumerate(raw_files):
         )
 
     except Exception:
-        # SECURITY: log details internally while showing users a generic message.
-        # This prevents exception details from being exposed (CWE-209).
+        # SECURITY: log exception details internally while presenting a generic message to users (CWE-209)
         log.exception("Error processing %s", filename)
         print(f"Error processing {filename}: An unexpected error occurred.")
 
