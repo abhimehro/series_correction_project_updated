@@ -359,9 +359,11 @@ Based on the audit report and potential enhancements:
 - **Performance**: Profile and optimize processing for very large datasets if
   needed.
 - **Packaging**: Consider using pyproject.toml for modern packaging standards.
+  Until then, runtime stays on `setup.py` + `scripts/requirements.txt`.
 - **Dependency Pinning**: Runtime and dev dependencies are pinned with exact
   `==` versions in `scripts/requirements.txt` and
-  `scripts/requirements-dev.txt`.
+  `scripts/requirements-dev.txt`. Hold `pandas==2.3.3` (do not merge Dependabot
+  3.x) until the spike in issue #430 is decided.
 
 ## Workflow for Efficient Batch Processing, QA, and Visualization Updates (2025)
 

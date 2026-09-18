@@ -13,5 +13,5 @@
 ## Checklist
 
 - [ ] `python3 -m pytest scripts/tests/ -v` (or focused subset) passes
-- [ ] `flake8 scripts/ --max-line-length=100` clean when Python sources changed
+- [ ] `flake8 scripts/` clean when Python sources changed (see `setup.cfg`)
 - [ ] No secrets, credentials, or local env files included

@@ -9,7 +9,7 @@ Use `python3` (not `python`). From the repo root:
 ```bash
 pip3 install -r scripts/requirements-dev.txt && pip3 install -e .
 python3 -m pytest scripts/tests/ -v
-flake8 scripts/ --max-line-length=100
+flake8 scripts/
 ```
 
 See `AGENTS.md` for the full command table and caveats.
@@ -20,7 +20,7 @@ See `AGENTS.md` for the full command table and caveats.
   `*.egg-info/` from editable installs.
 - Follow `.github/PULL_REQUEST_TEMPLATE.md`.
 - Runtime pins live in `scripts/requirements.txt`. Do not bump `pandas` to 3.x
-  without an explicit hold/spike decision (issue #382).
+  without an explicit hold/spike decision (issue #430).
 
 ## Code of Conduct
 

@@ -3,10 +3,10 @@ Setup script for the Seatek Series Correction Project.
 
 Typical usage
 -------------
-• Install runtime only:           python -m pip install .
-• Install editable (development):  python -m pip install -r scripts/requirements-dev.txt -e .
-• Build distribution:             python -m build
-• Show help / commands:           python setup.py --help
+• Install runtime only:           python3 -m pip install .
+• Install editable (development):  python3 -m pip install -r scripts/requirements-dev.txt -e .
+• Build distribution:             python3 -m build
+• Show help / commands:           python3 setup.py --help
 """
 
 import sys
@@ -107,10 +107,10 @@ def main() -> None:
     if len(sys.argv) == 1:
         print(
             "setup.py is a build script. Supply a command or use pip, e.g.:\n"
-            "  python -m pip install -e .           # editable install\n"
-            "  python -m pip install .              # normal install\n"
-            "  python -m build                      # build wheel/sdist (needs 'build')\n"
-            "  python setup.py --help               # show all commands"
+            "  python3 -m pip install -e .           # editable install\n"
+            "  python3 -m pip install .              # normal install\n"
+            "  python3 -m build                      # build wheel/sdist (needs 'build')\n"
+            "  python3 setup.py --help               # show all commands"
         )
         sys.exit(0)
     setup(
