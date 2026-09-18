@@ -6,6 +6,7 @@
 
 **Security fixes:**
 
+- \[SECURITY\] Secrets & SSRF Priority Scan - Initial Assessment [\#435](https://github.com/abhimehro/series_correction_project_updated/issues/435)
 - 🔒 Supply Chain: Pin and update dependencies to current versions [\#300](https://github.com/abhimehro/series_correction_project_updated/issues/300)
 - P0: Spreadsheet Formula Injection Vulnerability [\#279](https://github.com/abhimehro/series_correction_project_updated/issues/279)
 - \[Medium\] Formula injection in generated Excel outputs [\#30](https://github.com/abhimehro/series_correction_project_updated/issues/30)
@@ -13,6 +14,18 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-17 [\#458](https://github.com/abhimehro/series_correction_project_updated/issues/458)
+- Daily QA & Agentic Review — 2026-09-16 [\#452](https://github.com/abhimehro/series_correction_project_updated/issues/452)
+- Daily QA & Agentic Review — 2026-09-15 [\#451](https://github.com/abhimehro/series_correction_project_updated/issues/451)
+- Daily QA & Agentic Review — 2026-09-14 [\#450](https://github.com/abhimehro/series_correction_project_updated/issues/450)
+- Daily QA & Agentic Review — 2026-09-13 [\#448](https://github.com/abhimehro/series_correction_project_updated/issues/448)
+- Daily QA & Agentic Review — 2026-09-12 [\#447](https://github.com/abhimehro/series_correction_project_updated/issues/447)
+- Daily QA & Agentic Review — 2026-09-11 [\#446](https://github.com/abhimehro/series_correction_project_updated/issues/446)
+- Daily QA & Agentic Review — 2026-09-09 [\#443](https://github.com/abhimehro/series_correction_project_updated/issues/443)
+- Daily QA & Agentic Review — 2026-09-08 [\#441](https://github.com/abhimehro/series_correction_project_updated/issues/441)
+- Daily QA & Agentic Review — 2026-09-07 [\#439](https://github.com/abhimehro/series_correction_project_updated/issues/439)
+- Daily QA & Agentic Review — 2026-09-06 [\#437](https://github.com/abhimehro/series_correction_project_updated/issues/437)
+- Daily QA & Agentic Review — 2026-09-06 [\#436](https://github.com/abhimehro/series_correction_project_updated/issues/436)
 - Daily QA & Agentic Review — 2026-09-03 [\#432](https://github.com/abhimehro/series_correction_project_updated/issues/432)
 - Daily QA & Agentic Review — 2026-09-01 [\#431](https://github.com/abhimehro/series_correction_project_updated/issues/431)
 - Daily QA & Agentic Review — 2026-08-31 [\#428](https://github.com/abhimehro/series_correction_project_updated/issues/428)
@@ -72,6 +85,11 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.321.0 to 1.323.0 [\#459](https://github.com/abhimehro/series_correction_project_updated/pull/459) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump codecov/codecov-action from 7.0.0 to 7.1.0 [\#454](https://github.com/abhimehro/series_correction_project_updated/pull/454) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.1 to 1.1.3 [\#453](https://github.com/abhimehro/series_correction_project_updated/pull/453) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(repo-health\): glob local processor output in gitignore [\#449](https://github.com/abhimehro/series_correction_project_updated/pull/449) ([cursor[bot]](https://github.com/apps/cursor))
+- chore\(deps\): bump pnpm/action-setup from 6.0.10 to 6.1.0 [\#440](https://github.com/abhimehro/series_correction_project_updated/pull/440) ([dependabot[bot]](https://github.com/apps/dependabot))
 - salvage\(\#390\): optimize spreadsheet sanitization with shallow copy [\#434](https://github.com/abhimehro/series_correction_project_updated/pull/434) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pylint from 4.0.7 to 4.0.8 in /scripts [\#433](https://github.com/abhimehro/series_correction_project_updated/pull/433) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(repo-health\): add conduct docs and drop mutating one-shots [\#426](https://github.com/abhimehro/series_correction_project_updated/pull/426) ([cursor[bot]](https://github.com/apps/cursor))
