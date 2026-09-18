@@ -1,9 +1,12 @@
+import logging
 import os
 import re
 
 import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
+
+log = logging.getLogger(__name__)
 
 # Define directories (adjust paths if your local structure is different)
 DATA_DIR = "../data"  # Updated path
@@ -73,6 +76,10 @@ def load_identified_outliers(csv_path):
         print(f"Error: The file '{csv_path}' was not found.")
         return pd.DataFrame()
     except Exception:
+        # SECURITY: log full trace internally while returning generic user message (CWE-209)
+        log.exception(
+            "An unexpected error occurred while loading outliers from %s", csv_path
+        )
         print("An unexpected error occurred while loading outliers.")
         return pd.DataFrame()
 
@@ -227,6 +234,12 @@ def apply_level_shift_correction(
         )
 
     except Exception:
+        # SECURITY: log full trace internally while returning generic user message (CWE-209)
+        log.exception(
+            "An unexpected error occurred while processing outlier %s, %s",
+            year_pair_str,
+            sensor_name,
+        )
         print(
             f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
         )

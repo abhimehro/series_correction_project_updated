@@ -245,12 +245,32 @@ def test_parse_year_pair_empty():
     assert parse_year_pair("") is None
 
 
+@patch("scripts.apply_refined_corrections.log.exception")
 @patch("pandas.read_csv")
-def test_load_identified_outliers_exception(mock_read_csv, capsys):
-    """Test that an unexpected Exception during read_csv returns an empty DataFrame and prints an error."""
+def test_load_identified_outliers_exception(mock_read_csv, mock_log_exception, capsys):
+    """Test that an unexpected Exception during read_csv logs internally and returns an empty DataFrame."""
     mock_read_csv.side_effect = Exception("Mocked unexpected error")
     df = load_identified_outliers("dummy_path.csv")
     assert df.empty
 
+    mock_log_exception.assert_called_once()
     captured = capsys.readouterr()
     assert "An unexpected error occurred while loading outliers." in captured.out
+
+
+@patch("scripts.apply_refined_corrections.log.exception")
+def test_apply_level_shift_correction_exception_logs_internally(
+    mock_log_exception, capsys
+):
+    """Test that an unexpected Exception during level shift correction logs internally and returns None."""
+    raw_file_map = {"S26": {1: "f1", 2: "f2"}}
+    # Passing raw_dataframes with broken objects to trigger an Exception during computation
+    raw_dataframes = {"f1": None, "f2": None}
+    outlier_info = ("1995 (Y01) to 1996 (Y02)", "Sensor 1", 0.5)
+
+    result = apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes)
+    assert result is None
+
+    mock_log_exception.assert_called_once()
+    captured = capsys.readouterr()
+    assert "An unexpected error occurred while processing outlier" in captured.out
