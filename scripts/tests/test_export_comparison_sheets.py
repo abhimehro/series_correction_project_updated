@@ -7,6 +7,7 @@ from openpyxl import Workbook
 from scripts.export_comparison_sheets import (
     _process_single_file,
     detect_outliers_series,
+    export_comparisons,
     find_matching_raw_file,
 )
 
@@ -103,3 +104,34 @@ def test_process_single_file_escapes_malicious_comment(tmp_path, monkeypatch):
 
     result_wb = pd.read_excel(out_file, engine="openpyxl")
     assert result_wb["Comment"].iloc[0] == "'" + payload
+
+
+def test_export_comparisons_existing_and_missing_dir(tmp_path, monkeypatch):
+    """Test export_comparisons with valid directory containing files and non-existing directory."""
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (output_dir / "file1.xlsx").write_text("", encoding="utf-8")
+    (output_dir / "file2.txt").write_text("", encoding="utf-8")
+
+    processed = []
+
+    def dummy_process(proc_file):
+        processed.append(proc_file)
+
+    monkeypatch.setattr("scripts.export_comparison_sheets.OUTPUT_DIR", str(output_dir))
+    monkeypatch.setattr(
+        "scripts.export_comparison_sheets._process_single_file", dummy_process
+    )
+
+    export_comparisons()
+    assert len(processed) == 1
+    assert processed[0].endswith("file1.xlsx")
+
+    # Test non-existing output directory
+    monkeypatch.setattr(
+        "scripts.export_comparison_sheets.OUTPUT_DIR",
+        str(tmp_path / "non_existing_dir"),
+    )
+    processed.clear()
+    export_comparisons()
+    assert len(processed) == 0
