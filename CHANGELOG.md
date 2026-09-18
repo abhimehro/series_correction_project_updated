@@ -6,6 +6,7 @@
 
 **Security fixes:**
 
+- \[SECURITY\] Secrets & SSRF Priority Scan - Initial Assessment [\#435](https://github.com/abhimehro/series_correction_project_updated/issues/435)
 - 🔒 Supply Chain: Pin and update dependencies to current versions [\#300](https://github.com/abhimehro/series_correction_project_updated/issues/300)
 - P0: Spreadsheet Formula Injection Vulnerability [\#279](https://github.com/abhimehro/series_correction_project_updated/issues/279)
 - \[Medium\] Formula injection in generated Excel outputs [\#30](https://github.com/abhimehro/series_correction_project_updated/issues/30)
@@ -13,6 +14,14 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-17 [\#458](https://github.com/abhimehro/series_correction_project_updated/issues/458)
+- Daily QA & Agentic Review — 2026-09-16 [\#452](https://github.com/abhimehro/series_correction_project_updated/issues/452)
+- Daily QA & Agentic Review — 2026-09-15 [\#451](https://github.com/abhimehro/series_correction_project_updated/issues/451)
+- Daily QA & Agentic Review — 2026-09-14 [\#450](https://github.com/abhimehro/series_correction_project_updated/issues/450)
+- Daily QA & Agentic Review — 2026-09-13 [\#448](https://github.com/abhimehro/series_correction_project_updated/issues/448)
+- Daily QA & Agentic Review — 2026-09-12 [\#447](https://github.com/abhimehro/series_correction_project_updated/issues/447)
+- Daily QA & Agentic Review — 2026-09-11 [\#446](https://github.com/abhimehro/series_correction_project_updated/issues/446)
+- Daily QA & Agentic Review — 2026-09-09 [\#443](https://github.com/abhimehro/series_correction_project_updated/issues/443)
 - Daily QA & Agentic Review — 2026-09-08 [\#441](https://github.com/abhimehro/series_correction_project_updated/issues/441)
 - Daily QA & Agentic Review — 2026-09-07 [\#439](https://github.com/abhimehro/series_correction_project_updated/issues/439)
 - Daily QA & Agentic Review — 2026-09-06 [\#437](https://github.com/abhimehro/series_correction_project_updated/issues/437)
@@ -76,6 +85,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump pnpm/action-setup from 6.0.10 to 6.1.0 [\#440](https://github.com/abhimehro/series_correction_project_updated/pull/440) ([dependabot[bot]](https://github.com/apps/dependabot))
 - salvage\(\#390\): optimize spreadsheet sanitization with shallow copy [\#434](https://github.com/abhimehro/series_correction_project_updated/pull/434) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pylint from 4.0.7 to 4.0.8 in /scripts [\#433](https://github.com/abhimehro/series_correction_project_updated/pull/433) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(repo-health\): add conduct docs and drop mutating one-shots [\#426](https://github.com/abhimehro/series_correction_project_updated/pull/426) ([cursor[bot]](https://github.com/apps/cursor))
