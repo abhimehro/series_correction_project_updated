@@ -226,7 +226,13 @@ def test_correct_gaps_shallow_copy():
     from scripts.processor import correct_gaps
 
     df = pd.DataFrame({"Time (Seconds)": [1.0, 2.0, 4.0], "Value": [1.0, 2.0, 4.0]})
+    original_df = df.copy(deep=True)
     res = correct_gaps(df, [2], time_col="Time (Seconds)", value_cols=["Value"])
+
+    pd.testing.assert_frame_equal(df, original_df)
+    inserted = res[res["Time (Seconds)"] == 3.0]
+    assert len(inserted) == 1
+    assert inserted["Value"].iloc[0] == 3.0
     assert len(res) > len(df)
 
 
