@@ -85,6 +85,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.321.0 to 1.323.0 [\#459](https://github.com/abhimehro/series_correction_project_updated/pull/459) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codecov/codecov-action from 7.0.0 to 7.1.0 [\#454](https://github.com/abhimehro/series_correction_project_updated/pull/454) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.1 to 1.1.3 [\#453](https://github.com/abhimehro/series_correction_project_updated/pull/453) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(repo-health\): glob local processor output in gitignore [\#449](https://github.com/abhimehro/series_correction_project_updated/pull/449) ([cursor[bot]](https://github.com/apps/cursor))
