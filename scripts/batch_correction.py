@@ -359,7 +359,29 @@ def _find_files_to_process(
     return sorted(files_to_process)
 
 
-def _load_raw_data(file_path):
+def _safe_numeric(series: pd.Series) -> pd.Series:
+    """Safely convert a pandas series to numeric if not already numeric."""
+    # ⚡ Bolt: Bypass redundant pd.to_numeric conversion if series is already a numeric dtype
+    if pd.api.types.is_numeric_dtype(series):
+        return series
+    try:
+        return pd.to_numeric(series)
+    except (ValueError, TypeError):
+        return series
+
+
+def _format_raw_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply default column names (Time (Seconds), Value2, Value3...) if integer-indexed."""
+    if pd.api.types.is_integer_dtype(df.columns) and len(df.columns) > 0:
+        n = len(df.columns)
+        df.columns = [
+            "Time (Seconds)",
+            *[f"Value{i}" for i in range(2, n + 1)],
+        ]
+    return df
+
+
+def _load_raw_data(file_path: str) -> pd.DataFrame:
     """
     Load a raw Seatek txt file.  Uses a very forgiving pandas.read_csv setup
     suitable for the varied test fixtures.
@@ -375,29 +397,10 @@ def _load_raw_data(file_path):
         )
         log.debug(f"Loaded file: {file_path} with shape {df.shape}")
 
-        # Best-effort numeric conversion (pandas 2+ removed errors="ignore"; try/except preserves columns)
+        # Best-effort numeric conversion
         # ⚡ Bolt: Use a dictionary comprehension to reconstruct the DataFrame directly
-        # instead of iterative column assignment, which is significantly faster.
-        def _safe_numeric(series):
-            # ⚡ Bolt: Bypass redundant pd.to_numeric conversion if series is already a numeric dtype
-            if pd.api.types.is_numeric_dtype(series):
-                return series
-            try:
-                return pd.to_numeric(series)
-            except (ValueError, TypeError):
-                return series
-
         df = pd.DataFrame({col: _safe_numeric(df[col]) for col in df.columns})
-
-        # Nice column names: first col is time, rest ValueX
-        if pd.api.types.is_integer_dtype(df.columns):
-            n = len(df.columns)
-            if n > 0:
-                df.columns = [
-                    "Time (Seconds)",
-                    *[f"Value{i}" for i in range(2, n + 1)],
-                ]
-        return df
+        return _format_raw_columns(df)
     except pd.errors.EmptyDataError:
         log.debug(f"File {file_path} empty.")
         return pd.DataFrame()
