@@ -87,6 +87,7 @@
 
 - chore\(deps\): bump codecov/codecov-action from 7.0.0 to 7.1.0 [\#454](https://github.com/abhimehro/series_correction_project_updated/pull/454) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.1 to 1.1.3 [\#453](https://github.com/abhimehro/series_correction_project_updated/pull/453) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(repo-health\): glob local processor output in gitignore [\#449](https://github.com/abhimehro/series_correction_project_updated/pull/449) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump pnpm/action-setup from 6.0.10 to 6.1.0 [\#440](https://github.com/abhimehro/series_correction_project_updated/pull/440) ([dependabot[bot]](https://github.com/apps/dependabot))
 - salvage\(\#390\): optimize spreadsheet sanitization with shallow copy [\#434](https://github.com/abhimehro/series_correction_project_updated/pull/434) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pylint from 4.0.7 to 4.0.8 in /scripts [\#433](https://github.com/abhimehro/series_correction_project_updated/pull/433) ([dependabot[bot]](https://github.com/apps/dependabot))
