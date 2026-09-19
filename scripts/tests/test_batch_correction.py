@@ -715,6 +715,20 @@ def test_enrich_config_with_river_mappings_path_traversal(caplog):
     assert "SENSOR_TO_RIVER" not in config_data
 
 
+def test_enrich_config_rejects_external_map_when_cwd_is_root(tmp_path, monkeypatch, caplog):
+    """The filesystem root must not become the map path trust boundary."""
+    caplog.set_level("WARNING")
+    external_map = tmp_path / "external.csv"
+    external_map.write_text("SENSOR_ID,RIVER_MILE\\n1,2.0\\n")
+    monkeypatch.chdir("/")
+    config_data = {"RIVER_MILE_MAP_PATH": str(external_map)}
+
+    bc._enrich_config_with_river_mappings(config_data)
+
+    assert "Path traversal detected in RIVER_MILE_MAP_PATH" in caplog.text
+    assert "SENSOR_TO_RIVER" not in config_data
+
+
 def test_batch_process_fallback_mode_exception(
     mock_dependencies, mock_config_loader, mocker
 ):

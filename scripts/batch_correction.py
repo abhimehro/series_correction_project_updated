@@ -426,10 +426,14 @@ def _load_and_enrich_config(config_path):
 
 def _enrich_config_with_river_mappings(config_data):
     """Enrich configuration with river mile mappings if available."""
-    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    # SECURITY: reject paths that escape the working directory (CWE-22).
-    base_dir = os.path.realpath(os.getcwd())
-    resolved = os.path.realpath(rm_map_path)
+    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "river_mile_map.csv")
+    # SECURITY: map files must remain beneath the application's scripts directory
+    # rather than the process working directory (CWE-22).
+    base_dir = os.path.realpath(os.path.dirname(__file__))
+    if os.path.isabs(rm_map_path):
+        resolved = os.path.realpath(rm_map_path)
+    else:
+        resolved = os.path.realpath(os.path.join(base_dir, rm_map_path))
     try:
         if os.path.commonpath([base_dir, resolved]) != base_dir:
             log.warning("Path traversal detected in RIVER_MILE_MAP_PATH: %s", rm_map_path)
