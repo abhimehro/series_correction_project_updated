@@ -359,12 +359,42 @@ def _find_files_to_process(
     return sorted(files_to_process)
 
 
-def _load_raw_data(file_path):
+def _safe_convert_series_numeric(series: pd.Series) -> pd.Series:
+    """Best-effort numeric conversion for a single Pandas Series."""
+    if pd.api.types.is_numeric_dtype(series):
+        return series
+    try:
+        return pd.to_numeric(series)
+    except (ValueError, TypeError):
+        return series
+
+
+def _ensure_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Best-effort numeric conversion for DataFrame columns."""
+    # ⚡ Bolt: Avoid redundant pd.to_numeric calls and DataFrame reconstruction
+    # if all columns are already numeric dtypes (e.g. from pd.read_csv).
+    if all(pd.api.types.is_numeric_dtype(dtype) for dtype in df.dtypes):
+        return df
+    return pd.DataFrame(
+        {col: _safe_convert_series_numeric(df[col]) for col in df.columns}
+    )
+
+
+def _assign_default_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Assign standard time/value column names if columns are integer-indexed."""
+    if not pd.api.types.is_integer_dtype(df.columns) or len(df.columns) == 0:
+        return df
+    n = len(df.columns)
+    df.columns = ["Time (Seconds)", *[f"Value{i}" for i in range(2, n + 1)]]
+    return df
+
+
+def _load_raw_data(file_path: str) -> pd.DataFrame:
     """
     Load a raw Seatek txt file.  Uses a very forgiving pandas.read_csv setup
     suitable for the varied test fixtures.
     """
-    log.debug(f"Attempting to load file: {file_path}")
+    log.debug("Attempting to load file: %s", file_path)
     try:
         df = pd.read_csv(
             file_path,
@@ -373,37 +403,14 @@ def _load_raw_data(file_path):
             comment="#",
             skip_blank_lines=True,
         )
-        log.debug(f"Loaded file: {file_path} with shape {df.shape}")
-
-        # Best-effort numeric conversion (pandas 2+ removed errors="ignore"; try/except preserves columns)
-        # ⚡ Bolt: Avoid redundant pd.to_numeric calls and DataFrame reconstruction
-        # if all columns are already numeric dtypes (e.g. from pd.read_csv).
-        if not all(pd.api.types.is_numeric_dtype(dtype) for dtype in df.dtypes):
-
-            def _safe_numeric(series):
-                if pd.api.types.is_numeric_dtype(series):
-                    return series
-                try:
-                    return pd.to_numeric(series)
-                except (ValueError, TypeError):
-                    return series
-
-            df = pd.DataFrame({col: _safe_numeric(df[col]) for col in df.columns})
-
-        # Nice column names: first col is time, rest ValueX
-        if pd.api.types.is_integer_dtype(df.columns):
-            n = len(df.columns)
-            if n > 0:
-                df.columns = [
-                    "Time (Seconds)",
-                    *[f"Value{i}" for i in range(2, n + 1)],
-                ]
-        return df
+        log.debug("Loaded file: %s with shape %s", file_path, df.shape)
+        df = _ensure_numeric_columns(df)
+        return _assign_default_column_names(df)
     except pd.errors.EmptyDataError:
-        log.debug(f"File {file_path} empty.")
+        log.debug("File %s empty.", file_path)
         return pd.DataFrame()
     except Exception:
-        log.exception(f"Failed to load data from {file_path}")
+        log.exception("Failed to load data from %s", file_path)
         raise ProcessingError("Failed to load data from file") from None
 
 
