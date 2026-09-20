@@ -12,8 +12,8 @@ def load_config(config_path="scripts/config.json"):
     except ValueError:
         raise ValueError("Path traversal detected") from None
 
-    if not os.path.exists(resolved):
-        raise FileNotFoundError("Config file not found")
-
-    with open(resolved, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(resolved, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError("Config file not found") from None

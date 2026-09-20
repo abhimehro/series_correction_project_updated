@@ -32,3 +32,16 @@ def test_load_config_file_not_found(tmp_path, monkeypatch):
     non_existent = tmp_path / "non_existent.json"
     with pytest.raises(FileNotFoundError, match="Config file not found"):
         load_config(str(non_existent))
+
+
+def test_load_config_permission_error_propagates(tmp_path, monkeypatch):
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+    config_file = tmp_path / "config.json"
+    config_file.write_text("{}")
+
+    def raise_permission_error(*args, **kwargs):
+        raise PermissionError("Permission denied")
+
+    monkeypatch.setattr("builtins.open", raise_permission_error)
+    with pytest.raises(PermissionError, match="Permission denied"):
+        load_config(str(config_file))
