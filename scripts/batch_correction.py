@@ -427,8 +427,22 @@ def _load_and_enrich_config(config_path):
 def _enrich_config_with_river_mappings(config_data):
     """Enrich configuration with river mile mappings if available."""
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    if os.path.isfile(rm_map_path):
-        rm_df = pd.read_csv(rm_map_path)
+    base_dir = os.path.realpath(os.getcwd())
+    resolved_path = os.path.realpath(rm_map_path)
+    # SECURITY: Prevent path traversal (CWE-22) when loading river mile map from config
+    try:
+        if os.path.commonpath([base_dir, resolved_path]) != base_dir:
+            log.warning(
+                "Path traversal attempt detected in RIVER_MILE_MAP_PATH: %s",
+                rm_map_path,
+            )
+            return
+    except ValueError:
+        log.warning("Invalid path in RIVER_MILE_MAP_PATH: %s", rm_map_path)
+        return
+
+    if os.path.isfile(resolved_path):
+        rm_df = pd.read_csv(resolved_path)
         config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
             "RIVER_MILE"
         ].to_dict()
