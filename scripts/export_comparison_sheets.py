@@ -144,8 +144,9 @@ def detect_outliers_series(values, window_size=5, threshold=3.0):
             abs_diff / rolling_scaled_mad,
         )
 
-    valid_mask = ~(np.isnan(rolling_median) | np.isnan(rolling_scaled_mad))
-    outlier_mask = valid_mask & (z_scores > threshold)
+    # ⚡ Bolt: Rely on IEEE 754 NaN comparison (z_scores > threshold returns False for NaNs)
+    # to eliminate redundant valid_mask allocation and bitwise AND operation.
+    outlier_mask = z_scores > threshold
 
     return np.where(outlier_mask)[0].tolist()
 
