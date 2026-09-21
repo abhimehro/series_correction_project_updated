@@ -740,3 +740,15 @@ def test_enrich_config_river_mile_map_path_traversal(caplog):
 
     assert "SENSOR_TO_RIVER" not in config_data
     assert "Path traversal attempt detected in RIVER_MILE_MAP_PATH" in caplog.text
+
+
+def test_enrich_config_rejects_external_map_when_started_at_root(tmp_path, monkeypatch):
+    """The filesystem root must not become the trusted map directory."""
+    external_map = tmp_path / "river_mile_map.csv"
+    external_map.write_text("SENSOR_ID,RIVER_MILE\n1,2\n")
+    monkeypatch.chdir("/")
+    config_data = {"RIVER_MILE_MAP_PATH": str(external_map)}
+
+    bc._enrich_config_with_river_mappings(config_data)
+
+    assert "SENSOR_TO_RIVER" not in config_data
