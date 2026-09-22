@@ -7,6 +7,7 @@ from openpyxl import Workbook
 from scripts.export_comparison_sheets import (
     _process_single_file,
     detect_outliers_series,
+    export_comparisons,
     find_matching_raw_file,
 )
 
@@ -103,3 +104,30 @@ def test_process_single_file_escapes_malicious_comment(tmp_path, monkeypatch):
 
     result_wb = pd.read_excel(out_file, engine="openpyxl")
     assert result_wb["Comment"].iloc[0] == "'" + payload
+
+
+def test_export_comparisons(tmp_path, monkeypatch):
+    """Test export_comparisons correctly discovers and processes .xlsx files in OUTPUT_DIR."""
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+
+    calls = []
+
+    def mock_process_single_file(filepath):
+        calls.append(filepath)
+
+    monkeypatch.setattr("scripts.export_comparison_sheets.OUTPUT_DIR", str(output_dir))
+    monkeypatch.setattr(
+        "scripts.export_comparison_sheets._process_single_file",
+        mock_process_single_file,
+    )
+
+    (output_dir / "file1.xlsx").touch()
+    (output_dir / "file2.xlsx").touch()
+    (output_dir / "ignore.txt").touch()
+
+    export_comparisons()
+
+    assert len(calls) == 2
+    assert any("file1.xlsx" in c for c in calls)
+    assert any("file2.xlsx" in c for c in calls)

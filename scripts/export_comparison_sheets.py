@@ -1,7 +1,6 @@
 import os
 import re
 import warnings
-from glob import glob
 
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
@@ -259,7 +258,15 @@ def _process_single_file(proc_file):
 
 
 def export_comparisons():
-    processed_files = glob(os.path.join(OUTPUT_DIR, "*.xlsx"))
+    # ⚡ Bolt: Use os.listdir instead of glob.glob for faster file discovery
+    # on flat directories without pattern parsing overhead.
+    if not os.path.exists(OUTPUT_DIR):
+        return
+    processed_files = [
+        os.path.join(OUTPUT_DIR, f)
+        for f in os.listdir(OUTPUT_DIR)
+        if f.endswith(".xlsx")
+    ]
     for proc_file in processed_files:
         _process_single_file(proc_file)
 
