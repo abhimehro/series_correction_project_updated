@@ -217,7 +217,8 @@ def test_detect_gaps_all_same_times():
 
 
 def test_correct_gaps_shallow_copy():
-    """Gap fill must lengthen the result without mutating the caller's frame.
+    """
+    Gap fill must lengthen the result without mutating the caller's frame.
 
     # NOTE: main already uses copy(deep=False) plus per-column copies; this
     # locks the isolation contract so a later deep=False regression cannot
