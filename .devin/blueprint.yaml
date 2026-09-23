@@ -21,7 +21,7 @@ knowledge:
   - name: python-version
     contents: |
       Use Python 3.10 or 3.11. Runtime dependencies (pandas, numpy, openpyxl) are pinned with exact versions in scripts/requirements.txt; dev/test/lint tools live in scripts/requirements-dev.txt. setup.py only installs the runtime set.
----
+
 runs-on: macos
 # One-time setup (e.g., install system tools, global CLIs).
 initialize: |
