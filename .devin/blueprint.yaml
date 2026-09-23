@@ -1,4 +1,4 @@
-# https://docs.devin.ai/onboard-devin/environment-yaml
+# Install project dependencies (runs during builds, surfaced to agent at session start).
 maintenance: |
   PYENV_VERSION=3.10.16 python3 -m pip install --upgrade pip
   PYENV_VERSION=3.10.16 python3 -m pip install -r scripts/requirements-dev.txt
@@ -21,3 +21,8 @@ knowledge:
   - name: python-version
     contents: |
       Use Python 3.10 or 3.11. Runtime dependencies (pandas, numpy, openpyxl) are pinned with exact versions in scripts/requirements.txt; dev/test/lint tools live in scripts/requirements-dev.txt. setup.py only installs the runtime set.
+
+runs-on: macos
+# One-time setup (e.g., install system tools, global CLIs).
+initialize: |
+  brew install actionlint
