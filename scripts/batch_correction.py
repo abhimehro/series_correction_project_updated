@@ -359,6 +359,16 @@ def _find_files_to_process(
     return sorted(files_to_process)
 
 
+def _safe_numeric(series):
+    # ⚡ Bolt: Avoid pd.to_numeric overhead if series is already numeric
+    if pd.api.types.is_numeric_dtype(series):
+        return series
+    try:
+        return pd.to_numeric(series)
+    except (ValueError, TypeError):
+        return series
+
+
 def _load_raw_data(file_path):
     """
     Load a raw Seatek txt file.  Uses a very forgiving pandas.read_csv setup
@@ -378,12 +388,6 @@ def _load_raw_data(file_path):
         # Best-effort numeric conversion (pandas 2+ removed errors="ignore"; try/except preserves columns)
         # ⚡ Bolt: Use a dictionary comprehension to reconstruct the DataFrame directly
         # instead of iterative column assignment, which is significantly faster.
-        def _safe_numeric(series):
-            try:
-                return pd.to_numeric(series)
-            except (ValueError, TypeError):
-                return series
-
         df = pd.DataFrame({col: _safe_numeric(df[col]) for col in df.columns})
 
         # Nice column names: first col is time, rest ValueX
