@@ -11,6 +11,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy.lib.stride_tricks import sliding_window_view
 
 log = logging.getLogger(__name__)
 
@@ -164,8 +165,7 @@ def _perform_interpolation(result_df, value_cols, method, time_col):
 
 
 def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshold):
-    from numpy.lib.stride_tricks import sliding_window_view
-
+    # ⚡ Bolt: Use top-level sliding_window_view import to avoid function-local import overhead
     n = len(values_np)
     mads, nw = [], n - window_size + 1
     for s in range(0, nw, 50000):
@@ -209,8 +209,7 @@ def _calculate_outlier_replacements(
     window_size: int,
     method: str,
 ) -> np.ndarray:
-    from numpy.lib.stride_tricks import sliding_window_view
-
+    # ⚡ Bolt: Use top-level sliding_window_view import to avoid function-local import overhead
     n = len(values_np)
     outlier_mask = np.zeros(n, dtype=bool)
     outlier_mask[outlier_indices] = True

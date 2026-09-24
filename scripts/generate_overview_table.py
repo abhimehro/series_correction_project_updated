@@ -5,6 +5,9 @@ import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
 
+# ⚡ Bolt: Pre-compile regex at module level to avoid recompiling in log processing loop
+_YEAR_PAIR_RE = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
+
 
 def _safe_round(value):
     """Safely round a value, returning original if rounding fails."""
@@ -17,7 +20,7 @@ def _safe_round(value):
 def _process_outlier_log(log_entry, avg_lookup):
     """Process a single outlier log entry."""
     s, yps, sen, od, cls = log_entry
-    pm = re.match(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)", str(yps))
+    pm = _YEAR_PAIR_RE.match(str(yps))
     if not pm:
         return None, yps
 
