@@ -21,3 +21,27 @@ def test_load_config_valid_path(tmp_path, monkeypatch):
 def test_load_config_path_traversal():
     with pytest.raises(ValueError, match="Path traversal detected"):
         load_config("../../../../etc/passwd")
+
+    # Verify non-existent path outside base dir also raises path traversal error (no file enumeration)
+    with pytest.raises(ValueError, match="Path traversal detected"):
+        load_config("../../../../non_existent_file_outside_base.json")
+
+
+def test_load_config_file_not_found(tmp_path, monkeypatch):
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+    non_existent = tmp_path / "non_existent.json"
+    with pytest.raises(FileNotFoundError, match="Config file not found"):
+        load_config(str(non_existent))
+
+
+def test_load_config_permission_error_propagates(tmp_path, monkeypatch):
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+    config_file = tmp_path / "config.json"
+    config_file.write_text("{}")
+
+    def raise_permission_error(*args, **kwargs):
+        raise PermissionError("Permission denied")
+
+    monkeypatch.setattr("builtins.open", raise_permission_error)
+    with pytest.raises(PermissionError, match="Permission denied"):
+        load_config(str(config_file))
