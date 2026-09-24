@@ -59,13 +59,13 @@ pip install -e .
 python3 -m pytest scripts/tests/ -v
 ```
 
-Expected result: 114 passed.
+Expected result: 149 passed.
 
 ## Run lint / format checks
 
 ```bash
 python3 -m black --check scripts
-python3 -m flake8 scripts/ --max-line-length=100
+python3 -m flake8 scripts/
 ```
 
 ## Verify the CLI
