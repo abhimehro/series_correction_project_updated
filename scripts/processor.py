@@ -303,10 +303,9 @@ def correct_gaps(
         DataFrame with gaps filled. Returns a copy of the original if no gaps.
     """
     if not gap_indices:
-        # ⚡ Bolt: Use shallow copy instead of deep copy to prevent O(N) allocation
-        return data.copy(deep=False)
+        return data.copy()
 
-    result_df = data.copy(deep=False)
+    result_df = data.copy()
 
     if value_cols is None:
         value_cols = [
@@ -360,15 +359,9 @@ def correct_jumps(
         DataFrame with jumps corrected. Returns a copy of the original if no jumps.
     """
     if not jump_indices:
-        # ⚡ Bolt: Use shallow copy instead of deep copy to prevent O(N) allocation
-        return data.copy(deep=False)
+        return data.copy()
 
-    result_df = data.copy(deep=False)
-
-    # ⚡ Bolt: Explicitly copy column to ensure safe shallow copy mutation
-    if value_col in result_df.columns:
-        result_df[value_col] = result_df[value_col].copy()
-
+    result_df = data.copy()
     n = len(result_df)
 
     sorted_jump_indices = sorted(
@@ -433,10 +426,9 @@ def correct_outliers(
         DataFrame with outliers corrected based on the chosen method.
     """
     if not outlier_indices:
-        # ⚡ Bolt: Use shallow copy instead of deep copy to prevent O(N) allocation
-        return data.copy(deep=False)
+        return data.copy()
 
-    result_df = data.copy(deep=False)
+    result_df = data.copy()
 
     log.info(
         "Correcting %d outliers in column '%s' using method '%s'.",
@@ -446,9 +438,6 @@ def correct_outliers(
     )
 
     if method == "interpolate":
-        # ⚡ Bolt: When using shallow copy, explicitly copy the column before mutating with .loc
-        # to avoid modifying the original dataframe's underlying array
-        result_df[value_col] = result_df[value_col].copy()
         result_df.loc[outlier_indices, value_col] = np.nan
         result_df[value_col] = result_df[value_col].interpolate(
             method="linear", limit_direction="both"
@@ -456,7 +445,6 @@ def correct_outliers(
         log.info("Outliers replaced via linear interpolation.")
 
     elif method == "remove":
-        result_df[value_col] = result_df[value_col].copy()
         result_df.loc[outlier_indices, value_col] = np.nan
         log.info("Outliers replaced with NaN.")
 
@@ -564,14 +552,8 @@ def process_data(
     merged_config = _merge_config(config)
     log.info("Processing data with configuration: %s", merged_config)
 
-    # ⚡ Bolt: Use shallow copy instead of deep copy to prevent O(N) allocation
-    processed_data = data.copy(deep=False)
+    processed_data = data.copy()
     time_col = merged_config["time_col"]
-
-    # ⚡ Bolt: Explicitly copy time_col to ensure safe shallow copy mutation
-    if time_col in processed_data.columns:
-        processed_data[time_col] = processed_data[time_col].copy()
-
     processed_data = _validate_and_convert_time_col(processed_data, time_col)
 
     value_col = _validate_value_col(
