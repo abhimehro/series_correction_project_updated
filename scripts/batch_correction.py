@@ -379,6 +379,9 @@ def _load_raw_data(file_path):
         # ⚡ Bolt: Use a dictionary comprehension to reconstruct the DataFrame directly
         # instead of iterative column assignment, which is significantly faster.
         def _safe_numeric(series):
+            # ⚡ Bolt: Check if already numeric before calling pd.to_numeric to avoid re-inspection overhead
+            if pd.api.types.is_numeric_dtype(series):
+                return series
             try:
                 return pd.to_numeric(series)
             except (ValueError, TypeError):
