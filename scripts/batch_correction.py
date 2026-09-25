@@ -434,15 +434,11 @@ def _enrich_config_with_river_mappings(config_data):
     try:
         if os.path.commonpath([base_dir, resolved]) != base_dir:
             log.warning(
-                "Path traversal detected in RIVER_MILE_MAP_PATH: %r", resolved
+                "Path traversal detected in RIVER_MILE_MAP_PATH: %r", rm_map_path
             )
             return
     except ValueError:
-        # Only raised on Windows when base_dir and resolved are on different
-        # drives; deny in that case to keep the deny-outside-root intent.
-        log.warning(
-            "Path traversal detected in RIVER_MILE_MAP_PATH: %r", resolved
-        )
+        log.warning("Path traversal detected in RIVER_MILE_MAP_PATH: %r", rm_map_path)
         return
 
     if os.path.isfile(resolved):
