@@ -425,7 +425,24 @@ def _load_and_enrich_config(config_path):
 
 
 def _enrich_config_with_river_mappings(config_data):
-    """Enrich configuration with river mile mappings if available."""
+    """Add sensor and river mile mappings from a CSV within the working directory.
+
+    Use ``RIVER_MILE_MAP_PATH`` or, if absent, ``scripts/river_mile_map.csv``.
+    Resolve relative paths against the current working directory. Leave the
+    configuration unchanged if the resolved path is outside that directory,
+    including via a symlink, or is not a file. Otherwise, map sensor IDs to
+    river mile values in ``SENSOR_TO_RIVER`` and river miles to sensor ID lists
+    in ``RIVER_TO_SENSORS`` using the CSV's ``SENSOR_ID`` and ``RIVER_MILE``
+    columns.
+
+    Args:
+        config_data: Configuration dictionary to update in place.
+
+    Raises:
+        pandas.errors.EmptyDataError: If the CSV is empty.
+        pandas.errors.ParserError: If the CSV cannot be parsed.
+        KeyError: If either required CSV column is missing.
+    """
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
     # SECURITY: Prevent path traversal (CWE-22) by ensuring path is confined to base_dir.
     # Evaluate containment BEFORE checking file existence to prevent file enumeration oracle.
