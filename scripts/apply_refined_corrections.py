@@ -1,9 +1,12 @@
+import logging
 import os
 import re
 
 import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
+
+log = logging.getLogger(__name__)
 
 # Define directories (adjust paths if your local structure is different)
 DATA_DIR = "../data"  # Updated path
@@ -73,6 +76,9 @@ def load_identified_outliers(csv_path):
         print(f"Error: The file '{csv_path}' was not found.")
         return pd.DataFrame()
     except Exception:
+        log.exception(
+            "An unexpected error occurred while loading outliers from %s", csv_path
+        )
         print("An unexpected error occurred while loading outliers.")
         return pd.DataFrame()
 
@@ -104,8 +110,11 @@ def load_raw_dataframes(raw_file_map):
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
             if file_path not in dataframes:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    dataframes[file_path] = pd.read_csv(f, header=None, sep=r"\s+")
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        dataframes[file_path] = pd.read_csv(f, header=None, sep=r"\s+")
+                except Exception:
+                    log.exception("Failed to load raw data file %s", file_path)
     return dataframes
 
 
@@ -217,6 +226,8 @@ def apply_level_shift_correction(
         return None
 
     try:
+        if prev_file not in raw_dataframes or next_file not in raw_dataframes:
+            return None
         df_prev = raw_dataframes[prev_file]
         df_next = raw_dataframes[next_file]
 
@@ -227,6 +238,11 @@ def apply_level_shift_correction(
         )
 
     except Exception:
+        log.exception(
+            "An unexpected error occurred while processing outlier %s, %s",
+            year_pair_str,
+            sensor_name,
+        )
         print(
             f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
         )
@@ -244,12 +260,16 @@ def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, outp
     }
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
-            name = output_file_name(file_path)
-            if name in corrected_names:
-                output_path = os.path.join(output_dir, name)
-                write_csv_safely(
-                    raw_dataframes[file_path], output_path, index=False, header=False
-                )
+            if file_path in raw_dataframes:
+                name = output_file_name(file_path)
+                if name in corrected_names:
+                    output_path = os.path.join(output_dir, name)
+                    write_csv_safely(
+                        raw_dataframes[file_path],
+                        output_path,
+                        index=False,
+                        header=False,
+                    )
 
 
 def _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections):
