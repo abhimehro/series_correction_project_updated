@@ -438,6 +438,8 @@ def _enrich_config_with_river_mappings(config_data):
             )
             return
     except ValueError:
+        # Only raised on Windows when base_dir and resolved are on different
+        # drives; deny in that case to keep the deny-outside-root intent.
         log.warning(
             "Path traversal detected in RIVER_MILE_MAP_PATH: %r", resolved
         )
