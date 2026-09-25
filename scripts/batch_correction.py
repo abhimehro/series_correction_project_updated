@@ -359,7 +359,30 @@ def _find_files_to_process(
     return sorted(files_to_process)
 
 
-def _load_raw_data(file_path):
+def _safe_numeric(series: pd.Series) -> pd.Series:
+    """Best-effort numeric conversion for a Pandas Series."""
+    # ⚡ Bolt: Check if already numeric before calling pd.to_numeric to avoid re-inspection overhead
+    if pd.api.types.is_numeric_dtype(series):
+        return series
+    try:
+        return pd.to_numeric(series)
+    except (ValueError, TypeError):
+        return series
+
+
+def _rename_raw_data_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename integer-indexed columns to Time (Seconds) and ValueX."""
+    if pd.api.types.is_integer_dtype(df.columns):
+        n = len(df.columns)
+        if n > 0:
+            df.columns = [
+                "Time (Seconds)",
+                *[f"Value{i}" for i in range(2, n + 1)],
+            ]
+    return df
+
+
+def _load_raw_data(file_path: str) -> pd.DataFrame:
     """
     Load a raw Seatek txt file.  Uses a very forgiving pandas.read_csv setup
     suitable for the varied test fixtures.
@@ -375,29 +398,8 @@ def _load_raw_data(file_path):
         )
         log.debug(f"Loaded file: {file_path} with shape {df.shape}")
 
-        # Best-effort numeric conversion (pandas 2+ removed errors="ignore"; try/except preserves columns)
-        # ⚡ Bolt: Use a dictionary comprehension to reconstruct the DataFrame directly
-        # instead of iterative column assignment, which is significantly faster.
-        def _safe_numeric(series):
-            # ⚡ Bolt: Check if already numeric before calling pd.to_numeric to avoid re-inspection overhead
-            if pd.api.types.is_numeric_dtype(series):
-                return series
-            try:
-                return pd.to_numeric(series)
-            except (ValueError, TypeError):
-                return series
-
         df = pd.DataFrame({col: _safe_numeric(df[col]) for col in df.columns})
-
-        # Nice column names: first col is time, rest ValueX
-        if pd.api.types.is_integer_dtype(df.columns):
-            n = len(df.columns)
-            if n > 0:
-                df.columns = [
-                    "Time (Seconds)",
-                    *[f"Value{i}" for i in range(2, n + 1)],
-                ]
-        return df
+        return _rename_raw_data_columns(df)
     except pd.errors.EmptyDataError:
         log.debug(f"File {file_path} empty.")
         return pd.DataFrame()
