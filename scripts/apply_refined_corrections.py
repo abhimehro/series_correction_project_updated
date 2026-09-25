@@ -104,17 +104,33 @@ def build_raw_file_map(data_dir):
     return raw_file_map
 
 
+def _iter_file_paths(raw_file_map):
+    """Yields each unique file path from raw_file_map."""
+    seen = set()
+    for year_files in raw_file_map.values():
+        for file_path in year_files.values():
+            if file_path not in seen:
+                seen.add(file_path)
+                yield file_path
+
+
+def _read_dataframe_from_file(file_path):
+    """Reads a single file into a DataFrame, catching and logging errors."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return pd.read_csv(f, header=None, sep=r"\s+")
+    except Exception:
+        log.exception("Failed to load raw data file %s", file_path)
+        return None
+
+
 def load_raw_dataframes(raw_file_map):
     """Loads each raw file once so corrections to the same file are preserved."""
     dataframes = {}
-    for year_files in raw_file_map.values():
-        for file_path in year_files.values():
-            if file_path not in dataframes:
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        dataframes[file_path] = pd.read_csv(f, header=None, sep=r"\s+")
-                except Exception:
-                    log.exception("Failed to load raw data file %s", file_path)
+    for file_path in _iter_file_paths(raw_file_map):
+        df = _read_dataframe_from_file(file_path)
+        if df is not None:
+            dataframes[file_path] = df
     return dataframes
 
 
@@ -258,18 +274,17 @@ def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, outp
         for correction in applied_corrections
         if correction is not None
     }
-    for year_files in raw_file_map.values():
-        for file_path in year_files.values():
-            if file_path in raw_dataframes:
-                name = output_file_name(file_path)
-                if name in corrected_names:
-                    output_path = os.path.join(output_dir, name)
-                    write_csv_safely(
-                        raw_dataframes[file_path],
-                        output_path,
-                        index=False,
-                        header=False,
-                    )
+    for file_path in _iter_file_paths(raw_file_map):
+        if file_path in raw_dataframes:
+            name = output_file_name(file_path)
+            if name in corrected_names:
+                output_path = os.path.join(output_dir, name)
+                write_csv_safely(
+                    raw_dataframes[file_path],
+                    output_path,
+                    index=False,
+                    header=False,
+                )
 
 
 def _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections):
