@@ -425,20 +425,19 @@ def _load_and_enrich_config(config_path):
 
 
 def _enrich_config_with_river_mappings(config_data):
-    """Add river mile mappings from a CSV within the working directory.
-
-    Ignore missing or out-of-bounds files; let CSV parsing errors propagate.
-    """
+    """Enrich configuration with river mile mappings if available."""
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    # Check containment before file existence to avoid probing outside paths.
+    # SECURITY: Prevent path traversal (CWE-22) by ensuring path is confined to base_dir.
+    # Evaluate containment BEFORE checking file existence to prevent file enumeration oracle.
     base_dir = os.path.realpath(os.getcwd())
     resolved = os.path.realpath(rm_map_path)
     try:
-        in_base_dir = os.path.commonpath([base_dir, resolved]) == base_dir
+        if os.path.commonpath([base_dir, resolved]) != base_dir:
+            log.warning(
+                "Path traversal detected in RIVER_MILE_MAP_PATH: %r", rm_map_path
+            )
+            return
     except ValueError:
-        in_base_dir = False
-
-    if not in_base_dir:
         log.warning("Path traversal detected in RIVER_MILE_MAP_PATH: %r", rm_map_path)
         return
 

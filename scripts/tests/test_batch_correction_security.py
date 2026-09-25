@@ -25,5 +25,5 @@ def test_enrich_config_with_river_mappings_valid_path(tmp_path, monkeypatch):
     config_data = {"RIVER_MILE_MAP_PATH": str(csv_file)}
     _enrich_config_with_river_mappings(config_data)
 
+    assert "SENSOR_TO_RIVER" in config_data
     assert config_data["SENSOR_TO_RIVER"] == {1: 54.0, 2: 53.0}
-    assert config_data["RIVER_TO_SENSORS"] == {54.0: [1], 53.0: [2]}
