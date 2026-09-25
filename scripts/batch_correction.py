@@ -434,11 +434,13 @@ def _enrich_config_with_river_mappings(config_data):
     try:
         if os.path.commonpath([base_dir, resolved]) != base_dir:
             log.warning(
-                "Path traversal detected in RIVER_MILE_MAP_PATH: %s", rm_map_path
+                "Path traversal detected in RIVER_MILE_MAP_PATH: %r", resolved
             )
             return
     except ValueError:
-        log.warning("Path traversal detected in RIVER_MILE_MAP_PATH: %s", rm_map_path)
+        log.warning(
+            "Path traversal detected in RIVER_MILE_MAP_PATH: %r", resolved
+        )
         return
 
     if os.path.isfile(resolved):
