@@ -21,3 +21,24 @@ def test_load_config_valid_path(tmp_path, monkeypatch):
 def test_load_config_path_traversal():
     with pytest.raises(ValueError, match="Path traversal detected"):
         load_config("../../../../etc/passwd")
+
+
+def test_is_safe_path():
+    from scripts.loaders import is_safe_path
+
+    cwd = os.getcwd()
+    assert is_safe_path("scripts/config.json", cwd) is True
+    assert is_safe_path("../../../../etc/passwd", cwd) is False
+
+
+def test_enrich_config_with_river_mappings_path_traversal(caplog):
+    import logging
+
+    from scripts.batch_correction import _enrich_config_with_river_mappings
+
+    config_data = {"RIVER_MILE_MAP_PATH": "../../../../etc/passwd"}
+    with caplog.at_level(logging.WARNING):
+        _enrich_config_with_river_mappings(config_data)
+
+    assert "Path traversal attempt blocked" in caplog.text
+    assert "SENSOR_TO_RIVER" not in config_data
