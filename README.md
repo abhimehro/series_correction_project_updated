@@ -10,6 +10,8 @@
 [![CodeScene Missed Goals](https://codescene.io/projects/80827/status-badges/missed-goals)](https://codescene.io/projects/80827)
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/abhimehro/series_correction_project_updated?utm_source=oss&utm_medium=github&utm_campaign=abhimehro%2Fseries_correction_project_updated&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
+[![Quality gate](https://sonarcloud.io/api/project_badges/quality_gate?project=abhimehro_series_correction_project_updated)](https://sonarcloud.io/summary/new_code?id=abhimehro_series_correction_project_updated)
+
 This project provides tools to automatically detect and correct discontinuities
 (such as jumps, gaps, or outliers) commonly found in time-series data from
 Seatek sensors. The goal is to produce cleaner, more reliable datasets for
