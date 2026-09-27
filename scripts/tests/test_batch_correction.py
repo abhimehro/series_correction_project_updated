@@ -42,9 +42,10 @@ def _getsize_side_effect(*args, **kwargs):
 
 def _isdir_side_effect(path):
 
-    expected_data_dir = "/fake/data/dir"
+    expected_data_dir = os.path.join(os.getcwd(), "fake_data_dir")
     output_dir = os.path.join(expected_data_dir, "output")
-    return path in [expected_data_dir, output_dir]
+    default_dir = os.path.join(os.getcwd(), "data")
+    return path in [expected_data_dir, output_dir, default_dir, "/fake/data/dir"]
 
 
 def _read_csv_side_effect_all_series(path, *args, **kwargs):
@@ -143,8 +144,9 @@ def patch_load_config(monkeypatch):
 
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
+    expected_data_dir_inner = os.path.join(os.getcwd(), "fake_data_dir")
     config_mock = {
-        "RAW_DATA_DIR": "/fake/data/dir",
+        "RAW_DATA_DIR": expected_data_dir_inner,
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
     }
 
@@ -166,7 +168,6 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
         river_miles = [54.0, 53.0]
         years = (1995, 1996)
         dry_run = False
-        expected_data_dir_inner = "/fake/data/dir"  # type: str
 
         mock_dependencies["listdir"].return_value = [
             "S26_Y01.txt",
@@ -219,8 +220,9 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
 
+    expected_data_dir_inner = os.path.join(os.getcwd(), "fake_data_dir")
     config_mock = {
-        "RAW_DATA_DIR": "/fake/data/dir",
+        "RAW_DATA_DIR": expected_data_dir_inner,
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
     }
 
@@ -242,7 +244,6 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
         river_miles = None
         years = (1995, 1995)
         dry_run = False
-        expected_data_dir_inner = "/fake/data/dir"  # type: str
 
         mock_dependencies["listdir"].return_value = ["S30_Y01.txt", "S31_Y01.txt"]
         mock_dependencies["isfile"].side_effect = (
@@ -554,7 +555,8 @@ def test_minimal_happy_path(monkeypatch):
         return [os.path.join(dirn, f) for f in file_list if fnmatch.fnmatch(f, base)]
 
     monkeypatch.setattr("glob.glob", _glob_side_effect)
-    monkeypatch.setattr("os.path.isdir", lambda d: d == data_dir)
+    default_dir = os.path.join(os.getcwd(), "data")
+    monkeypatch.setattr("os.path.isdir", lambda d: d in [data_dir, default_dir])
     monkeypatch.setattr(
         "os.path.isfile",
         lambda p: p in full_paths or str(p).endswith("river_mile_map.csv"),
@@ -731,3 +733,32 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+def test_path_traversal_prevention_in_batch_config(caplog):
+    """Test that path traversal attempts (relative and absolute) in RAW_DATA_DIR and RIVER_MILE_MAP_PATH are rejected."""
+    caplog.set_level("WARNING")
+
+    # Relative path traversal
+    config_data_rel = {
+        "RAW_DATA_DIR": "../../../../etc",
+        "RIVER_MILE_MAP_PATH": "../../../../etc/passwd",
+    }
+    dir_result_rel = bc._get_data_directory(config_data_rel, create_if_missing=False)
+    assert "../../../../etc" not in dir_result_rel
+
+    bc._enrich_config_with_river_mappings(config_data_rel)
+    assert "SENSOR_TO_RIVER" not in config_data_rel
+
+    # Absolute path traversal outside working directory
+    config_data_abs = {
+        "RAW_DATA_DIR": "/etc/passwd",
+        "RIVER_MILE_MAP_PATH": "/etc/passwd",
+    }
+    dir_result_abs = bc._get_data_directory(config_data_abs, create_if_missing=False)
+    assert "/etc/passwd" not in dir_result_abs
+
+    bc._enrich_config_with_river_mappings(config_data_abs)
+    assert "SENSOR_TO_RIVER" not in config_data_abs
+
+    assert "escapes working directory" in caplog.text
