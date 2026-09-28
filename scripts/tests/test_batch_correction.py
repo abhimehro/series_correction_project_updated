@@ -617,6 +617,11 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
     Test scenario where config file is not found.
     """
     mock_config_loader.side_effect = FileNotFoundError()
+    # mock_dependencies marks every path as present and stubs open() to empty
+    # bytes. The committed JSON map must not be parsed from that stub.
+    mock_dependencies["isfile"].side_effect = (
+        lambda path: not str(path).endswith("river_mile_map.json")
+    )
 
     series_selection = 26
     river_miles = None
@@ -731,3 +736,30 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+def test_enrich_loads_committed_json_map(monkeypatch):
+    """Default map path is the committed JSON, so river-mile filters work."""
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    monkeypatch.chdir(repo_root)
+    config: dict = {}
+    bc._enrich_config_with_river_mappings(config)
+    assert config["SENSOR_TO_RIVER"]["1"] == 54.0
+    series = _determine_series_to_process("all", [54.0], config, repo_root)
+    assert series == [1, 2]
+
+
+def test_enrich_missing_map_leaves_config_unchanged():
+    """A configured path that is not on disk must not invent a map."""
+    config = {"RIVER_MILE_MAP_PATH": "scripts/does_not_exist_river_map.csv"}
+    bc._enrich_config_with_river_mappings(config)
+    assert "SENSOR_TO_RIVER" not in config
+
+
+def test_enrich_rejects_json_without_sensor_map(tmp_path):
+    """A JSON file without SENSOR_TO_RIVER fails closed."""
+    bad_map = tmp_path / "map.json"
+    bad_map.write_text("{}", encoding="utf-8")
+    config = {"RIVER_MILE_MAP_PATH": str(bad_map)}
+    with pytest.raises(bc.ProcessingError, match="SENSOR_TO_RIVER"):
+        bc._enrich_config_with_river_mappings(config)

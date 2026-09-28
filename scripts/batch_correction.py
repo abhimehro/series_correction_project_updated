@@ -12,6 +12,7 @@ scripts/tests/test_batch_correction.py.
 # ---------------------------------------------------------------------------
 # Imports
 # ---------------------------------------------------------------------------
+import json
 import logging
 import os
 import re
@@ -428,17 +429,52 @@ def _load_and_enrich_config(config_path):
     return config_data
 
 
-def _enrich_config_with_river_mappings(config_data):
-    """Enrich configuration with river mile mappings if available."""
-    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    if os.path.isfile(rm_map_path):
-        rm_df = pd.read_csv(rm_map_path)
-        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
-            "RIVER_MILE"
-        ].to_dict()
-        config_data["RIVER_TO_SENSORS"] = (
-            rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
-        )
+# NOTE: committed map is JSON. CSV remains for configs that set RIVER_MILE_MAP_PATH.
+_DEFAULT_RIVER_MILE_MAP = "scripts/river_mile_map.json"
+
+
+def _enrich_config_with_river_mappings(config_data: dict[str, Any]) -> None:
+    """Load SENSOR_TO_RIVER when a map file exists.
+
+    Default path is the committed JSON map. Without it, ``--river-miles``
+    cannot filter series and the CLI warns that the miles were ignored.
+    """
+    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", _DEFAULT_RIVER_MILE_MAP)
+    if not isinstance(rm_map_path, str) or not rm_map_path:
+        return
+    if not os.path.isfile(rm_map_path):
+        return
+    if rm_map_path.lower().endswith(".json"):
+        _load_river_map_json(config_data, rm_map_path)
+        return
+    _load_river_map_csv(config_data, rm_map_path)
+
+
+def _load_river_map_json(config_data: dict[str, Any], rm_map_path: str) -> None:
+    """Copy SENSOR_TO_RIVER from a JSON object map."""
+    try:
+        with open(rm_map_path, encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except json.JSONDecodeError as err:
+        log.exception("River mile map is not valid JSON: %s", rm_map_path)
+        raise ProcessingError("River mile map JSON is not valid") from err
+    if not isinstance(payload, dict):
+        raise ProcessingError("River mile map JSON must be an object")
+    sensor_to_river = payload.get("SENSOR_TO_RIVER")
+    # SECURITY: reject unexpected shapes so a swapped file cannot silently
+    # disable river-mile filtering while looking like a successful load.
+    if not isinstance(sensor_to_river, dict) or not sensor_to_river:
+        raise ProcessingError("River mile map JSON missing SENSOR_TO_RIVER")
+    config_data["SENSOR_TO_RIVER"] = sensor_to_river
+
+
+def _load_river_map_csv(config_data: dict[str, Any], rm_map_path: str) -> None:
+    """Load a CSV map with SENSOR_ID and RIVER_MILE columns."""
+    rm_df = pd.read_csv(rm_map_path)
+    config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")["RIVER_MILE"].to_dict()
+    config_data["RIVER_TO_SENSORS"] = (
+        rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
+    )
 
 
 def _ensure_output_directory(output_dir, dry_run):
