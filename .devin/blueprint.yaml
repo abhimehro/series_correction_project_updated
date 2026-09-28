@@ -17,7 +17,7 @@ knowledge:
       PYENV_VERSION=3.10.16 python3 -m pytest scripts/tests/ -v
   - name: test-status
     contents: |
-      Full suite passes (149 tests on Python 3.10 and 3.11).
+      Full suite passes (155 tests on Python 3.10 and 3.11).
   - name: python-version
     contents: |
       Use Python 3.10 or 3.11. Runtime dependencies (pandas, numpy, openpyxl) are pinned with exact versions in scripts/requirements.txt; dev/test/lint tools live in scripts/requirements-dev.txt. setup.py only installs the runtime set.
