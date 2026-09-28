@@ -136,6 +136,12 @@ def test_load_identified_outliers_file_not_found(capsys):
     assert "Error: The file 'non_existent_file.csv' was not found." in captured.out
 
 
+def test_load_identified_outliers_path_traversal():
+    """Verify load_identified_outliers rejects path traversal attempts."""
+    with pytest.raises(ValueError, match="Path traversal detected"):
+        load_identified_outliers("../../../etc/passwd")
+
+
 @pytest.mark.parametrize(
     "test_case",
     [
