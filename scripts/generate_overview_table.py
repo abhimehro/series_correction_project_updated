@@ -20,11 +20,11 @@ def _safe_round(value):
 def _process_outlier_log(log_entry, avg_lookup):
     """Process a single outlier log entry."""
     s, yps, sen, od, cls = log_entry
-    pm = _YEAR_PAIR_RE.match(str(yps))
-    if not pm:
+    pair_match = _YEAR_PAIR_RE.match(str(yps))
+    if not pair_match:
         return None, yps
 
-    y1_f, y1_yy, y2_f, y2_yy = map(int, pm.groups())
+    y1_f, y1_yy, y2_f, y2_yy = map(int, pair_match.groups())
     py, ny = (y1_yy, y2_yy) if y1_f < y2_f else (y2_yy, y1_yy)
     ea = avg_lookup.get((s, py), {}).get("End_Average", "N/A")
     ba = avg_lookup.get((s, ny), {}).get("Beginning_Average", "N/A")
