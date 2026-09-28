@@ -38,8 +38,17 @@ def find_sensor_columns(columns):
 
 def load_identified_outliers(csv_path):
     """Loads and melts the year-to-year differences CSV to identify outliers."""
+    # SECURITY: reject paths that escape the working directory (CWE-22).
+    base_dir = os.path.realpath(os.getcwd())
+    resolved = os.path.realpath(csv_path)
     try:
-        df_yty_diff = pd.read_csv(csv_path)
+        if os.path.commonpath([base_dir, resolved]) != base_dir:
+            raise ValueError("Path traversal detected")
+    except ValueError:
+        raise ValueError("Path traversal detected") from None
+
+    try:
+        df_yty_diff = pd.read_csv(resolved)
         actual_cols = df_yty_diff.columns.tolist()
         sensor_cols = find_sensor_columns(actual_cols)
 

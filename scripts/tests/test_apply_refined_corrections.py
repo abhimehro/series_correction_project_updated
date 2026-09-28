@@ -149,8 +149,11 @@ def test_load_identified_outliers_file_not_found(capsys):
         ),
     ],
 )
-def test_load_identified_outliers_missing_columns(tmp_path, capsys, test_case):
+def test_load_identified_outliers_missing_columns(
+    tmp_path, capsys, test_case, monkeypatch
+):
     """Test that a CSV with missing required columns returns an empty DataFrame."""
+    monkeypatch.setattr("os.getcwd", lambda: str(tmp_path))
     data, expected_error_fragment = test_case
     csv_file = tmp_path / "test_data.csv"
     pd.DataFrame(data).to_csv(csv_file, index=False)
