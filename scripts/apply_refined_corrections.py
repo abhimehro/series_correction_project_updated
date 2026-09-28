@@ -36,48 +36,59 @@ def find_sensor_columns(columns):
     ]
 
 
-def load_identified_outliers(csv_path):
-    """Loads and melts the year-to-year differences CSV to identify outliers."""
-    # SECURITY: reject paths that escape the working directory (CWE-22).
-    base_dir = os.path.realpath(os.getcwd())
-    resolved = os.path.realpath(csv_path)
+def _validate_file_path(path: str, base_dir: str | None = None) -> str:
+    """Validate file path to prevent path traversal (CWE-22)."""
+    if base_dir is None:
+        base_dir = os.getcwd()
+    base_dir = os.path.realpath(base_dir)
+    resolved = os.path.realpath(path)
     try:
         if os.path.commonpath([base_dir, resolved]) != base_dir:
             raise ValueError("Path traversal detected")
     except ValueError:
         raise ValueError("Path traversal detected") from None
+    return resolved
+
+
+def _parse_outliers_dataframe(df_yty_diff: pd.DataFrame, csv_path: str) -> pd.DataFrame:
+    """Parse and melt year-to-year differences DataFrame to identify outliers."""
+    actual_cols = df_yty_diff.columns.tolist()
+    sensor_cols = find_sensor_columns(actual_cols)
+
+    if not sensor_cols:
+        print(f"Error: No sensor columns found in {csv_path}.")
+        return pd.DataFrame()
+
+    if "Year_Pair" not in actual_cols:
+        print(f"Error: 'Year_Pair' column not found in {csv_path}.")
+        return pd.DataFrame()
+
+    df_melted = df_yty_diff.melt(
+        id_vars=["Year_Pair"],
+        value_vars=sensor_cols,
+        var_name="Sensor",
+        value_name="Difference",
+    )
+
+    outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
+
+    if outliers_df.empty:
+        print("No outliers (|Difference| >= 0.1) found.")
+    else:
+        print(f"Successfully loaded {len(outliers_df)} outliers.")
+
+    return outliers_df
+
+
+def load_identified_outliers(
+    csv_path: str, base_dir: str | None = None
+) -> pd.DataFrame:
+    """Loads and melts the year-to-year differences CSV to identify outliers."""
+    resolved = _validate_file_path(csv_path, base_dir=base_dir)
 
     try:
         df_yty_diff = pd.read_csv(resolved)
-        actual_cols = df_yty_diff.columns.tolist()
-        sensor_cols = find_sensor_columns(actual_cols)
-
-        if not sensor_cols:
-            print(f"Error: No sensor columns found in {csv_path}.")
-            return pd.DataFrame()
-
-        if "Year_Pair" not in actual_cols:
-            print(f"Error: 'Year_Pair' column not found in {csv_path}.")
-            return pd.DataFrame()
-
-        df_melted = df_yty_diff.melt(
-            id_vars=["Year_Pair"],
-            value_vars=sensor_cols,
-            var_name="Sensor",
-            value_name="Difference",
-        )
-
-        # NaN.abs() is NaN and NaN >= 0.1 is False, so NaN rows are already
-        # excluded by the abs() filter; no separate dropna is needed.
-        outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
-
-        if outliers_df.empty:
-            print("No outliers (|Difference| >= 0.1) found.")
-        else:
-            print(f"Successfully loaded {len(outliers_df)} outliers.")
-
-        return outliers_df
-
+        return _parse_outliers_dataframe(df_yty_diff, csv_path)
     except FileNotFoundError:
         print(f"Error: The file '{csv_path}' was not found.")
         return pd.DataFrame()
