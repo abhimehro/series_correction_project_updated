@@ -169,9 +169,10 @@ def detect_jumps(
         )
         return []
 
-    # Calculate rolling mean and standard deviation
-    rolling_mean = data[value_col].rolling(window=window_size).mean().to_numpy()
-    rolling_std = data[value_col].rolling(window=window_size).std().to_numpy()
+    # ⚡ Bolt: Reuse Rolling object to avoid redundant window construction overhead
+    rolling = data[value_col].rolling(window=window_size)
+    rolling_mean = rolling.mean().to_numpy()
+    rolling_std = rolling.std().to_numpy()
     values = data[value_col].to_numpy()
 
     normalized_dev = _calculate_jump_deviations(
