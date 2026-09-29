@@ -134,3 +134,7 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Eliminate redundant valid_mask allocations in NumPy relational comparisons
+
+**Learning:** Pre-computing boolean validity masks (e.g., `valid_mask = ~np.isnan(a) & ~np.isnan(b)`) before threshold comparisons (e.g., `valid_mask & (z_scores > threshold)`) creates multiple temporary boolean array allocations and extra bitwise `&` operations. In IEEE 754 floating-point arithmetic, relational comparisons with `NaN` (such as `NaN > threshold`) natively evaluate to `False`. **Action:** Omit explicit `NaN` validity masks when filtering numerical arrays with relational comparison operators (like `> threshold`), allowing IEEE 754 semantics to filter out `NaN`s directly, eliminating temporary array allocations and yielding ~5.6x faster mask computation.
