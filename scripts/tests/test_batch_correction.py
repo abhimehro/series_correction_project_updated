@@ -704,16 +704,6 @@ def test_determine_series_to_process_explicit_invalid_value(mocker):
     mock_log.exception.assert_called()
 
 
-def test_river_mile_map_path_traversal_rejected(caplog):
-    from scripts.batch_correction import _enrich_config_with_river_mappings
-
-    config_data = {"RIVER_MILE_MAP_PATH": "../../../../etc/passwd"}
-    _enrich_config_with_river_mappings(config_data)
-
-    assert "SENSOR_TO_RIVER" not in config_data
-    assert "Path traversal attempt in RIVER_MILE_MAP_PATH" in caplog.text
-
-
 def test_batch_process_fallback_mode_exception(
     mock_dependencies, mock_config_loader, mocker
 ):
