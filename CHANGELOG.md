@@ -95,6 +95,7 @@
 
 **Merged pull requests:**
 
+- Fix PEP 668 failure: install deps into a repo-local .venv [\#522](https://github.com/abhimehro/series_correction_project_updated/pull/522) ([abhimehro](https://github.com/abhimehro))
 - Revert ruby/setup-ruby workflow action bump [\#521](https://github.com/abhimehro/series_correction_project_updated/pull/521) ([abhimehro](https://github.com/abhimehro))
 - Automated Daily QA Review [\#494](https://github.com/abhimehro/series_correction_project_updated/pull/494) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: pre-compile regex in generate\_overview\_table.py [\#491](https://github.com/abhimehro/series_correction_project_updated/pull/491) ([abhimehro](https://github.com/abhimehro))
