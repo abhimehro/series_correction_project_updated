@@ -14,6 +14,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-09-29 [\#505](https://github.com/abhimehro/series_correction_project_updated/issues/505)
 - Daily QA & Agentic Review — 2026-09-27 [\#497](https://github.com/abhimehro/series_correction_project_updated/issues/497)
 - Daily QA & Agentic Review — 2026-09-26 [\#493](https://github.com/abhimehro/series_correction_project_updated/issues/493)
 - Daily QA & Agentic Review — 2026-09-25 [\#490](https://github.com/abhimehro/series_correction_project_updated/issues/490)
@@ -94,6 +95,7 @@
 
 **Merged pull requests:**
 
+- Revert ruby/setup-ruby workflow action bump [\#521](https://github.com/abhimehro/series_correction_project_updated/pull/521) ([abhimehro](https://github.com/abhimehro))
 - Automated Daily QA Review [\#494](https://github.com/abhimehro/series_correction_project_updated/pull/494) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: pre-compile regex in generate\_overview\_table.py [\#491](https://github.com/abhimehro/series_correction_project_updated/pull/491) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.324.0 to 1.325.0 [\#483](https://github.com/abhimehro/series_correction_project_updated/pull/483) ([dependabot[bot]](https://github.com/apps/dependabot))
