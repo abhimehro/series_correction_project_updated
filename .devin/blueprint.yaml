@@ -9,11 +9,26 @@ maintenance: |
   # Prefer the Homebrew python@3.12 formula's opt path (the formula is
   # keg-only, so it is not linked into bin/) — deps need >=3.10, and a bare
   # python3 may be the Xcode 3.9 stub on VMs where the org link has not run.
+  # Each probe tolerates brew being absent/mid-update; the last resort is any
+  # installed interpreter >=3.10, else fail with a clear diagnostic.
   set -e
-  PYBIN="$(brew --prefix python@3.12)/bin/python3.12"
+  PYBIN="$(brew --prefix python@3.12 2>/dev/null || true)/bin/python3.12"
   if [ ! -x "$PYBIN" ]; then
-    brew install python@3.12
-    PYBIN="$(brew --prefix python@3.12)/bin/python3.12"
+    brew install python@3.12 2>/dev/null || true
+    PYBIN="$(brew --prefix python@3.12 2>/dev/null || true)/bin/python3.12"
+  fi
+  if [ ! -x "$PYBIN" ]; then
+    for cand in python3.13 python3.12 python3.11 python3.10 python3; do
+      if command -v "$cand" >/dev/null 2>&1 && \
+         "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+        PYBIN="$(command -v "$cand")"
+        break
+      fi
+    done
+  fi
+  if [ ! -x "$PYBIN" ]; then
+    echo "maintenance: no Python >=3.10 interpreter found" >&2
+    exit 1
   fi
   "$PYBIN" -m venv --clear .venv
   .venv/bin/pip install -r scripts/requirements-dev.txt
