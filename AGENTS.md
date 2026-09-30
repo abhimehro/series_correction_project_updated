@@ -12,7 +12,7 @@ database, no Docker required. See `README.md` for full details.
 
 | Task                 | Command                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------- |
-| Install deps         | `python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements-dev.txt && .venv/bin/pip install -e .` |
+| Install deps         | `python3.12 -m venv .venv && .venv/bin/pip install -r scripts/requirements-dev.txt && .venv/bin/pip install -e .` |
 | Run tests            | `.venv/bin/python -m pytest scripts/tests/ -v`                                      |
 | Run tests + coverage | `.venv/bin/python -m pytest --cov=scripts scripts/tests/ -v`                        |
 | Lint                 | `.venv/bin/python -m flake8 scripts/` (see `setup.cfg`)               |
@@ -37,7 +37,10 @@ database, no Docker required. See `README.md` for full details.
 - Deps live in the repo-local `.venv` (created by the Install deps row or
   the Devin blueprint's maintenance step). Use `.venv/bin/...` commands —
   bare `python3`/`pip3` hits PEP 668 `externally-managed-environment` on
-  Homebrew-Python machines, including the build VM.
+  Homebrew-Python machines, including the build VM. The venv needs Python
+  >=3.10 (`setup.py` `python_requires`); `python3.12` is just the preferred
+  interpreter — `python3.10`/`python3.11` work too, but a bare `python3`
+  may resolve to a 3.9 stub.
 
 ### CodeScene review/salvage trigger
 
