@@ -10,7 +10,10 @@ maintenance: |
   # Xcode 3.9 stub on VMs where the org python3 link has not run).
   set -e
   PYBIN="$(brew --prefix)/bin/python3.12"
-  if [ ! -x "$PYBIN" ]; then brew install python@3.12; PYBIN="$(brew --prefix)/bin/python3.12"; fi
+  if [ ! -x "$PYBIN" ]; then
+    brew install python@3.12
+    PYBIN="$(brew --prefix)/bin/python3.12"
+  fi
   "$PYBIN" -m venv --clear .venv
   .venv/bin/pip install -r scripts/requirements-dev.txt
   .venv/bin/pip install -e .
