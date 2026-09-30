@@ -7,7 +7,7 @@ maintenance: |
   # --clear forces a clean rebuild so a restored venv can't serve stale
   # editable-install paths; bundled pip suffices (deps are pinned).
   # Prefer the Homebrew python@3.12 formula's opt path (the formula is
-  # keg-only, so it is not linked into bin/) — deps need >=3.10, and a bare
+  # keg-only, so it is not linked into bin/); deps need >=3.10, and a bare
   # python3 may be the Xcode 3.9 stub on VMs where the org link has not run.
   # Each probe tolerates brew being absent/mid-update; the last resort is any
   # installed interpreter >=3.10 (versions verified by CI/docs first), else
