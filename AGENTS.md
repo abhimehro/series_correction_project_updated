@@ -36,11 +36,11 @@ database, no Docker required. See `README.md` for full details.
   26 and 27. Output goes to `data/output/`.
 - Deps live in the repo-local `.venv` (created by the Install deps row or
   the Devin blueprint's maintenance step). Use `.venv/bin/...` commands —
-  bare `python3`/`pip3` hits PEP 668 `externally-managed-environment` on
-  Homebrew-Python machines, including the build VM. The venv needs Python
-  >=3.10 (`setup.py` `python_requires`); `python3.12` is the preferred
-  interpreter — `python3.10`/`python3.11` work too, but a bare `python3`
-  may resolve to a 3.9 stub.
+  bare `python3`/`pip3` fails with `externally-managed-environment` on
+  Homebrew-Python machines such as the snapshot build machine. The venv
+  needs Python >=3.10 (`setup.py` `python_requires`); `python3.12` is the
+  preferred interpreter — `python3.10`/`python3.11` work too, but a bare
+  `python3` may resolve to a 3.9 stub.
 
 ### CodeScene review/salvage trigger
 
