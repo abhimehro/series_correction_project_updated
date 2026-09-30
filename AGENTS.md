@@ -12,13 +12,13 @@ database, no Docker required. See `README.md` for full details.
 
 | Task                 | Command                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------- |
-| Install deps         | `pip3 install -r scripts/requirements-dev.txt && pip3 install -e .`                 |
-| Run tests            | `python3 -m pytest scripts/tests/ -v`                                               |
-| Run tests + coverage | `python3 -m pytest --cov=scripts scripts/tests/ -v`                                 |
-| Lint                 | `flake8 scripts/` (see `setup.cfg`)                                 |
-| CLI help             | `seatek-correction --help`                                                          |
-| CLI dry-run          | `seatek-correction --series 26 --river-miles 54.0 53.0 --years 1995 1996 --dry-run` |
-| Batch processing     | `python3 scripts/manual_batch_run.py`                                               |
+| Install deps         | `python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements-dev.txt && .venv/bin/pip install -e .` |
+| Run tests            | `.venv/bin/python -m pytest scripts/tests/ -v`                                      |
+| Run tests + coverage | `.venv/bin/python -m pytest --cov=scripts scripts/tests/ -v`                        |
+| Lint                 | `.venv/bin/python -m flake8 scripts/` (see `setup.cfg`)               |
+| CLI help             | `.venv/bin/seatek-correction --help`                                                |
+| CLI dry-run          | `.venv/bin/seatek-correction --series 26 --river-miles 54.0 53.0 --years 1995 1996 --dry-run` |
+| Batch processing     | `.venv/bin/python scripts/manual_batch_run.py`                                      |
 
 ### Non-obvious caveats
 
@@ -29,12 +29,15 @@ database, no Docker required. See `README.md` for full details.
 - **Mocks**: `scripts/tests/test_batch_correction.py` uses `unittest.mock`
   (stdlib). No third-party `mock` package is required.
 - **Test status**: The full suite passes with
-  `python3 -m pytest scripts/tests/ -v`.
+  `.venv/bin/python -m pytest scripts/tests/ -v`.
 - **Test path**: Primary suite is under `scripts/tests/`, not root `tests/`
   (root `tests/` only covers scaffolding helpers).
 - **Data files**: `.txt` sensor data files in `data/` are committed for Series
   26 and 27. Output goes to `data/output/`.
-- Use `python3` (not `python`) as the command.
+- Deps live in the repo-local `.venv` (created by the Install deps row or
+  the Devin blueprint's maintenance step). Use `.venv/bin/...` commands —
+  bare `python3`/`pip3` hits PEP 668 `externally-managed-environment` on
+  Homebrew-Python machines, including the build VM.
 
 ### CodeScene review/salvage trigger
 

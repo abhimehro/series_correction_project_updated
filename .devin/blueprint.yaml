@@ -4,8 +4,14 @@ maintenance: |
   # site-packages are PEP 668 externally-managed, so a bare pip install fails.
   # Install into a repo-local .venv (gitignored) instead; it persists into the
   # snapshot so sessions get working build/lint/test commands via .venv/bin.
-  python3 -m venv .venv
-  .venv/bin/pip install --upgrade pip
+  # --clear forces a clean rebuild so a restored venv can't serve stale
+  # editable-install paths; bundled pip suffices (deps are pinned).
+  # Prefer the Homebrew python3.12 (deps need >=3.10; bare python3 may be the
+  # Xcode 3.9 stub on VMs where the org python3 link has not run).
+  set -e
+  PYBIN="$(brew --prefix)/bin/python3.12"
+  if [ ! -x "$PYBIN" ]; then brew install python@3.12; PYBIN="$(brew --prefix)/bin/python3.12"; fi
+  "$PYBIN" -m venv --clear .venv
   .venv/bin/pip install -r scripts/requirements-dev.txt
   .venv/bin/pip install -e .
 knowledge:
