@@ -16,7 +16,7 @@ maintenance: |
   PYOPT="$(brew --prefix python@3.12 2>/dev/null || true)"
   PYBIN="${PYOPT:+$PYOPT/bin/python3.12}"
   if [ ! -x "$PYBIN" ]; then
-    brew install python@3.12 2>/dev/null || true
+    brew install python@3.12 || true
     PYOPT="$(brew --prefix python@3.12 2>/dev/null || true)"
     PYBIN="${PYOPT:+$PYOPT/bin/python3.12}"
   fi
