@@ -14,6 +14,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-01 [\#528](https://github.com/abhimehro/series_correction_project_updated/issues/528)
+- Daily QA & Agentic Review — 2026-09-30 [\#525](https://github.com/abhimehro/series_correction_project_updated/issues/525)
 - Daily QA & Agentic Review — 2026-09-29 [\#505](https://github.com/abhimehro/series_correction_project_updated/issues/505)
 - Daily QA & Agentic Review — 2026-09-27 [\#497](https://github.com/abhimehro/series_correction_project_updated/issues/497)
 - Daily QA & Agentic Review — 2026-09-26 [\#493](https://github.com/abhimehro/series_correction_project_updated/issues/493)
@@ -95,6 +97,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps-dev\): bump pytest-mock from 3.15.1 to 3.16.0 in /scripts [\#531](https://github.com/abhimehro/series_correction_project_updated/pull/531) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(blueprint\): ASCII-only maintenance comments for zsh build runner [\#523](https://github.com/abhimehro/series_correction_project_updated/pull/523) ([abhimehro](https://github.com/abhimehro))
 - Fix PEP 668 failure: install deps into a repo-local .venv [\#522](https://github.com/abhimehro/series_correction_project_updated/pull/522) ([abhimehro](https://github.com/abhimehro))
 - Revert ruby/setup-ruby workflow action bump [\#521](https://github.com/abhimehro/series_correction_project_updated/pull/521) ([abhimehro](https://github.com/abhimehro))
