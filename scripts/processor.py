@@ -226,10 +226,12 @@ def _calculate_outlier_indices(
         # our required nullification behavior directly.
         rolling_median = np.median(windows, axis=1)
 
-    z_scores, valid_mask = _calculate_outlier_z_scores(
+    z_scores = _calculate_outlier_z_scores(
         values_np, rolling_median, window_size, threshold
     )
-    outlier_mask = valid_mask & (z_scores > threshold)
+    # ⚡ Bolt: Rely on IEEE 754 NaN comparison (z_scores > threshold returns False for NaNs)
+    # to eliminate redundant valid_mask allocation and bitwise AND operation.
+    outlier_mask = z_scores > threshold
     return np.where(outlier_mask)[0].tolist()
 
 

@@ -191,6 +191,7 @@ def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshol
 
     with np.errstate(invalid="ignore", divide="ignore"):
         abs_diff = np.abs(values_np - rolling_median)
+        # ⚡ Bolt: Return z_scores directly without allocating redundant valid_mask arrays.
         z_scores = np.where(
             rolling_scaled_mad < 1e-6,
             np.where(
@@ -198,9 +199,8 @@ def _calculate_outlier_z_scores(values_np, rolling_median, window_size, threshol
             ),
             abs_diff / rolling_scaled_mad,
         )
-        valid_mask = ~np.isnan(rolling_median) & ~np.isnan(rolling_scaled_mad)
 
-    return z_scores, valid_mask
+    return z_scores
 
 
 def _calculate_outlier_replacements(
