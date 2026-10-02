@@ -6,7 +6,7 @@
 # Testing framework and plugins
 pytest==9.1.1
 pytest-cov==7.1.0
-pytest-mock==3.15.1
+pytest-mock==3.16.0
 
 # Linters and formatters
 black==26.5.1
