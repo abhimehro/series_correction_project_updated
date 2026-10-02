@@ -11,4 +11,4 @@ pytest-mock==3.16.0
 # Linters and formatters
 black==26.5.1
 flake8==7.4.1
-pylint==4.0.8
+pylint==4.0.9
