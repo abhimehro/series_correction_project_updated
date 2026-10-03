@@ -240,6 +240,7 @@ def _load_and_merge_data(proc_file, raw_file):
 
 
 def _process_single_file(proc_file):
+    """Merge one processed workbook with its raw counterpart into a comparison sheet."""
     fname = os.path.basename(proc_file)
     if _should_skip_file(fname):
         return
