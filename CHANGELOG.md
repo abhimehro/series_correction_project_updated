@@ -101,6 +101,7 @@
 - chore\(deps-dev\): bump pytest-mock from 3.15.1 to 3.16.0 in /scripts [\#531](https://github.com/abhimehro/series_correction_project_updated/pull/531) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump flake8 from 7.3.0 to 7.4.1 in /scripts [\#530](https://github.com/abhimehro/series_correction_project_updated/pull/530) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pylint from 4.0.8 to 4.0.9 in /scripts [\#529](https://github.com/abhimehro/series_correction_project_updated/pull/529) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: eliminate redundant valid\_mask in outlier z-score calculation [\#526](https://github.com/abhimehro/series_correction_project_updated/pull/526) ([abhimehro](https://github.com/abhimehro))
 - fix\(blueprint\): ASCII-only maintenance comments for zsh build runner [\#523](https://github.com/abhimehro/series_correction_project_updated/pull/523) ([abhimehro](https://github.com/abhimehro))
 - Fix PEP 668 failure: install deps into a repo-local .venv [\#522](https://github.com/abhimehro/series_correction_project_updated/pull/522) ([abhimehro](https://github.com/abhimehro))
 - Revert ruby/setup-ruby workflow action bump [\#521](https://github.com/abhimehro/series_correction_project_updated/pull/521) ([abhimehro](https://github.com/abhimehro))
