@@ -1,3 +1,5 @@
+"""Tests for export_comparison_sheets helpers and export_comparisons discovery."""
+
 from pathlib import Path
 from unittest.mock import patch
 
