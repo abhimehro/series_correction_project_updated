@@ -122,6 +122,22 @@ def _get_data_directory(
     data_dir_key = "RAW_DATA_DIR"
     data_dir = config_data.get(data_dir_key)
 
+    if data_dir:
+        # SECURITY: reject paths that escape the working directory (CWE-22).
+        base_dir = os.path.realpath(os.getcwd())
+        resolved = os.path.realpath(data_dir)
+        try:
+            if os.path.commonpath([base_dir, resolved]) != base_dir:
+                log.warning(
+                    f"Configured path {data_dir} (from {data_dir_key}) escapes working directory"
+                )
+                data_dir = None
+        except ValueError:
+            log.warning(
+                f"Configured path {data_dir} (from {data_dir_key}) escapes working directory"
+            )
+            data_dir = None
+
     if data_dir and os.path.isdir(data_dir):
         log.info(f"Using data directory from config ({data_dir_key}): {data_dir}")
         return data_dir
@@ -431,8 +447,23 @@ def _load_and_enrich_config(config_path):
 def _enrich_config_with_river_mappings(config_data):
     """Enrich configuration with river mile mappings if available."""
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    if os.path.isfile(rm_map_path):
-        rm_df = pd.read_csv(rm_map_path)
+    # SECURITY: reject paths that escape the working directory (CWE-22).
+    base_dir = os.path.realpath(os.getcwd())
+    resolved = os.path.realpath(rm_map_path)
+    try:
+        if os.path.commonpath([base_dir, resolved]) != base_dir:
+            log.warning(
+                f"Configured RIVER_MILE_MAP_PATH {rm_map_path!r} escapes working directory"
+            )
+            return
+    except ValueError:
+        log.warning(
+            f"Configured RIVER_MILE_MAP_PATH {rm_map_path!r} escapes working directory"
+        )
+        return
+
+    if os.path.isfile(resolved):
+        rm_df = pd.read_csv(resolved)
         config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
             "RIVER_MILE"
         ].to_dict()

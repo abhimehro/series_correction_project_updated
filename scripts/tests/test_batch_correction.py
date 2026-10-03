@@ -42,7 +42,7 @@ def _getsize_side_effect(*args, **kwargs):
 
 def _isdir_side_effect(path):
 
-    expected_data_dir = "/fake/data/dir"
+    expected_data_dir = os.path.join(os.getcwd(), "fake/data/dir")
     output_dir = os.path.join(expected_data_dir, "output")
     return path in [expected_data_dir, output_dir]
 
@@ -123,7 +123,7 @@ def patch_pd_read_csv(monkeypatch):
 def patch_load_config(monkeypatch):
     # Always patch scripts.loaders.load_config to return a valid config dict
     config_dict = {
-        "RAW_DATA_DIR": "/fake/data/dir",
+        "RAW_DATA_DIR": os.path.join(os.getcwd(), "fake/data/dir"),
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
         "RIVER_TO_SENSORS": {54.0: [26], 53.0: [27]},
         "SENSOR_TO_RIVER": {26: 54.0, 27: 53.0},
@@ -143,8 +143,9 @@ def patch_load_config(monkeypatch):
 
 def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
+    expected_data_dir_inner = os.path.join(os.getcwd(), "fake/data/dir")
     config_mock = {
-        "RAW_DATA_DIR": "/fake/data/dir",
+        "RAW_DATA_DIR": expected_data_dir_inner,
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
     }
 
@@ -166,7 +167,6 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
         river_miles = [54.0, 53.0]
         years = (1995, 1996)
         dry_run = False
-        expected_data_dir_inner = "/fake/data/dir"  # type: str
 
         mock_dependencies["listdir"].return_value = [
             "S26_Y01.txt",
@@ -219,8 +219,9 @@ def test_batch_process_happy_path_all_series_with_config(mock_dependencies):
 
 def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
 
+    expected_data_dir_inner = os.path.join(os.getcwd(), "fake/data/dir")
     config_mock = {
-        "RAW_DATA_DIR": "/fake/data/dir",
+        "RAW_DATA_DIR": expected_data_dir_inner,
         "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
     }
 
@@ -242,7 +243,6 @@ def test_batch_process_happy_path_specific_series_no_config(mock_dependencies):
         river_miles = None
         years = (1995, 1995)
         dry_run = False
-        expected_data_dir_inner = "/fake/data/dir"  # type: str
 
         mock_dependencies["listdir"].return_value = ["S30_Y01.txt", "S31_Y01.txt"]
         mock_dependencies["isfile"].side_effect = (
@@ -542,7 +542,7 @@ def test_minimal_happy_path(monkeypatch):
     import pandas as pd
 
     # --- Arrange mocks ---
-    data_dir = "/fake/data/dir"
+    data_dir = os.path.join(os.getcwd(), "fake/data/dir")
     file_list = ["S26_Y01.txt", "S26_Y02.txt"]
     full_paths = [f"{data_dir}/{f}" for f in file_list]
 
