@@ -223,7 +223,7 @@ def _get_output_path(proc_file):
 
 
 def _should_skip_file(fname):
-    return fname.startswith("Seatek_Analysis_Summary")
+    return fname.startswith((".", "~$", "Seatek_Analysis_Summary"))
 
 
 def _load_and_merge_data(proc_file, raw_file):
@@ -240,6 +240,7 @@ def _load_and_merge_data(proc_file, raw_file):
 
 
 def _process_single_file(proc_file):
+    """Merge one processed workbook with its raw counterpart into a comparison sheet."""
     fname = os.path.basename(proc_file)
     if _should_skip_file(fname):
         return
@@ -266,7 +267,7 @@ def export_comparisons():
     processed_files = [
         os.path.join(OUTPUT_DIR, f)
         for f in os.listdir(OUTPUT_DIR)
-        if f.endswith(".xlsx")
+        if f.lower().endswith(".xlsx") and not _should_skip_file(f)
     ]
     for proc_file in processed_files:
         _process_single_file(proc_file)
