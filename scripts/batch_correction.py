@@ -431,14 +431,19 @@ def _load_and_enrich_config(config_path):
 def _enrich_config_with_river_mappings(config_data):
     """Enrich configuration with river mile mappings if available."""
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    if os.path.isfile(rm_map_path):
-        rm_df = pd.read_csv(rm_map_path)
-        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
-            "RIVER_MILE"
-        ].to_dict()
-        config_data["RIVER_TO_SENSORS"] = (
-            rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
-        )
+    try:
+        if loaders is not None and hasattr(loaders, "validate_safe_path"):
+            rm_map_path = loaders.validate_safe_path(rm_map_path)
+        if os.path.isfile(rm_map_path):
+            rm_df = pd.read_csv(rm_map_path)
+            config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
+                "RIVER_MILE"
+            ].to_dict()
+            config_data["RIVER_TO_SENSORS"] = (
+                rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
+            )
+    except ValueError:
+        log.warning("Path traversal detected in RIVER_MILE_MAP_PATH")
 
 
 def _ensure_output_directory(output_dir, dry_run):
