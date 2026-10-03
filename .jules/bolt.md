@@ -134,3 +134,13 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Direct Series.to_numpy(dtype=float) vs Series.astype(float).to_numpy()
+
+**Learning:** Calling `series.astype(float).to_numpy(copy=True)` creates an
+intermediate Pandas Series object (allocating Series metadata and index
+references) before allocating a second copy as a NumPy array. In contrast,
+calling `series.to_numpy(dtype=float)` performs direct type coercion from the
+Series to a NumPy float array in a single operation without intermediate Pandas
+Series instantiation. **Action:** Always use `series.to_numpy(dtype=float)` directly
+when converting Pandas Series to float NumPy arrays in performance-critical sections.

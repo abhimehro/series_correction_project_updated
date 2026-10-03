@@ -124,7 +124,8 @@ def _calculate_rolling_mad(values_np, rolling_median, window_size):
 
 
 def detect_outliers_series(values, window_size=5, threshold=3.0):
-    values_np = values.astype(float).to_numpy()
+    # ⚡ Bolt: Use to_numpy(dtype=float, copy=True) to avoid intermediate Pandas Series allocation while preserving copy semantics
+    values_np = values.to_numpy(dtype=float, copy=True)
 
     rolling_median = _calculate_rolling_median(values_np, window_size)
     rolling_mad = _calculate_rolling_mad(values_np, rolling_median, window_size)
