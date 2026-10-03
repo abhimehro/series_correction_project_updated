@@ -139,7 +139,7 @@ def test_export_comparisons(tmp_path, monkeypatch):
     assert any("file2.xlsx" in c for c in calls)
 
 
-def test_export_comparisons_skips_hidden_and_lock_files(tmp_path, monkeypatch):
+def test_export_skips_hidden_lock(tmp_path, monkeypatch):
     """export_comparisons must ignore dot-prefixed and Excel lock (~$) files."""
     output_dir, calls = _mock_output_dir(tmp_path, monkeypatch)
 
