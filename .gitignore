@@ -54,3 +54,5 @@ data/output/comparisons/*
 # Accidental code dumps
 *_project_code.txt
 series_correction_project_updated_project_code.txt
+# Causari local ledger — captured prompts, completions and reasoning.
+.causari/
