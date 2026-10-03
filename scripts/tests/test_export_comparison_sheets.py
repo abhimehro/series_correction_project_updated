@@ -1,7 +1,9 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
+import pytest
 from openpyxl import Workbook
 
 from scripts.export_comparison_sheets import (
@@ -106,14 +108,16 @@ def test_process_single_file_escapes_malicious_comment(tmp_path, monkeypatch):
     assert result_wb["Comment"].iloc[0] == "'" + payload
 
 
-def _mock_output_dir(tmp_path, monkeypatch):
+def _mock_output_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Path, list[str]]:
     """Point OUTPUT_DIR at a fresh tmp dir and capture _process_single_file calls."""
     output_dir = tmp_path / "output"
     output_dir.mkdir()
 
     calls = []
 
-    def mock_process_single_file(filepath):
+    def mock_process_single_file(filepath: str) -> None:
         calls.append(filepath)
 
     monkeypatch.setattr("scripts.export_comparison_sheets.OUTPUT_DIR", str(output_dir))
@@ -124,7 +128,7 @@ def _mock_output_dir(tmp_path, monkeypatch):
     return output_dir, calls
 
 
-def test_export_comparisons(tmp_path, monkeypatch):
+def test_export_comparisons(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test export_comparisons correctly discovers and processes .xlsx files in OUTPUT_DIR."""
     output_dir, calls = _mock_output_dir(tmp_path, monkeypatch)
 
@@ -139,7 +143,9 @@ def test_export_comparisons(tmp_path, monkeypatch):
     assert any("file2.xlsx" in c for c in calls)
 
 
-def test_export_skips_hidden_lock(tmp_path, monkeypatch):
+def test_export_skips_hidden_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """export_comparisons must ignore dot-prefixed and Excel lock (~$) files."""
     output_dir, calls = _mock_output_dir(tmp_path, monkeypatch)
 
