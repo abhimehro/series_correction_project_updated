@@ -223,7 +223,7 @@ def _get_output_path(proc_file):
 
 
 def _should_skip_file(fname):
-    return fname.startswith("Seatek_Analysis_Summary")
+    return fname.startswith((".", "~$", "Seatek_Analysis_Summary"))
 
 
 def _load_and_merge_data(proc_file, raw_file):
@@ -266,7 +266,7 @@ def export_comparisons():
     processed_files = [
         os.path.join(OUTPUT_DIR, f)
         for f in os.listdir(OUTPUT_DIR)
-        if f.endswith(".xlsx") and not f.startswith(".") and not f.startswith("~$")
+        if f.lower().endswith(".xlsx") and not _should_skip_file(f)
     ]
     for proc_file in processed_files:
         _process_single_file(proc_file)

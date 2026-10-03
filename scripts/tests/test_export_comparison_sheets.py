@@ -154,8 +154,23 @@ def test_export_skips_hidden_lock(
     (output_dir / "file1.xlsx").touch()
     (output_dir / "._a.xlsx").touch()
     (output_dir / "~$b.xlsx").touch()
+    (output_dir / "Seatek_Analysis_Summary.xlsx").touch()
 
     export_comparisons()
 
     assert len(calls) == 1
     assert calls[0].endswith("file1.xlsx")
+
+
+def test_export_accepts_uppercase_ext(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """export_comparisons discovers uppercase .XLSX like glob's case-insensitive match."""
+    output_dir, calls = _mock_output_dir(tmp_path, monkeypatch)
+
+    (output_dir / "Report.XLSX").touch()
+
+    export_comparisons()
+
+    assert len(calls) == 1
+    assert calls[0].endswith("Report.XLSX")
