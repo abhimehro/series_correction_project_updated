@@ -1,26 +1,59 @@
 # Install project dependencies (runs during builds, surfaced to agent at session start).
 maintenance: |
-  PYENV_VERSION=3.10.16 python3 -m pip install --upgrade pip
-  PYENV_VERSION=3.10.16 python3 -m pip install -r scripts/requirements-dev.txt
-  PYENV_VERSION=3.10.16 python3 -m pip install -e .
+  # No pyenv on the build VM: python3 resolves to the Homebrew Python whose
+  # site-packages are PEP 668 externally-managed, so a bare pip install fails.
+  # Install into a repo-local .venv (gitignored) instead; it persists into the
+  # snapshot so sessions get working build/lint/test commands via .venv/bin.
+  # --clear forces a clean rebuild so a restored venv can't serve stale
+  # editable-install paths; bundled pip suffices (deps are pinned).
+  # Prefer the Homebrew python@3.12 formula's opt path (the formula is
+  # keg-only, so it is not linked into bin/); deps need >=3.10, and a bare
+  # python3 may be the Xcode 3.9 stub on VMs where the org link has not run.
+  # Each probe tolerates brew being absent/mid-update; the last resort is any
+  # installed interpreter >=3.10 (versions verified by CI/docs first), else
+  # fail with a clear diagnostic.
+  set -e
+  PYOPT="$(brew --prefix python@3.12 2>/dev/null || true)"
+  PYBIN="${PYOPT:+$PYOPT/bin/python3.12}"
+  if [ ! -x "$PYBIN" ]; then
+    brew install python@3.12 || true
+    PYOPT="$(brew --prefix python@3.12 2>/dev/null || true)"
+    PYBIN="${PYOPT:+$PYOPT/bin/python3.12}"
+  fi
+  if [ ! -x "$PYBIN" ]; then
+    for cand in python3.12 python3.11 python3.10 python3.13 python3; do
+      if command -v "$cand" >/dev/null 2>&1 && \
+         "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+        PYBIN="$(command -v "$cand")"
+        break
+      fi
+    done
+  fi
+  if [ ! -x "$PYBIN" ]; then
+    echo "maintenance: no Python >=3.10 interpreter found" >&2
+    exit 1
+  fi
+  "$PYBIN" -m venv --clear .venv
+  .venv/bin/pip install -r scripts/requirements-dev.txt
+  .venv/bin/pip install -e .
 knowledge:
   - name: build
     contents: |
-      PYENV_VERSION=3.10.16 python3 setup.py --name
-      PYENV_VERSION=3.10.16 python3 -m py_compile scripts/*.py
+      .venv/bin/python setup.py --name
+      .venv/bin/python -m py_compile scripts/*.py
   - name: lint
     contents: |
-      PYENV_VERSION=3.10.16 python3 -m black --check scripts
-      PYENV_VERSION=3.10.16 python3 -m flake8 scripts/
+      .venv/bin/python -m black --check scripts
+      .venv/bin/python -m flake8 scripts/
   - name: test
     contents: |
-      PYENV_VERSION=3.10.16 python3 -m pytest scripts/tests/ -v
+      .venv/bin/python -m pytest scripts/tests/ -v
   - name: test-status
     contents: |
-      Full suite passes (155 tests on Python 3.10 and 3.11).
+      Full suite passes (152 tests, verified on the VM's Homebrew Python 3.12).
   - name: python-version
     contents: |
-      Use Python 3.10 or 3.11. Runtime dependencies (pandas, numpy, openpyxl) are pinned with exact versions in scripts/requirements.txt; dev/test/lint tools live in scripts/requirements-dev.txt. setup.py only installs the runtime set.
+      Deps live in the repo-local .venv (Homebrew Python 3.12 on the VM); CI additionally validates 3.10/3.11, and all pinned versions support 3.10-3.13. Runtime dependencies (pandas, numpy, openpyxl) are pinned with exact versions in scripts/requirements.txt; dev/test/lint tools live in scripts/requirements-dev.txt. setup.py only installs the runtime set.
 
 runs-on: macos
 # One-time setup (e.g., install system tools, global CLIs).

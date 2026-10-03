@@ -14,6 +14,10 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-02 [\#535](https://github.com/abhimehro/series_correction_project_updated/issues/535)
+- Daily QA & Agentic Review — 2026-10-01 [\#528](https://github.com/abhimehro/series_correction_project_updated/issues/528)
+- Daily QA & Agentic Review — 2026-09-30 [\#525](https://github.com/abhimehro/series_correction_project_updated/issues/525)
+- Daily QA & Agentic Review — 2026-09-29 [\#505](https://github.com/abhimehro/series_correction_project_updated/issues/505)
 - Daily QA & Agentic Review — 2026-09-27 [\#497](https://github.com/abhimehro/series_correction_project_updated/issues/497)
 - Daily QA & Agentic Review — 2026-09-26 [\#493](https://github.com/abhimehro/series_correction_project_updated/issues/493)
 - Daily QA & Agentic Review — 2026-09-25 [\#490](https://github.com/abhimehro/series_correction_project_updated/issues/490)
@@ -94,9 +98,23 @@
 
 **Merged pull requests:**
 
+- fix\(export\): skip dot-prefixed and Excel lock files in export\_comparisons [\#537](https://github.com/abhimehro/series_correction_project_updated/pull/537) ([abhimehro](https://github.com/abhimehro))
+- chore\(codacy\): allow pytest asserts \(B101\) in test directories [\#536](https://github.com/abhimehro/series_correction_project_updated/pull/536) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps-dev\): bump pytest-mock from 3.15.1 to 3.16.0 in /scripts [\#531](https://github.com/abhimehro/series_correction_project_updated/pull/531) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps-dev\): bump flake8 from 7.3.0 to 7.4.1 in /scripts [\#530](https://github.com/abhimehro/series_correction_project_updated/pull/530) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps-dev\): bump pylint from 4.0.8 to 4.0.9 in /scripts [\#529](https://github.com/abhimehro/series_correction_project_updated/pull/529) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ⚡ Bolt: eliminate redundant valid\_mask in outlier z-score calculation [\#526](https://github.com/abhimehro/series_correction_project_updated/pull/526) ([abhimehro](https://github.com/abhimehro))
+- fix\(blueprint\): ASCII-only maintenance comments for zsh build runner [\#523](https://github.com/abhimehro/series_correction_project_updated/pull/523) ([abhimehro](https://github.com/abhimehro))
+- Fix PEP 668 failure: install deps into a repo-local .venv [\#522](https://github.com/abhimehro/series_correction_project_updated/pull/522) ([abhimehro](https://github.com/abhimehro))
+- Revert ruby/setup-ruby workflow action bump [\#521](https://github.com/abhimehro/series_correction_project_updated/pull/521) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.324.0 to 1.327.0 [\#502](https://github.com/abhimehro/series_correction_project_updated/pull/502) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.3 to 1.1.4 [\#498](https://github.com/abhimehro/series_correction_project_updated/pull/498) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Automated Daily QA Review [\#494](https://github.com/abhimehro/series_correction_project_updated/pull/494) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: pre-compile regex in generate\_overview\_table.py [\#491](https://github.com/abhimehro/series_correction_project_updated/pull/491) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps\): bump ruby/setup-ruby from 1.324.0 to 1.325.0 [\#483](https://github.com/abhimehro/series_correction_project_updated/pull/483) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Daily QA Review Verification [\#479](https://github.com/abhimehro/series_correction_project_updated/pull/479) ([abhimehro](https://github.com/abhimehro))
 - chore\(devin\): install actionlint on macOS [\#478](https://github.com/abhimehro/series_correction_project_updated/pull/478) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: optimize file discovery in export\_comparisons [\#474](https://github.com/abhimehro/series_correction_project_updated/pull/474) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize outlier mask calculation in export\_comparison\_sheets [\#472](https://github.com/abhimehro/series_correction_project_updated/pull/472) ([abhimehro](https://github.com/abhimehro))
 - docs: align AGENTS lint command and test counts with setup.cfg [\#471](https://github.com/abhimehro/series_correction_project_updated/pull/471) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump ruby/setup-ruby from 1.323.0 to 1.324.0 [\#470](https://github.com/abhimehro/series_correction_project_updated/pull/470) ([dependabot[bot]](https://github.com/apps/dependabot))
