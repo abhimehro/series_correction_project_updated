@@ -266,7 +266,7 @@ def export_comparisons():
     processed_files = [
         os.path.join(OUTPUT_DIR, f)
         for f in os.listdir(OUTPUT_DIR)
-        if f.endswith(".xlsx")
+        if f.endswith(".xlsx") and not f.startswith(".") and not f.startswith("~$")
     ]
     for proc_file in processed_files:
         _process_single_file(proc_file)

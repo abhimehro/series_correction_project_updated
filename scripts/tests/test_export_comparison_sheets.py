@@ -131,3 +131,29 @@ def test_export_comparisons(tmp_path, monkeypatch):
     assert len(calls) == 2
     assert any("file1.xlsx" in c for c in calls)
     assert any("file2.xlsx" in c for c in calls)
+
+
+def test_export_comparisons_skips_hidden_and_lock_files(tmp_path, monkeypatch):
+    """export_comparisons must ignore dot-prefixed and Excel lock (~$) files."""
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+
+    calls = []
+
+    def mock_process_single_file(filepath):
+        calls.append(filepath)
+
+    monkeypatch.setattr("scripts.export_comparison_sheets.OUTPUT_DIR", str(output_dir))
+    monkeypatch.setattr(
+        "scripts.export_comparison_sheets._process_single_file",
+        mock_process_single_file,
+    )
+
+    (output_dir / "file1.xlsx").touch()
+    (output_dir / "._a.xlsx").touch()
+    (output_dir / "~$b.xlsx").touch()
+
+    export_comparisons()
+
+    assert len(calls) == 1
+    assert calls[0].endswith("file1.xlsx")
