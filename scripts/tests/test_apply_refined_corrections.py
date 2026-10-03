@@ -136,6 +136,41 @@ def test_load_identified_outliers_file_not_found(capsys):
     assert "Error: The file 'non_existent_file.csv' was not found." in captured.out
 
 
+def test_load_identified_outliers_path_traversal():
+    """Verify load_identified_outliers rejects path traversal attempts."""
+    with pytest.raises(ValueError, match="Path traversal detected"):
+        load_identified_outliers("../../../etc/passwd")
+
+
+def test_load_identified_outliers_empty_outliers(tmp_path, capsys, monkeypatch):
+    """Test that a CSV with differences < 0.1 returns an empty DataFrame and prints message."""
+    monkeypatch.setattr("os.getcwd", lambda: str(tmp_path))
+    data = {"Year_Pair": ["1995 (Y01) to 1996 (Y02)"], "Sensor 01": [0.01]}
+    csv_file = tmp_path / "test_data_no_outliers.csv"
+    pd.DataFrame(data).to_csv(csv_file, index=False)
+
+    df = load_identified_outliers(str(csv_file))
+    assert df.empty
+
+    captured = capsys.readouterr()
+    assert "No outliers (|Difference| >= 0.1) found." in captured.out
+
+
+def test_load_identified_outliers_success(tmp_path, capsys, monkeypatch):
+    """Test that load_identified_outliers successfully returns outliers and prints message."""
+    monkeypatch.setattr("os.getcwd", lambda: str(tmp_path))
+    data = {"Year_Pair": ["1995 (Y01) to 1996 (Y02)"], "Sensor 01": [0.5]}
+    csv_file = tmp_path / "test_data_with_outliers.csv"
+    pd.DataFrame(data).to_csv(csv_file, index=False)
+
+    df = load_identified_outliers(str(csv_file))
+    assert not df.empty
+    assert len(df) == 1
+
+    captured = capsys.readouterr()
+    assert "Successfully loaded 1 outliers." in captured.out
+
+
 @pytest.mark.parametrize(
     "test_case",
     [
@@ -149,8 +184,11 @@ def test_load_identified_outliers_file_not_found(capsys):
         ),
     ],
 )
-def test_load_identified_outliers_missing_columns(tmp_path, capsys, test_case):
+def test_load_identified_outliers_missing_columns(
+    tmp_path, capsys, test_case, monkeypatch
+):
     """Test that a CSV with missing required columns returns an empty DataFrame."""
+    monkeypatch.setattr("os.getcwd", lambda: str(tmp_path))
     data, expected_error_fragment = test_case
     csv_file = tmp_path / "test_data.csv"
     pd.DataFrame(data).to_csv(csv_file, index=False)
