@@ -112,6 +112,7 @@
 - chore\(deps\): bump ruby/setup-ruby from 1.324.0 to 1.325.0 [\#483](https://github.com/abhimehro/series_correction_project_updated/pull/483) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Daily QA Review Verification [\#479](https://github.com/abhimehro/series_correction_project_updated/pull/479) ([abhimehro](https://github.com/abhimehro))
 - chore\(devin\): install actionlint on macOS [\#478](https://github.com/abhimehro/series_correction_project_updated/pull/478) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: optimize file discovery in export\_comparisons [\#474](https://github.com/abhimehro/series_correction_project_updated/pull/474) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize outlier mask calculation in export\_comparison\_sheets [\#472](https://github.com/abhimehro/series_correction_project_updated/pull/472) ([abhimehro](https://github.com/abhimehro))
 - docs: align AGENTS lint command and test counts with setup.cfg [\#471](https://github.com/abhimehro/series_correction_project_updated/pull/471) ([cursor[bot]](https://github.com/apps/cursor))
 - chore\(deps\): bump ruby/setup-ruby from 1.323.0 to 1.324.0 [\#470](https://github.com/abhimehro/series_correction_project_updated/pull/470) ([dependabot[bot]](https://github.com/apps/dependabot))
