@@ -106,8 +106,8 @@ def test_process_single_file_escapes_malicious_comment(tmp_path, monkeypatch):
     assert result_wb["Comment"].iloc[0] == "'" + payload
 
 
-def test_export_comparisons(tmp_path, monkeypatch):
-    """Test export_comparisons correctly discovers and processes .xlsx files in OUTPUT_DIR."""
+def _mock_output_dir(tmp_path, monkeypatch):
+    """Point OUTPUT_DIR at a fresh tmp dir and capture _process_single_file calls."""
     output_dir = tmp_path / "output"
     output_dir.mkdir()
 
@@ -121,6 +121,12 @@ def test_export_comparisons(tmp_path, monkeypatch):
         "scripts.export_comparison_sheets._process_single_file",
         mock_process_single_file,
     )
+    return output_dir, calls
+
+
+def test_export_comparisons(tmp_path, monkeypatch):
+    """Test export_comparisons correctly discovers and processes .xlsx files in OUTPUT_DIR."""
+    output_dir, calls = _mock_output_dir(tmp_path, monkeypatch)
 
     (output_dir / "file1.xlsx").touch()
     (output_dir / "file2.xlsx").touch()
@@ -135,19 +141,7 @@ def test_export_comparisons(tmp_path, monkeypatch):
 
 def test_export_comparisons_skips_hidden_and_lock_files(tmp_path, monkeypatch):
     """export_comparisons must ignore dot-prefixed and Excel lock (~$) files."""
-    output_dir = tmp_path / "output"
-    output_dir.mkdir()
-
-    calls = []
-
-    def mock_process_single_file(filepath):
-        calls.append(filepath)
-
-    monkeypatch.setattr("scripts.export_comparison_sheets.OUTPUT_DIR", str(output_dir))
-    monkeypatch.setattr(
-        "scripts.export_comparison_sheets._process_single_file",
-        mock_process_single_file,
-    )
+    output_dir, calls = _mock_output_dir(tmp_path, monkeypatch)
 
     (output_dir / "file1.xlsx").touch()
     (output_dir / "._a.xlsx").touch()
