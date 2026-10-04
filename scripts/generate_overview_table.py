@@ -1,9 +1,12 @@
 import argparse
+import logging
 import re
 
 import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
+
+log = logging.getLogger(__name__)
 
 # ⚡ Bolt: Pre-compiled regex pattern to avoid repeated regex compilation inside log entry iteration loop
 _YEAR_PAIR_RE = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
@@ -124,6 +127,7 @@ def main(correction_log_path, updated_averages_csv_path):
             "Please ensure the required input files are present, or update the file paths."
         )
     except Exception:
+        log.exception("Error generating Overview table content")
         print("\nAn error occurred while generating Overview table content.")
 
     print("\n--- Script Finished ---")
