@@ -1,9 +1,15 @@
 import argparse
+import logging
 import re
 
 import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
+
+log = logging.getLogger(__name__)
+# Only configure logging if this is the first import and no handlers exist on root logger
+if not logging.getLogger().handlers and not log.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 # ⚡ Bolt: Pre-compiled regex pattern to avoid repeated regex compilation inside log entry iteration loop
 _YEAR_PAIR_RE = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
@@ -100,6 +106,13 @@ def main(correction_log_path, updated_averages_csv_path):
     Generates a refined overview table summarizing level shift strategies applied
     based on provided correction log and updated averages CSV files.
 
+    Prints the table as CSV to standard output, along with status messages.
+    Rows with unparseable year pairs are skipped and reported in a warning.
+    FileNotFoundError and other Exception subclasses raised while loading the
+    inputs or generating the table are caught and reported with a missing-file
+    or generic error message, respectively. Returns None on success or a
+    handled failure.
+
     Parameters:
     - correction_log_path (str): Path to the correction log CSV file.
     - updated_averages_csv_path (str): Path to the updated averages CSV file.
@@ -119,11 +132,17 @@ def main(correction_log_path, updated_averages_csv_path):
         _print_results(df_overview, unmatched_year_pairs)
 
     except FileNotFoundError:
+        log.error(
+            "Required input file not found: %s or %s",
+            correction_log_path,
+            updated_averages_csv_path,
+        )
         print("\nError: Required file not found.")
         print(
             "Please ensure the required input files are present, or update the file paths."
         )
     except Exception:
+        log.exception("Error generating Overview table content")
         print("\nAn error occurred while generating Overview table content.")
 
     print("\n--- Script Finished ---")
