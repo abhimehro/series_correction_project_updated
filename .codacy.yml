@@ -1,0 +1,6 @@
+---
+engines:
+  bandit:
+    exclude_paths:
+      - "tests/**"
+      - "scripts/tests/**"

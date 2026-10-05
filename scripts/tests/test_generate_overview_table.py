@@ -1,4 +1,5 @@
 import csv
+import logging
 from unittest.mock import patch
 
 import pandas as pd
@@ -81,15 +82,28 @@ def test_main_file_not_found(capsys):
 
 
 @patch("scripts.generate_overview_table.pd.read_csv")
-def test_main_generic_exception(mock_read_csv, capsys):
+def test_main_generic_exception(mock_read_csv, caplog, capsys):
     """Tests general exception handling."""
     mock_read_csv.side_effect = Exception("Test exception")
 
-    main("dummy_log.csv", "dummy_avg.csv")
+    with caplog.at_level(logging.ERROR):
+        main("dummy_log.csv", "dummy_avg.csv")
+
     captured = capsys.readouterr()
     output = captured.out
 
     assert "An error occurred while generating Overview table content." in output
+
+    # The internal log must keep the traceback (do not degrade log.exception).
+    matched = [
+        record
+        for record in caplog.records
+        if "Error generating Overview table content" in record.getMessage()
+    ]
+    assert matched, "expected the failure to be logged"
+    for record in matched:
+        assert record.exc_info is not None, "log.exception must attach a traceback"
+        assert "Test exception" in str(record.exc_info[1])
 
 
 def test_main_escapes_malicious_sensor_values(tmp_path, capsys):

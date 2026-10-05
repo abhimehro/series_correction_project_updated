@@ -26,6 +26,22 @@ def test_correct_outliers_not_empty():
     assert result["value"][1] != 100.0
 
 
+def test_correct_outliers_median_and_mean():
+    data = pd.DataFrame(
+        {"time": [1, 2, 3, 4, 5], "value": [10.0, 10.0, 100.0, 10.0, 10.0]}
+    )
+    outlier_indices = [2]
+    res_median = correct_outliers(
+        data, outlier_indices, value_col="value", window_size=5, method="median"
+    )
+    assert res_median["value"][2] == 10.0
+
+    res_mean = correct_outliers(
+        data, outlier_indices, value_col="value", window_size=5, method="mean"
+    )
+    assert res_mean["value"][2] == 10.0
+
+
 def test_correct_jumps_not_empty():
     data = pd.DataFrame({"time": [1, 2, 3], "value": [10.0, 100.0, 100.0]})
     jump_indices = [1]
