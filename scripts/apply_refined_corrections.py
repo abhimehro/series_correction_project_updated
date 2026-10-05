@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -227,6 +228,11 @@ def apply_level_shift_correction(
         )
 
     except Exception:
+        logging.exception(
+            "An unexpected error occurred while processing outlier %s, %s",
+            year_pair_str,
+            sensor_name,
+        )
         print(
             f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
         )
