@@ -107,6 +107,7 @@
 - 🛡️ Sentinel: \[security improvement\] [\#539](https://github.com/abhimehro/series_correction_project_updated/pull/539) ([abhimehro](https://github.com/abhimehro))
 - fix\(export\): skip dot-prefixed and Excel lock files in export\_comparisons [\#537](https://github.com/abhimehro/series_correction_project_updated/pull/537) ([abhimehro](https://github.com/abhimehro))
 - chore\(codacy\): allow pytest asserts \(B101\) in test directories [\#536](https://github.com/abhimehro/series_correction_project_updated/pull/536) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[security improvement\] [\#534](https://github.com/abhimehro/series_correction_project_updated/pull/534) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps-dev\): bump pytest-mock from 3.15.1 to 3.16.0 in /scripts [\#531](https://github.com/abhimehro/series_correction_project_updated/pull/531) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump flake8 from 7.3.0 to 7.4.1 in /scripts [\#530](https://github.com/abhimehro/series_correction_project_updated/pull/530) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pylint from 4.0.8 to 4.0.9 in /scripts [\#529](https://github.com/abhimehro/series_correction_project_updated/pull/529) ([dependabot[bot]](https://github.com/apps/dependabot))
