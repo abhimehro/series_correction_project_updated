@@ -101,6 +101,7 @@
 
 **Merged pull requests:**
 
+- Simplify and strengthen overview exception assertions [\#545](https://github.com/abhimehro/series_correction_project_updated/pull/545) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - 🛡️ Sentinel: \[security improvement\] [\#542](https://github.com/abhimehro/series_correction_project_updated/pull/542) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize Pandas Series to NumPy array conversion [\#541](https://github.com/abhimehro/series_correction_project_updated/pull/541) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[security improvement\] [\#539](https://github.com/abhimehro/series_correction_project_updated/pull/539) ([abhimehro](https://github.com/abhimehro))
