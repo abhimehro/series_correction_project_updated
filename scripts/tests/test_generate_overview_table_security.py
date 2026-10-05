@@ -6,31 +6,20 @@ from scripts.generate_overview_table import main
 
 @patch("scripts.generate_overview_table.pd.read_csv")
 def test_main_generic_exception_logs_exception(mock_read_csv, caplog, capsys):
-    """Tests that generic exceptions are logged with log.exception while preserving generic output."""
-    mock_read_csv.side_effect = Exception(
-        "Sensitive internal database connection error"
-    )
+    """Log exception details while keeping stdout generic."""
+    error = Exception("Sensitive internal database connection error")
+    mock_read_csv.side_effect = error
 
     with caplog.at_level(logging.ERROR):
         main("dummy_log.csv", "dummy_avg.csv")
 
-    captured = capsys.readouterr()
-    output = captured.out
-
-    # Verify generic user output
+    output = capsys.readouterr().out
     assert "An error occurred while generating Overview table content." in output
+    assert str(error) not in output
 
-    # Verify exception was captured in log
-    assert any(
-        "Error generating Overview table content" in record.message
-        for record in caplog.records
-    )
-    assert any(
-        "Sensitive internal database connection error" in record.message
-        or (
-            record.exc_info
-            and "Sensitive internal database connection error"
-            in str(record.exc_info[1])
-        )
-        for record in caplog.records
-    )
+    (record,) = caplog.records
+    assert record.name == "scripts.generate_overview_table"
+    assert record.levelno == logging.ERROR
+    assert record.getMessage() == "Error generating Overview table content"
+    assert record.exc_info is not None
+    assert record.exc_info[1] is error
