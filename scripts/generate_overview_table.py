@@ -132,6 +132,11 @@ def main(correction_log_path, updated_averages_csv_path):
         _print_results(df_overview, unmatched_year_pairs)
 
     except FileNotFoundError:
+        log.error(
+            "Required input file not found: %s or %s",
+            correction_log_path,
+            updated_averages_csv_path,
+        )
         print("\nError: Required file not found.")
         print(
             "Please ensure the required input files are present, or update the file paths."
