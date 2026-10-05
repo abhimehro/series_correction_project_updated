@@ -7,6 +7,9 @@ import pandas as pd
 from scripts.spreadsheet_safety import write_csv_safely
 
 log = logging.getLogger(__name__)
+# Only configure logging if this is the first import and no handlers exist on root logger
+if not logging.getLogger().handlers and not log.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 # ⚡ Bolt: Pre-compiled regex pattern to avoid repeated regex compilation inside log entry iteration loop
 _YEAR_PAIR_RE = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
