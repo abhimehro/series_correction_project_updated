@@ -435,7 +435,13 @@ def _enrich_config_with_river_mappings(config_data):
     resolved = os.path.realpath(rm_map_path)
 
     # SECURITY: Prevent path traversal (CWE-22) when loading river mile map configuration
-    if os.path.commonpath([base_dir, resolved]) != base_dir:
+    try:
+        if os.path.commonpath([base_dir, resolved]) != base_dir:
+            log.warning(
+                "Path traversal detected for RIVER_MILE_MAP_PATH: %r", rm_map_path
+            )
+            return
+    except ValueError:
         log.warning("Path traversal detected for RIVER_MILE_MAP_PATH: %r", rm_map_path)
         return
 
