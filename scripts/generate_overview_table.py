@@ -103,6 +103,13 @@ def main(correction_log_path, updated_averages_csv_path):
     Generates a refined overview table summarizing level shift strategies applied
     based on provided correction log and updated averages CSV files.
 
+    Prints the table as CSV to standard output, along with status messages.
+    Rows with unparseable year pairs are skipped and reported in a warning.
+    FileNotFoundError and other Exception subclasses raised while loading the
+    inputs or generating the table are caught and reported with a missing-file
+    or generic error message, respectively. Returns None on success or a
+    handled failure.
+
     Parameters:
     - correction_log_path (str): Path to the correction log CSV file.
     - updated_averages_csv_path (str): Path to the updated averages CSV file.
