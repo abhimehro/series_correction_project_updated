@@ -134,3 +134,8 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-16 - Invalidating initial warm-up elements on rolled arrays
+
+**Learning:** When shifting NumPy statistics arrays using `np.roll(arr, 1)`, setting `arr[:window_size] = np.nan` explicitly invalidates the wrapped-around elements and initial warm-up period. This eliminates the memory and compute overhead of constructing separate boolean index masks like `np.arange(n) >= window_size`.
+**Action:** Always invalidate warm-up slices directly on rolled arrays instead of generating separate integer/boolean masks.
