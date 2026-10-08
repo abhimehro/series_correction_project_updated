@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import tempfile
 
 import pandas as pd
 
@@ -17,6 +18,23 @@ CORRECTION_LOG_PATH = "../correction_log_refined_shift.csv"  # Updated path
 YTY_DIFF_CSV_PATH = (
     "../Seatek_Analysis_Summary.xlsx - Year-to-Year Differences.csv"  # Updated path
 )
+
+
+def _validate_path(path, base_dir=None):
+    """Validate path against base directory or temp dir to prevent path traversal (CWE-22)."""
+    if base_dir is None:
+        base_dir = os.getcwd()
+    base_dir = os.path.realpath(base_dir)
+    temp_dir = os.path.realpath(tempfile.gettempdir())
+    resolved = os.path.realpath(path)
+    try:
+        in_base = os.path.commonpath([base_dir, resolved]) == base_dir
+        in_temp = os.path.commonpath([temp_dir, resolved]) == temp_dir
+        if not (in_base or in_temp):
+            raise ValueError("Path traversal detected")
+    except ValueError:
+        raise ValueError("Path traversal detected") from None
+    return resolved
 
 
 def calculate_non_zero_average(series):
@@ -37,8 +55,9 @@ def find_sensor_columns(columns):
     ]
 
 
-def load_identified_outliers(csv_path):
+def load_identified_outliers(csv_path, base_dir=None):
     """Loads and melts the year-to-year differences CSV to identify outliers."""
+    _validate_path(csv_path, base_dir=base_dir)
     try:
         df_yty_diff = pd.read_csv(csv_path)
         actual_cols = df_yty_diff.columns.tolist()
@@ -78,8 +97,9 @@ def load_identified_outliers(csv_path):
         return pd.DataFrame()
 
 
-def build_raw_file_map(data_dir):
+def build_raw_file_map(data_dir, base_dir=None):
     """Creates a mapping of series and year number to raw data file paths."""
+    _validate_path(data_dir, base_dir=base_dir)
     raw_file_map = {}
     all_raw_files = [
         os.path.join(data_dir, f)
