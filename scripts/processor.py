@@ -122,19 +122,19 @@ def _calculate_jump_deviations(
     window_size: int,
     n: int,
 ) -> np.ndarray:
-    # ⚡ Bolt: Vectorize normalized deviation calculation before CUSUM loop
+    # ⚡ Bolt: Invalidate wrapped-around elements and initial warm-up period directly on shifted arrays
+    # to eliminate the memory and compute overhead of constructing a separate valid_mask array.
     mean_prev_window = np.roll(rolling_mean, 1)
+    mean_prev_window[:window_size] = np.nan
     std_prev_window = np.roll(rolling_std, 1)
+    std_prev_window[:window_size] = np.nan
 
-    valid_mask = np.arange(n) >= window_size
-
-    deviations = np.zeros(n)
-    np.subtract(values, mean_prev_window, out=deviations, where=valid_mask)
+    deviations = values - mean_prev_window
 
     normalized_dev = np.zeros(n)
 
     with np.errstate(invalid="ignore"):
-        std_mask = (std_prev_window > 1e-6) & valid_mask & ~np.isnan(std_prev_window)
+        std_mask = (std_prev_window > 1e-6) & ~np.isnan(std_prev_window)
 
     np.divide(deviations, std_prev_window, out=normalized_dev, where=std_mask)
     return normalized_dev
