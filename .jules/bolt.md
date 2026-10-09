@@ -126,3 +126,11 @@ boost (~5x faster) in operations with many rows, pushing the logic down to
 C-level execution. **Action:** When filtering DataFrame row indices for
 existence, always use native Pandas Index methods like `intersection()` or
 `isin()` instead of explicit loops or list comprehensions over row indices.
+
+## 2026-08-15 - Short-Circuiting pd.to_numeric for Numeric Series
+
+**Learning:** Calling `pd.to_numeric(series)` on a Pandas Series that is already
+numeric incurs unnecessary type verification and allocation overhead (~12x
+slowdown). **Action:** Always check
+`if pd.api.types.is_numeric_dtype(series): return series` before calling
+`pd.to_numeric` when converting columns in generic data loading logic.

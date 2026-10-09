@@ -227,10 +227,12 @@ def _calculate_outlier_indices(
         # our required nullification behavior directly.
         rolling_median = np.median(windows, axis=1)
 
-    z_scores, valid_mask = _calculate_outlier_z_scores(
+    z_scores = _calculate_outlier_z_scores(
         values_np, rolling_median, window_size, threshold
     )
-    outlier_mask = valid_mask & (z_scores > threshold)
+    # ⚡ Bolt: Rely on IEEE 754 NaN comparison (z_scores > threshold returns False for NaNs)
+    # to eliminate redundant valid_mask allocation and bitwise AND operation.
+    outlier_mask = z_scores > threshold
     return np.where(outlier_mask)[0].tolist()
 
 
@@ -258,7 +260,8 @@ def detect_outliers(
     if not _validate_outlier_inputs(n, window_size):
         return []
 
-    values_np = data[value_col].astype(float).to_numpy(copy=True)
+    # ⚡ Bolt: Converting Series directly via to_numpy(dtype=float) avoids intermediate Pandas Series allocation and redundant copying compared to astype(float).to_numpy()
+    values_np = data[value_col].to_numpy(dtype=float, copy=True)
     outliers = _calculate_outlier_indices(values_np, window_size, threshold)
 
     if outliers:
@@ -383,8 +386,8 @@ def correct_jumps(
     if not sorted_jump_indices:
         return result_df
 
-    # Cast to float to avoid UFuncOutputCastingError if the data was originally ints
-    values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+    # ⚡ Bolt: Converting Series directly via to_numpy(dtype=float) avoids intermediate Pandas Series allocation and redundant copying compared to astype(float).to_numpy()
+    values_np = result_df[value_col].to_numpy(dtype=float, copy=True)
 
     # ⚡ Bolt: Vectorized offset calculation for all jumps
     valid_jumps = np.array(sorted_jump_indices)
@@ -472,7 +475,8 @@ def correct_outliers(
         log.info("Outliers replaced with NaN.")
 
     elif method in ["median", "mean"]:
-        values_np = result_df[value_col].astype(float).to_numpy(copy=True)
+        # ⚡ Bolt: Converting Series directly via to_numpy(dtype=float) avoids intermediate Pandas Series allocation and redundant copying compared to astype(float).to_numpy()
+        values_np = result_df[value_col].to_numpy(dtype=float, copy=True)
         values_np = _calculate_outlier_replacements(
             values_np, outlier_indices, window_size, method
         )
