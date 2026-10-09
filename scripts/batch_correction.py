@@ -14,6 +14,7 @@ scripts/tests/test_batch_correction.py.
 # ---------------------------------------------------------------------------
 import json
 import logging
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -430,14 +431,17 @@ def _load_and_enrich_config(config_path):
 
 
 # NOTE: committed map is JSON. CSV remains for configs that set RIVER_MILE_MAP_PATH.
-_DEFAULT_RIVER_MILE_MAP = "scripts/river_mile_map.json"
+_DEFAULT_RIVER_MILE_MAP = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "river_mile_map.json"
+)
 
 
 def _enrich_config_with_river_mappings(config_data: dict[str, Any]) -> None:
     """Update config_data in place with mappings from an optional map file.
 
-    RIVER_MILE_MAP_PATH defaults to ``scripts/river_mile_map.json``; relative
-    paths use the current working directory. An empty or non-string path,
+    RIVER_MILE_MAP_PATH defaults to the packaged ``river_mile_map.json``;
+    explicitly configured relative paths use the current working directory.
+    An empty or non-string path,
     or a path that is not a file, leaves the configuration unchanged.
     A case-insensitive ``.json`` suffix selects the JSON loader, which replaces
     SENSOR_TO_RIVER only. Other files use the CSV loader, which also replaces
@@ -458,11 +462,13 @@ def _load_river_map_json(config_data: dict[str, Any], rm_map_path: str) -> None:
     """Replace config_data's SENSOR_TO_RIVER from the UTF-8 JSON at rm_map_path.
 
     The file must contain an object with a nonempty SENSOR_TO_RIVER object.
-    Its entries are copied without validating sensor IDs or river mile values;
-    other configuration keys, including RIVER_TO_SENSORS, are left unchanged.
+    Sensor IDs must be integer-convertible strings and river mile values must
+    be finite numbers or numeric strings, excluding booleans. All entries are
+    validated before replacing the map; other configuration keys, including
+    RIVER_TO_SENSORS, are left unchanged.
 
     Raises:
-        ProcessingError: The JSON is malformed or has an invalid map structure.
+        ProcessingError: The JSON, map structure, or any map entry is invalid.
         OSError: The file cannot be opened or read.
         UnicodeDecodeError: The file cannot be decoded as UTF-8.
     """
@@ -479,6 +485,15 @@ def _load_river_map_json(config_data: dict[str, Any], rm_map_path: str) -> None:
     # disable river-mile filtering while looking like a successful load.
     if not isinstance(sensor_to_river, dict) or not sensor_to_river:
         raise ProcessingError("River mile map JSON missing SENSOR_TO_RIVER")
+    for sensor_id, river_mile in sensor_to_river.items():
+        try:
+            int(sensor_id)
+            if isinstance(river_mile, bool) or not math.isfinite(float(river_mile)):
+                raise ValueError("River mile must be a finite number")
+        except (TypeError, ValueError, OverflowError) as err:
+            raise ProcessingError(
+                f"River mile map JSON has an invalid SENSOR_TO_RIVER entry: {sensor_id!r}"
+            ) from err
     config_data["SENSOR_TO_RIVER"] = sensor_to_river
 
 

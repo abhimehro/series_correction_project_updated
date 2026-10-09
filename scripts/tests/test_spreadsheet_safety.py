@@ -67,6 +67,7 @@ def test_batch_process_escapes_formula_like_raw_cells(tmp_path, monkeypatch):
         json.dumps(
             {
                 "RAW_DATA_DIR": str(data_dir),
+                "RIVER_MILE_MAP_PATH": "",
                 "SENSOR_TO_RIVER": {"26": 54.0},
                 "defaults": {
                     "window_size": 5,
