@@ -134,3 +134,7 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Leverage IEEE 754 comparisons to bypass explicit NaN masks
+
+**Learning:** Creating boolean masks using `np.arange(n) >= window_size` or `~np.isnan(arr)` alongside threshold checks introduces redundant array allocations, bitwise AND operations, and array scans. **Action:** Leverage IEEE 754 floating-point comparison semantics (where any comparison with `NaN` evaluates to `False`) by setting warm-up values to `NaN` directly (`std_prev_window[:window_size] = np.nan`) and applying threshold checks directly (`std_prev_window > 1e-6`).
