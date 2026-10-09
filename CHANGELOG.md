@@ -14,6 +14,7 @@
 
 **Closed issues:**
 
+- Narrow try/except in RIVER\_MILE\_MAP\_PATH loading to stop mislabeling CSV errors [\#553](https://github.com/abhimehro/series_correction_project_updated/issues/553)
 - Daily QA & Agentic Review — 2026-10-04 [\#543](https://github.com/abhimehro/series_correction_project_updated/issues/543)
 - Daily QA & Agentic Review — 2026-10-03 [\#540](https://github.com/abhimehro/series_correction_project_updated/issues/540)
 - Daily QA & Agentic Review — 2026-10-02 [\#535](https://github.com/abhimehro/series_correction_project_updated/issues/535)
