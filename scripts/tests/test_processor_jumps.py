@@ -15,6 +15,8 @@ def test_calculate_jump_deviations():
         values, rolling_mean, rolling_std, window_size, n
     )
     assert len(deviations) == n
+    np.testing.assert_array_equal(deviations[:window_size], np.zeros(window_size))
+    np.testing.assert_allclose(deviations[4], (10.0 - 4.0) / 5.196)
 
 
 def test_detect_jumps_empty_or_small():
