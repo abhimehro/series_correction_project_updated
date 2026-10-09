@@ -5,7 +5,9 @@ Unit tests for the batch_correction module.
 
 import fnmatch
 import importlib
+import json
 import os
+from pathlib import Path
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -617,6 +619,11 @@ def test_batch_process_config_not_found(mock_dependencies, mock_config_loader, c
     Test scenario where config file is not found.
     """
     mock_config_loader.side_effect = FileNotFoundError()
+    # mock_dependencies marks every path as present and stubs open() to empty
+    # bytes. The committed JSON map must not be parsed from that stub.
+    mock_dependencies["isfile"].side_effect = (
+        lambda path: not str(path).endswith("river_mile_map.json")
+    )
 
     series_selection = 26
     river_miles = None
@@ -731,3 +738,102 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+def test_enrich_loads_committed_json_map(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default map path is the committed JSON, so river-mile filters work."""
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    monkeypatch.chdir(repo_root)
+    config: dict = {}
+    bc._enrich_config_with_river_mappings(config)
+    assert config["SENSOR_TO_RIVER"]["1"] == 54.0
+    series = _determine_series_to_process("all", [54.0], config, repo_root)
+    assert series == [1, 2]
+
+
+def test_enrich_missing_map_leaves_config_unchanged() -> None:
+    """A configured path that is not on disk must not invent a map."""
+    config = {"RIVER_MILE_MAP_PATH": "scripts/does_not_exist_river_map.csv"}
+    bc._enrich_config_with_river_mappings(config)
+    assert "SENSOR_TO_RIVER" not in config
+
+
+def test_enrich_rejects_json_without_sensor_map(tmp_path: Path) -> None:
+    """A JSON file without SENSOR_TO_RIVER fails closed."""
+    bad_map = tmp_path / "map.json"
+    bad_map.write_text("{}", encoding="utf-8")
+    config = {"RIVER_MILE_MAP_PATH": str(bad_map)}
+    with pytest.raises(bc.ProcessingError, match="SENSOR_TO_RIVER"):
+        bc._enrich_config_with_river_mappings(config)
+
+
+@pytest.mark.parametrize(
+    "invalid_entry",
+    [
+        {"invalid": 54.0},
+        {"1.5": 54.0},
+        {"": 54.0},
+        {"1": "invalid"},
+        {"1": None},
+        {"1": []},
+        {"1": {}},
+        {"1": True},
+        {"1": False},
+        {"1": float("nan")},
+        {"1": float("inf")},
+        {"1": float("-inf")},
+        {"1": "NaN"},
+        {"1": "1e309"},
+        {"1": 10**400},
+    ],
+)
+@pytest.mark.parametrize("include_valid_entry", [False, True])
+def test_enrich_rejects_invalid_json_entries_before_replacing_map(
+    tmp_path: Path, invalid_entry: dict, include_valid_entry: bool
+) -> None:
+    """Invalid maps cannot reach series selection or partially replace config."""
+    sensor_map = {"2": 53.0} if include_valid_entry else {}
+    sensor_map.update(invalid_entry)
+    map_path = tmp_path / "map.json"
+    map_path.write_text(json.dumps({"SENSOR_TO_RIVER": sensor_map}), encoding="utf-8")
+    original = {"3": 51.9}
+    config = {"RIVER_MILE_MAP_PATH": str(map_path), "SENSOR_TO_RIVER": original}
+
+    with pytest.raises(bc.ProcessingError, match="invalid SENSOR_TO_RIVER entry"):
+        bc._enrich_config_with_river_mappings(config)
+
+    assert config["SENSOR_TO_RIVER"] is original
+
+
+def test_enrich_default_map_outside_repository(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The packaged default supports explicit filters from any directory."""
+    monkeypatch.chdir(tmp_path)
+    config: dict = {}
+    bc._enrich_config_with_river_mappings(config)
+
+    series = _determine_series_to_process([1, 2, 3], [54.0], config, str(tmp_path))
+    assert series == [1, 2]
+
+
+def test_enrich_configured_relative_json_map(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Explicit relative paths and numeric strings retain their behavior."""
+    monkeypatch.chdir(tmp_path)
+    sensor_map = {"1": "54.0", "2": 53}
+    (tmp_path / "custom.JSON").write_text(
+        json.dumps({"SENSOR_TO_RIVER": sensor_map}), encoding="utf-8"
+    )
+    original_reverse_map = {"51.9": [3]}
+    config = {
+        "RIVER_MILE_MAP_PATH": "custom.JSON",
+        "SENSOR_TO_RIVER": {"3": 51.9},
+        "RIVER_TO_SENSORS": original_reverse_map,
+    }
+    bc._enrich_config_with_river_mappings(config)
+
+    assert config["SENSOR_TO_RIVER"] == sensor_map
+    assert config["RIVER_TO_SENSORS"] is original_reverse_map
+    assert _determine_series_to_process([1, 2], [54.0], config, str(tmp_path)) == [1]
