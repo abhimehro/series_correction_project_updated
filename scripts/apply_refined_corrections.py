@@ -1,44 +1,73 @@
 import logging
 import os
 import re
+import tempfile
 
 import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
 
-# Define directories (adjust paths if your local structure is different)
-DATA_DIR = "../data"  # Updated path
-# The script will generate corrected files in a new directory
-CORRECTED_OUTPUT_DIR = "../corrected_output_refined_shift"  # Updated path
-# The script will generate a log file
-CORRECTION_LOG_PATH = "../correction_log_refined_shift.csv"  # Updated path
-
-# --- Load Identified Outliers ---
+DATA_DIR = "../data"
+CORRECTED_OUTPUT_DIR = "../corrected_output_refined_shift"
+CORRECTION_LOG_PATH = "../correction_log_refined_shift.csv"
 YTY_DIFF_CSV_PATH = (
-    "../Seatek_Analysis_Summary.xlsx - Year-to-Year Differences.csv"  # Updated path
+    "../Seatek_Analysis_Summary.xlsx - Year-to-Year Differences.csv"
 )
+
+_YEAR_PAIR_REGEX = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
+_FILE_PATTERN = re.compile(r"(S\d+)_Y(\d+)\.txt")
+
+
+def _is_path_safe(resolved, base_dir):
+    temp_dir = os.path.realpath(tempfile.gettempdir())
+    try:
+        in_base = os.path.commonpath([base_dir, resolved]) == base_dir
+        in_temp = os.path.commonpath([temp_dir, resolved]) == temp_dir
+        return in_base or in_temp
+    except ValueError:
+        return False
+
+
+def _validate_path(path, base_dir=None):
+    if base_dir is None:
+        base_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+    else:
+        base_dir = os.path.realpath(base_dir)
+    resolved = os.path.realpath(path)
+    if not _is_path_safe(resolved, base_dir):
+        raise ValueError("Path traversal detected")
+    return resolved
 
 
 def calculate_non_zero_average(series):
-    """Calculates the average of a pandas Series, excluding zero values, coercing to numeric."""
     numeric_series = pd.to_numeric(series, errors="coerce").dropna()
-    non_zero_values = numeric_series[numeric_series != 0]
-    if not non_zero_values.empty:
-        return non_zero_values.mean()
-
-    return 0.0  # Return 0 if all non-NaN values are zero or series is empty
+    non_zero = numeric_series[numeric_series != 0]
+    return non_zero.mean() if not non_zero.empty else 0.0
 
 
 def find_sensor_columns(columns):
-    return [
-        col
-        for col in columns
-        if col.startswith("Sensor ") and col[len("Sensor ") :].isdigit()
-    ]
+    return [c for c in columns if c.startswith("Sensor ") and c[7:].isdigit()]
 
 
-def load_identified_outliers(csv_path):
-    """Loads and melts the year-to-year differences CSV to identify outliers."""
+def _melt_and_filter_outliers(df_yty_diff, sensor_cols):
+    df_melted = df_yty_diff.melt(
+        id_vars=["Year_Pair"],
+        value_vars=sensor_cols,
+        var_name="Sensor",
+        value_name="Difference",
+    )
+    outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
+    msg = (
+        "No outliers (|Difference| >= 0.1) found."
+        if outliers_df.empty
+        else f"Successfully loaded {len(outliers_df)} outliers."
+    )
+    print(msg)
+    return outliers_df
+
+
+def load_identified_outliers(csv_path, base_dir=None):
+    _validate_path(csv_path, base_dir=base_dir)
     try:
         df_yty_diff = pd.read_csv(csv_path)
         actual_cols = df_yty_diff.columns.tolist()
@@ -52,23 +81,7 @@ def load_identified_outliers(csv_path):
             print(f"Error: 'Year_Pair' column not found in {csv_path}.")
             return pd.DataFrame()
 
-        df_melted = df_yty_diff.melt(
-            id_vars=["Year_Pair"],
-            value_vars=sensor_cols,
-            var_name="Sensor",
-            value_name="Difference",
-        )
-
-        # NaN.abs() is NaN and NaN >= 0.1 is False, so NaN rows are already
-        # excluded by the abs() filter; no separate dropna is needed.
-        outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
-
-        if outliers_df.empty:
-            print("No outliers (|Difference| >= 0.1) found.")
-        else:
-            print(f"Successfully loaded {len(outliers_df)} outliers.")
-
-        return outliers_df
+        return _melt_and_filter_outliers(df_yty_diff, sensor_cols)
 
     except FileNotFoundError:
         print(f"Error: The file '{csv_path}' was not found.")
@@ -78,29 +91,19 @@ def load_identified_outliers(csv_path):
         return pd.DataFrame()
 
 
-def build_raw_file_map(data_dir):
-    """Creates a mapping of series and year number to raw data file paths."""
+def build_raw_file_map(data_dir, base_dir=None):
+    _validate_path(data_dir, base_dir=base_dir)
     raw_file_map = {}
-    all_raw_files = [
-        os.path.join(data_dir, f)
-        for f in os.listdir(data_dir)
-        if f.startswith("S") and "_Y" in f and f.endswith(".txt")
-    ]
-    file_pattern = re.compile(r"(S\d+)_Y(\d+)\.txt")
-    for raw_file_path in all_raw_files:
-        file_name = os.path.basename(raw_file_path)
-        file_match = file_pattern.match(file_name)
-        if file_match:
-            series_id = file_match.group(1)
-            year_num = int(file_match.group(2))
-            if series_id not in raw_file_map:
-                raw_file_map[series_id] = {}
-            raw_file_map[series_id][year_num] = raw_file_path
+    for f in os.listdir(data_dir):
+        if f.startswith("S") and "_Y" in f and f.endswith(".txt"):
+            m = _FILE_PATTERN.match(f)
+            if m:
+                series_id, year_num = m.group(1), int(m.group(2))
+                raw_file_map.setdefault(series_id, {})[year_num] = os.path.join(data_dir, f)
     return raw_file_map
 
 
 def load_raw_dataframes(raw_file_map):
-    """Loads each raw file once so corrections to the same file are preserved."""
     dataframes = {}
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
@@ -110,45 +113,29 @@ def load_raw_dataframes(raw_file_map):
     return dataframes
 
 
-_YEAR_PAIR_REGEX = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
-
-
 def parse_year_pair(year_pair_str):
-    """Parses the Year_Pair string into previous and next year numbers."""
-    pair_match = _YEAR_PAIR_REGEX.match(year_pair_str)
-    if not pair_match:
+    m = _YEAR_PAIR_REGEX.match(year_pair_str)
+    if not m:
         return None
-
-    y1_full, y1_yy, y2_full, y2_yy = map(int, pair_match.groups())
-
-    if y1_full < y2_full:
-        return y1_yy, y2_yy
-
-    return y2_yy, y1_yy
+    y1_full, y1_yy, y2_full, y2_yy = map(int, m.groups())
+    return (y1_yy, y2_yy) if y1_full < y2_full else (y2_yy, y1_yy)
 
 
 def parse_sensor_index(sensor_name):
     try:
-        sensor_idx = int(sensor_name.replace("Sensor ", "")) - 1
+        idx = int(sensor_name.replace("Sensor ", "")) - 1
+        return idx if 0 <= idx < 32 else None
     except ValueError:
         return None
 
-    if not 0 <= sensor_idx < 32:
-        return None
-
-    return sensor_idx
-
 
 def find_year_files(raw_file_map, prev_yy, next_yy, sorted_series_ids=None):
-    # Preserve deterministic series preference (S26 before S27) regardless of
-    # filesystem/os.listdir ordering.
     if sorted_series_ids is None:
         sorted_series_ids = sorted(raw_file_map)
     for series_id in sorted_series_ids:
         year_files = raw_file_map.get(series_id, {})
         if prev_yy in year_files and next_yy in year_files:
             return series_id, year_files[prev_yy], year_files[next_yy]
-
     return None, None, None
 
 
@@ -169,7 +156,6 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
     df_prev, df_next = dfs
     sensor_idx, next_file, series_id = metadata
     outlier_info, parsed_years = outlier_data
-
     year_pair_str, sensor_name, orig_diff = outlier_info
     prev_yy, next_yy = parsed_years
 
@@ -181,8 +167,6 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
     shift = prev_avg - next_avg
 
     df_next[sensor_idx] = pd.to_numeric(df_next[sensor_idx], errors="coerce") + shift
-    output_name = output_file_name(next_file)
-
     return {
         "Series": series_id,
         "Year_Pair_Outlier": year_pair_str,
@@ -190,7 +174,7 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
         "Original_Difference_Summary": orig_diff,
         "Calculated_Level_Shift": shift,
         "Correction_Type": "Level Shift",
-        "File_Corrected": output_name,
+        "File_Corrected": output_file_name(next_file),
         "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
     }
 
@@ -198,15 +182,11 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
 def apply_level_shift_correction(
     outlier_info, raw_file_map, raw_dataframes, sorted_series_ids=None
 ):
-    """Calculates and applies level shift correction for a single outlier."""
-
     year_pair_str, sensor_name, orig_diff = outlier_info
     parsed_years = parse_year_pair(year_pair_str)
-    if not parsed_years:
-        return None
-
     sensor_idx = parse_sensor_index(sensor_name)
-    if sensor_idx is None:
+
+    if not parsed_years or sensor_idx is None:
         return None
 
     prev_yy, next_yy = parsed_years
@@ -218,43 +198,32 @@ def apply_level_shift_correction(
         return None
 
     try:
-        df_prev = raw_dataframes[prev_file]
-        df_next = raw_dataframes[next_file]
-
         return _calculate_and_apply_shift(
-            (df_prev, df_next),
+            (raw_dataframes[prev_file], raw_dataframes[next_file]),
             (sensor_idx, next_file, series_id),
             (outlier_info, parsed_years),
         )
-
     except Exception:
         logging.exception(
             "An unexpected error occurred while processing outlier %s, %s",
             year_pair_str,
             sensor_name,
         )
-        print(
-            f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
-        )
+        print(f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}.")
         return None
 
 
 def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, output_dir):
-    """Writes each corrected dataframe whose output filename appears in
-    ``applied_corrections``. ``None`` entries (e.g. from skipped outliers) are
-    ignored so callers can pass unfiltered results safely."""
-    corrected_names = {
-        correction["File_Corrected"]
-        for correction in applied_corrections
-        if correction is not None
-    }
+    corrected_names = {c["File_Corrected"] for c in applied_corrections if c is not None}
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
             name = output_file_name(file_path)
             if name in corrected_names:
-                output_path = os.path.join(output_dir, name)
                 write_csv_safely(
-                    raw_dataframes[file_path], output_path, index=False, header=False
+                    raw_dataframes[file_path],
+                    os.path.join(output_dir, name),
+                    index=False,
+                    header=False,
                 )
 
 
