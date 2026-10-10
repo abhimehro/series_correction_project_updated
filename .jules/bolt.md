@@ -134,3 +134,13 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Invalidate shifted array slices over boolean index masks
+
+**Learning:** Constructing a explicit boolean index mask like `np.arange(n) >= window_size`
+to filter initial window positions after `np.roll(arr, 1)` allocates an extra boolean array
+and forces bitwise AND operations across the array. Setting `arr[:window_size] = np.nan` directly
+invalidates the shifted wrapped-around elements and initial warmup slice, allowing IEEE 754
+comparison operators (e.g., `> 1e-6`) to evaluate `NaN` to `False` automatically. **Action:**
+When shifting rolling statistics arrays, directly invalidate the initial window slice with `np.nan`
+and wrap calculations in `np.errstate(invalid="ignore")` to eliminate boolean mask array allocations.
