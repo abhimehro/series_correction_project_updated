@@ -31,7 +31,19 @@ def test_load_config_nonexistent_outside_base_dir(tmp_path, monkeypatch):
     base_dir.mkdir()
     monkeypatch.setattr(os, "getcwd", lambda: str(base_dir))
 
-    # Attempt to load non-existent path outside base_dir
+    # Attempt to load non-existent path outside base_dir.
+    # Must raise ValueError("Path traversal detected") rather than FileNotFoundError.
     outside_path = str(tmp_path / "nonexistent.json")
     with pytest.raises(ValueError, match="Path traversal detected"):
         load_config(outside_path)
+
+
+def test_load_config_nonexistent_inside_base_dir(tmp_path, monkeypatch):
+    base_dir = tmp_path / "app_dir"
+    base_dir.mkdir()
+    monkeypatch.setattr(os, "getcwd", lambda: str(base_dir))
+
+    # Attempting to load non-existent path inside base_dir raises FileNotFoundError
+    inside_path = str(base_dir / "nonexistent.json")
+    with pytest.raises(FileNotFoundError):
+        load_config(inside_path)
