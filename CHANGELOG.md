@@ -105,7 +105,12 @@
 
 **Merged pull requests:**
 
+- docs: correct where the CLI writes corrected workbooks [\#577](https://github.com/abhimehro/series_correction_project_updated/pull/577) ([cursor[bot]](https://github.com/apps/cursor))
+- ⚡ Bolt: optimize jump deviations calculation [\#568](https://github.com/abhimehro/series_correction_project_updated/pull/568) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[security improvement\] [\#566](https://github.com/abhimehro/series_correction_project_updated/pull/566) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[HIGH\] Fix path traversal check order in loaders.py [\#563](https://github.com/abhimehro/series_correction_project_updated/pull/563) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps-dev\): bump black from 26.5.1 to 26.10.0 in /scripts [\#559](https://github.com/abhimehro/series_correction_project_updated/pull/559) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps-dev\): bump pylint from 4.0.9 to 4.1.2 in /scripts [\#558](https://github.com/abhimehro/series_correction_project_updated/pull/558) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Simplify and strengthen overview exception assertions [\#545](https://github.com/abhimehro/series_correction_project_updated/pull/545) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - 🛡️ Sentinel: \[security improvement\] [\#542](https://github.com/abhimehro/series_correction_project_updated/pull/542) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize Pandas Series to NumPy array conversion [\#541](https://github.com/abhimehro/series_correction_project_updated/pull/541) ([abhimehro](https://github.com/abhimehro))
