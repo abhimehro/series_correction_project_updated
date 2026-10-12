@@ -134,3 +134,7 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Array Slicing vs np.roll for Windowed Deviations
+
+**Learning:** Using `np.roll()` to shift 1D rolling statistics arrays creates full temporary array copies and requires manual warm-up element overwrites, introducing unnecessary memory allocation and compute overhead (~35% slowdown). **Action:** When aligning rolling window statistics with current values (e.g. comparing `values[w:n]` with `rolling_stat[w-1:n-1]`), use direct NumPy array slicing instead of `np.roll()` to eliminate temporary array allocations and in-place warm-up overwrites.
