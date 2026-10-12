@@ -14,6 +14,9 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-11 [\#570](https://github.com/abhimehro/series_correction_project_updated/issues/570)
+- Daily QA & Agentic Review — 2026-10-10 [\#567](https://github.com/abhimehro/series_correction_project_updated/issues/567)
+- Daily QA & Agentic Review — 2026-10-09 [\#562](https://github.com/abhimehro/series_correction_project_updated/issues/562)
 - Narrow try/except in RIVER\_MILE\_MAP\_PATH loading to stop mislabeling CSV errors [\#553](https://github.com/abhimehro/series_correction_project_updated/issues/553)
 - Daily QA & Agentic Review — 2026-10-04 [\#543](https://github.com/abhimehro/series_correction_project_updated/issues/543)
 - Daily QA & Agentic Review — 2026-10-03 [\#540](https://github.com/abhimehro/series_correction_project_updated/issues/540)
@@ -102,6 +105,7 @@
 
 **Merged pull requests:**
 
+- 🛡️ Sentinel: \[security improvement\] [\#566](https://github.com/abhimehro/series_correction_project_updated/pull/566) ([abhimehro](https://github.com/abhimehro))
 - Simplify and strengthen overview exception assertions [\#545](https://github.com/abhimehro/series_correction_project_updated/pull/545) ([coderabbitai[bot]](https://github.com/apps/coderabbitai))
 - 🛡️ Sentinel: \[security improvement\] [\#542](https://github.com/abhimehro/series_correction_project_updated/pull/542) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize Pandas Series to NumPy array conversion [\#541](https://github.com/abhimehro/series_correction_project_updated/pull/541) ([abhimehro](https://github.com/abhimehro))
