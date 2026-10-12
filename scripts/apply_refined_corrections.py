@@ -74,6 +74,9 @@ def load_identified_outliers(csv_path):
         print(f"Error: The file '{csv_path}' was not found.")
         return pd.DataFrame()
     except Exception:
+        logging.exception(
+            "An unexpected error occurred while loading outliers from %s", csv_path
+        )
         print("An unexpected error occurred while loading outliers.")
         return pd.DataFrame()
 

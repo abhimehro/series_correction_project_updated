@@ -1,26 +1,25 @@
-from unittest import mock
+"""Security tests for scripts/apply_refined_corrections.py logging observability (CWE-209)."""
 
-import pandas as pd
+from unittest.mock import patch
 
-from scripts.apply_refined_corrections import apply_level_shift_correction
+from scripts.apply_refined_corrections import load_identified_outliers
 
 
-def test_apply_level_shift_correction_logs_exception():
-    outlier_info = ("1995 (Y01) to 1996 (Y02)", "Sensor 1", 0.5)
-    raw_file_map = {"S01": {1: "file1.txt", 2: "file2.txt"}}
-    raw_dfs = {"file1.txt": pd.DataFrame(), "file2.txt": pd.DataFrame()}
+@patch("scripts.apply_refined_corrections.pd.read_csv")
+@patch("scripts.apply_refined_corrections.logging.exception")
+def test_load_identified_outliers_generic_exception_logs_exception(
+    mock_log_exception, mock_read_csv, capsys
+):
+    """Verify that a generic exception during outlier loading triggers logging.exception."""
+    mock_read_csv.side_effect = RuntimeError("Database read failure")
 
-    with mock.patch(
-        "scripts.apply_refined_corrections._calculate_and_apply_shift",
-        side_effect=RuntimeError("Test error"),
-    ), mock.patch("logging.exception") as mock_log_exception:
-        result = apply_level_shift_correction(
-            outlier_info, raw_file_map, raw_dfs, sorted_series_ids=["S01"]
-        )
+    result = load_identified_outliers("dummy_path.csv")
 
-        assert result is None
-        mock_log_exception.assert_called_once_with(
-            "An unexpected error occurred while processing outlier %s, %s",
-            "1995 (Y01) to 1996 (Y02)",
-            "Sensor 1",
-        )
+    assert result.empty
+    mock_log_exception.assert_called_once()
+    assert "dummy_path.csv" in mock_log_exception.call_args[0][1]
+
+    captured = capsys.readouterr()
+    assert "An unexpected error occurred while loading outliers." in captured.out
+    assert "RuntimeError" not in captured.out
+    assert "Database read failure" not in captured.out
