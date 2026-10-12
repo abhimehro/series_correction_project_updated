@@ -33,7 +33,9 @@ database, no Docker required. See `README.md` for full details.
 - **Test path**: Primary suite is under `scripts/tests/`, not root `tests/`
   (root `tests/` only covers scaffolding helpers).
 - **Data files**: `.txt` sensor data files in `data/` are committed for Series
-  26 and 27. Output goes to `data/output/`.
+  26 and 27. The CLI writes `Year_*_Data.xlsx` into that same data directory
+  (`BatchConfig.output_dir` is unset). `scripts/manual_batch_run.py` is the
+  entry that sets `output_dir` to `data/output/`.
 - Deps live in the repo-local `.venv` (created by the Install deps row or the
   Devin blueprint's maintenance step). Use `.venv/bin/...` commands — bare
   `python3`/`pip3` fails with `externally-managed-environment` on
