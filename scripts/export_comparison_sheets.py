@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import warnings
@@ -7,6 +8,8 @@ from numpy.lib.stride_tricks import sliding_window_view
 from pandas import concat, merge, read_csv, read_excel
 
 from scripts.spreadsheet_safety import write_excel_safely
+
+log = logging.getLogger(__name__)
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
@@ -174,6 +177,7 @@ def load_raw_file(raw_file):
         print(f"[WARN] Could not load raw file {raw_file}")
         return None
     except Exception:
+        log.exception("Unexpected error loading raw file %s", raw_file)
         print(f"[WARN] Unexpected error loading raw file {raw_file}")
         return None
 
@@ -185,6 +189,7 @@ def load_processed_file(proc_file):
         print(f"[WARN] Could not load processed file {proc_file}")
         return None
     except Exception:
+        log.exception("Unexpected error loading processed file %s", proc_file)
         print(f"[WARN] Unexpected error loading processed file {proc_file}")
         return None
 
