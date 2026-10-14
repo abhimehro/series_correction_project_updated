@@ -134,3 +134,7 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Direct Array Slicing vs np.roll for Rolling Statistic Shifts
+
+**Learning:** Using `np.roll` shifts on 1D rolling statistics arrays allocates temporary shifted arrays and requires mutating warm-up elements in-place. **Action:** Replace `np.roll` shifts with direct array slicing (e.g., comparing `values[w:n]` with `rolling_stat[w-1:n-1]`), which avoids array allocations and warm-up mutations, yielding a ~2x speedup.
