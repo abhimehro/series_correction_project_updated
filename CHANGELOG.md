@@ -110,6 +110,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps-dev\): bump black from 26.10.0 to 26.10.1 in /scripts [\#603](https://github.com/abhimehro/series_correction_project_updated/pull/603) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pylint from 4.1.2 to 4.1.3 in /scripts [\#601](https://github.com/abhimehro/series_correction_project_updated/pull/601) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs: correct where the CLI writes corrected workbooks [\#577](https://github.com/abhimehro/series_correction_project_updated/pull/577) ([cursor[bot]](https://github.com/apps/cursor))
 - ⚡ Bolt: optimize jump deviations calculation [\#568](https://github.com/abhimehro/series_correction_project_updated/pull/568) ([abhimehro](https://github.com/abhimehro))
