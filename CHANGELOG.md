@@ -14,6 +14,11 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-16 [\#606](https://github.com/abhimehro/series_correction_project_updated/issues/606)
+- Daily QA & Agentic Review — 2026-10-15 [\#600](https://github.com/abhimehro/series_correction_project_updated/issues/600)
+- Daily QA & Agentic Review — 2026-10-14 [\#594](https://github.com/abhimehro/series_correction_project_updated/issues/594)
+- Daily QA & Agentic Review — 2026-10-13 [\#591](https://github.com/abhimehro/series_correction_project_updated/issues/591)
+- Daily QA & Agentic Review — 2026-10-12 [\#588](https://github.com/abhimehro/series_correction_project_updated/issues/588)
 - Daily QA & Agentic Review — 2026-10-11 [\#570](https://github.com/abhimehro/series_correction_project_updated/issues/570)
 - Daily QA & Agentic Review — 2026-10-10 [\#567](https://github.com/abhimehro/series_correction_project_updated/issues/567)
 - Daily QA & Agentic Review — 2026-10-09 [\#562](https://github.com/abhimehro/series_correction_project_updated/issues/562)
@@ -105,6 +110,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps-dev\): bump pylint from 4.1.2 to 4.1.3 in /scripts [\#601](https://github.com/abhimehro/series_correction_project_updated/pull/601) ([dependabot[bot]](https://github.com/apps/dependabot))
 - docs: correct where the CLI writes corrected workbooks [\#577](https://github.com/abhimehro/series_correction_project_updated/pull/577) ([cursor[bot]](https://github.com/apps/cursor))
 - ⚡ Bolt: optimize jump deviations calculation [\#568](https://github.com/abhimehro/series_correction_project_updated/pull/568) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[security improvement\] [\#566](https://github.com/abhimehro/series_correction_project_updated/pull/566) ([abhimehro](https://github.com/abhimehro))
