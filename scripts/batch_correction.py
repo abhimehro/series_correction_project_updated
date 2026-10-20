@@ -12,7 +12,9 @@ scripts/tests/test_batch_correction.py.
 # ---------------------------------------------------------------------------
 # Imports
 # ---------------------------------------------------------------------------
+import json
 import logging
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -428,17 +430,89 @@ def _load_and_enrich_config(config_path):
     return config_data
 
 
-def _enrich_config_with_river_mappings(config_data):
-    """Enrich configuration with river mile mappings if available."""
-    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    if os.path.isfile(rm_map_path):
-        rm_df = pd.read_csv(rm_map_path)
-        config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
-            "RIVER_MILE"
-        ].to_dict()
-        config_data["RIVER_TO_SENSORS"] = (
-            rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
-        )
+# NOTE: committed map is JSON. CSV remains for configs that set RIVER_MILE_MAP_PATH.
+_DEFAULT_RIVER_MILE_MAP = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "river_mile_map.json"
+)
+
+
+def _enrich_config_with_river_mappings(config_data: dict[str, Any]) -> None:
+    """Update config_data in place with mappings from an optional map file.
+
+    RIVER_MILE_MAP_PATH defaults to the packaged ``river_mile_map.json``;
+    explicitly configured relative paths use the current working directory.
+    An empty or non-string path,
+    or a path that is not a file, leaves the configuration unchanged.
+    A case-insensitive ``.json`` suffix selects the JSON loader, which replaces
+    SENSOR_TO_RIVER only. Other files use the CSV loader, which also replaces
+    RIVER_TO_SENSORS. Errors from either loader propagate to the caller.
+    """
+    rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", _DEFAULT_RIVER_MILE_MAP)
+    if not isinstance(rm_map_path, str) or not rm_map_path:
+        return
+    if not os.path.isfile(rm_map_path):
+        return
+    if rm_map_path.lower().endswith(".json"):
+        _load_river_map_json(config_data, rm_map_path)
+        return
+    _load_river_map_csv(config_data, rm_map_path)
+
+
+def _load_river_map_json(config_data: dict[str, Any], rm_map_path: str) -> None:
+    """Replace config_data's SENSOR_TO_RIVER from the UTF-8 JSON at rm_map_path.
+
+    The file must contain an object with a nonempty SENSOR_TO_RIVER object.
+    Sensor IDs must be integer-convertible strings and river mile values must
+    be finite numbers or numeric strings, excluding booleans. All entries are
+    validated before replacing the map; other configuration keys, including
+    RIVER_TO_SENSORS, are left unchanged.
+
+    Raises:
+        ProcessingError: The JSON, map structure, or any map entry is invalid.
+        OSError: The file cannot be opened or read.
+        UnicodeDecodeError: The file cannot be decoded as UTF-8.
+    """
+    try:
+        with open(rm_map_path, encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except json.JSONDecodeError as err:
+        log.exception("River mile map is not valid JSON: %s", rm_map_path)
+        raise ProcessingError("River mile map JSON is not valid") from err
+    if not isinstance(payload, dict):
+        raise ProcessingError("River mile map JSON must be an object")
+    sensor_to_river = payload.get("SENSOR_TO_RIVER")
+    # SECURITY: reject unexpected shapes so a swapped file cannot silently
+    # disable river-mile filtering while looking like a successful load.
+    if not isinstance(sensor_to_river, dict) or not sensor_to_river:
+        raise ProcessingError("River mile map JSON missing SENSOR_TO_RIVER")
+    for sensor_id, river_mile in sensor_to_river.items():
+        try:
+            int(sensor_id)
+            if isinstance(river_mile, bool) or not math.isfinite(float(river_mile)):
+                raise ValueError("River mile must be a finite number")
+        except (TypeError, ValueError, OverflowError) as err:
+            raise ProcessingError(
+                f"River mile map JSON has an invalid SENSOR_TO_RIVER entry: {sensor_id!r}"
+            ) from err
+    config_data["SENSOR_TO_RIVER"] = sensor_to_river
+
+
+def _load_river_map_csv(config_data: dict[str, Any], rm_map_path: str) -> None:
+    """Load a CSV map with SENSOR_ID and RIVER_MILE columns from rm_map_path.
+
+    Replace config_data's SENSOR_TO_RIVER and RIVER_TO_SENSORS in place with
+    sensor-to-mile values and mile-to-sensor lists, respectively. Duplicate
+    sensor IDs keep the last mile value in SENSOR_TO_RIVER; grouped sensor
+    lists retain duplicates. File reading and CSV parsing errors propagate.
+
+    Raises:
+        KeyError: A required SENSOR_ID or RIVER_MILE column is missing.
+    """
+    rm_df = pd.read_csv(rm_map_path)
+    config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")["RIVER_MILE"].to_dict()
+    config_data["RIVER_TO_SENSORS"] = (
+        rm_df.groupby("RIVER_MILE")["SENSOR_ID"].agg(list).to_dict()
+    )
 
 
 def _ensure_output_directory(output_dir, dry_run):

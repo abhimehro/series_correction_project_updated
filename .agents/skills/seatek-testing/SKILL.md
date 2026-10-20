@@ -59,7 +59,7 @@ pip install -e .
 python3 -m pytest scripts/tests/ -v
 ```
 
-Expected result: 149 passed.
+Expected result: 155 passed.
 
 ## Run lint / format checks
 

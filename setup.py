@@ -126,6 +126,7 @@ def main() -> None:
         license=LICENSE,
         packages=PACKAGES,
         include_package_data=True,
+        package_data={"scripts": ["river_mile_map.json"]},
         install_requires=INSTALL_REQUIRES,
         entry_points={
             "console_scripts": [
