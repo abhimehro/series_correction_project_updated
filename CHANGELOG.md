@@ -110,6 +110,8 @@
 
 **Merged pull requests:**
 
+- chore\(deps\): bump ruby/setup-ruby from 1.328.0 to 1.335.0 [\#620](https://github.com/abhimehro/series_correction_project_updated/pull/620) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore\(deps\): bump actions/setup-python from 7.0.0 to 7.1.0 [\#616](https://github.com/abhimehro/series_correction_project_updated/pull/616) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.6 to 1.1.9 [\#614](https://github.com/abhimehro/series_correction_project_updated/pull/614) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps-dev\): bump pytest-mock from 3.16.0 to 3.17.0 in /scripts [\#613](https://github.com/abhimehro/series_correction_project_updated/pull/613) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: optimize jump deviation calculation with array slicing [\#604](https://github.com/abhimehro/series_correction_project_updated/pull/604) ([abhimehro](https://github.com/abhimehro))
