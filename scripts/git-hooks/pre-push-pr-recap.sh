@@ -7,6 +7,8 @@ set -euo pipefail
 # 1. git push --no-verify  (native git flag)
 # 2. PR_RECAP_SKIP=1 git push
 # 3. SKIP_PR_RECAP=1 git push
+# Personal install override (not a committed path):
+# 4. PR_RECAP_BIN=/path/to/pr-recap git push
 if [[ ${PR_RECAP_SKIP:-0} == "1" ]] || [[ ${SKIP_PR_RECAP:-0} == "1" ]]; then
 	exit 0
 fi
@@ -18,9 +20,13 @@ else
 	REPO_ROOT="$(pwd)"
 fi
 
-# Discover pr-recap executable
+# Discover pr-recap. Order: explicit PR_RECAP_BIN, repo-relative, PATH,
+# ~/bin, ~/.local/bin, then the user-local Gemini CLI install.
+# Never probe a machine-specific absolute path.
 RECAP_BIN=""
-if [[ -x "${REPO_ROOT}/pr-recap" ]]; then
+if [[ -n ${PR_RECAP_BIN:-} && -x ${PR_RECAP_BIN} ]]; then
+	RECAP_BIN="${PR_RECAP_BIN}"
+elif [[ -x "${REPO_ROOT}/pr-recap" ]]; then
 	RECAP_BIN="${REPO_ROOT}/pr-recap"
 elif [[ -x "${REPO_ROOT}/scripts/pr-recap" ]]; then
 	RECAP_BIN="${REPO_ROOT}/scripts/pr-recap"
@@ -32,8 +38,6 @@ elif [[ -x "${HOME}/.local/bin/pr-recap" ]]; then
 	RECAP_BIN="${HOME}/.local/bin/pr-recap"
 elif [[ -x "${HOME}/.gemini/antigravity-cli/bin/pr-recap" ]]; then
 	RECAP_BIN="${HOME}/.gemini/antigravity-cli/bin/pr-recap"
-elif [[ -x "/Users/speedybee/dev/personal-config/scripts/pr-recap" ]]; then
-	RECAP_BIN="/Users/speedybee/dev/personal-config/scripts/pr-recap"
 fi
 
 if [[ -z ${RECAP_BIN} ]] || [[ ! -x ${RECAP_BIN} ]]; then
