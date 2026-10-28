@@ -14,8 +14,10 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-10-27 [\#621](https://github.com/abhimehro/series_correction_project_updated/issues/621)
 - Daily QA & Agentic Review — 2026-10-16 [\#606](https://github.com/abhimehro/series_correction_project_updated/issues/606)
 - Daily QA & Agentic Review — 2026-10-15 [\#600](https://github.com/abhimehro/series_correction_project_updated/issues/600)
+- Remove hardcoded personal path from pre-push hook [\#598](https://github.com/abhimehro/series_correction_project_updated/issues/598)
 - Daily QA & Agentic Review — 2026-10-14 [\#594](https://github.com/abhimehro/series_correction_project_updated/issues/594)
 - Daily QA & Agentic Review — 2026-10-13 [\#591](https://github.com/abhimehro/series_correction_project_updated/issues/591)
 - Daily QA & Agentic Review — 2026-10-12 [\#588](https://github.com/abhimehro/series_correction_project_updated/issues/588)
@@ -110,6 +112,7 @@
 
 **Merged pull requests:**
 
+- fix\(hooks\): remove hardcoded personal path from pre-push hook [\#622](https://github.com/abhimehro/series_correction_project_updated/pull/622) ([sinatraai[bot]](https://github.com/apps/sinatraai))
 - chore\(deps\): bump ruby/setup-ruby from 1.328.0 to 1.335.0 [\#620](https://github.com/abhimehro/series_correction_project_updated/pull/620) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/setup-python from 7.0.0 to 7.1.0 [\#616](https://github.com/abhimehro/series_correction_project_updated/pull/616) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump codescene-oss/pr-refactoring-agent from 1.1.6 to 1.1.9 [\#614](https://github.com/abhimehro/series_correction_project_updated/pull/614) ([dependabot[bot]](https://github.com/apps/dependabot))
