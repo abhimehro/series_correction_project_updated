@@ -8,7 +8,6 @@ import unittest
 from pathlib import Path
 
 HOOK_SRC = Path(__file__).resolve().parents[1] / "git-hooks" / "pre-push-pr-recap.sh"
-BASH = "/usr/bin/bash"
 REMOVED = "/Users/speedybee/dev/personal-config/scripts/pr-recap"
 
 
@@ -51,11 +50,17 @@ class RecapHookTest(unittest.TestCase):
             "PR_RECAP_KEY_TIMEOUT": "1",
         }
         env.update(extra)
-        argv = [BASH, str(self.hook)]
         if env.pop("TRACE", "") == "1":
-            argv = [BASH, "-x", str(self.hook)]
+            return subprocess.run(  # nosec B603
+                ["/usr/bin/bash", "-x", "./scripts/git-hooks/pre-push-pr-recap.sh"],
+                cwd=self.root,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
         return subprocess.run(  # nosec B603
-            argv,
+            ["/usr/bin/bash", "./scripts/git-hooks/pre-push-pr-recap.sh"],
             cwd=self.root,
             env=env,
             capture_output=True,
