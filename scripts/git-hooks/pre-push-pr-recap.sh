@@ -18,9 +18,20 @@ else
 	REPO_ROOT="$(pwd)"
 fi
 
-# Discover pr-recap executable
+# Discover pr-recap. Order: explicit PR_RECAP_BIN (personal install override,
+# not a committed path), repo-relative, PATH, ~/bin, ~/.local/bin, then the
+# user-local Gemini CLI install. Never probe a machine-specific absolute path.
+#   PR_RECAP_BIN=/path/to/pr-recap git push
 RECAP_BIN=""
-if [[ -x "${REPO_ROOT}/pr-recap" ]]; then
+if [[ -n "${PR_RECAP_BIN:-}" && -x "${PR_RECAP_BIN}" ]]; then
+	# A bare name passes -x against the cwd, but bash will not execute a
+	# cwd command unless the path contains a slash.
+	if [[ "${PR_RECAP_BIN}" == */* ]]; then
+		RECAP_BIN="${PR_RECAP_BIN}"
+	else
+		RECAP_BIN="./${PR_RECAP_BIN}"
+	fi
+elif [[ -x "${REPO_ROOT}/pr-recap" ]]; then
 	RECAP_BIN="${REPO_ROOT}/pr-recap"
 elif [[ -x "${REPO_ROOT}/scripts/pr-recap" ]]; then
 	RECAP_BIN="${REPO_ROOT}/scripts/pr-recap"
@@ -32,8 +43,6 @@ elif [[ -x "${HOME}/.local/bin/pr-recap" ]]; then
 	RECAP_BIN="${HOME}/.local/bin/pr-recap"
 elif [[ -x "${HOME}/.gemini/antigravity-cli/bin/pr-recap" ]]; then
 	RECAP_BIN="${HOME}/.gemini/antigravity-cli/bin/pr-recap"
-elif [[ -x "/Users/speedybee/dev/personal-config/scripts/pr-recap" ]]; then
-	RECAP_BIN="/Users/speedybee/dev/personal-config/scripts/pr-recap"
 fi
 
 if [[ -z ${RECAP_BIN} ]] || [[ ! -x ${RECAP_BIN} ]]; then
