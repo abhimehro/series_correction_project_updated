@@ -168,7 +168,7 @@ seatek-correction --series all --river-miles 54.0 53.0 --years 1995 1996 --dry-r
 ## Configuration
 
 The processing behavior is controlled by a JSON configuration file (default:
-`scripts/config.json`). See `config.json` for the structure. Key sections
+`scripts/config.json`). See `scripts/config.json` for the structure. Key sections
 include:
 
 - **series** (Optional): Mapping series numbers to specific diagnostic or raw
@@ -410,7 +410,7 @@ Based on the audit report and potential enhancements:
 
 ### 5. For New Series or Years
 
-- Add new entries to `config.json`.
+- Add new entries to `scripts/config.json`.
 - Repeat steps 2–4. No code changes needed.
 
 ### 6. Troubleshooting & QA
