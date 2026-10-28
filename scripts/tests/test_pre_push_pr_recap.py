@@ -34,7 +34,7 @@ def _layout(tmp_path):
     return hook, home, tmp_path / "marker"
 
 
-def _run(hook, cwd, home, extra=None):
+def _run(hook, cwd, home, extra=None, trace=False):
     env = {
         "HOME": str(home),
         "PATH": "/usr/bin:/bin",
@@ -42,8 +42,9 @@ def _run(hook, cwd, home, extra=None):
     }
     if extra:
         env.update(extra)
+    argv = [BASH, "-x", str(hook)] if trace else [BASH, str(hook)]
     return subprocess.run(
-        [BASH, str(hook)],
+        argv,
         cwd=cwd,
         env=env,
         capture_output=True,
@@ -191,3 +192,13 @@ def test_bare_relative_override_runs_the_cwd_file(tmp_path):
     assert result.returncode == 0, result.stderr
     assert "command not found" not in result.stderr
     assert _lines(marker) == ["REL", "sync --pre-push"]
+
+
+def test_trace_never_probes_machine_specific_path(tmp_path):
+    """CI cannot plant /Users; the execution trace must still omit that probe."""
+    hook, home, marker = _layout(tmp_path)
+    result = _run(hook, tmp_path, home, trace=True)
+    assert result.returncode == 0, result.stderr
+    assert str(PLANTED) not in result.stderr
+    assert str(PLANTED) not in result.stdout
+    assert _lines(marker) == []
