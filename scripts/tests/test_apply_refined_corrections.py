@@ -1,11 +1,14 @@
 import csv
+import logging
 from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from scripts import apply_refined_corrections as correction_module
 from scripts.apply_refined_corrections import (
+    OutlierLoadError,
     apply_level_shift_correction,
     calculate_non_zero_average,
     load_identified_outliers,
@@ -122,15 +125,17 @@ def test_multiple_corrections_to_same_file_are_preserved(tmp_path):
     ]
     save_corrected_files(corrections, raw_file_map, raw_dataframes, tmp_path)
 
+    assert [record["Status"] for record in corrections] == ["Applied", "Applied"]
+
     corrected = pd.read_csv(tmp_path / "S26_Y02_refined_corrected.csv", header=None)
     assert corrected[0].tolist() == [10, 10, 10, 10, 10]
     assert corrected[1].tolist() == [20, 20, 20, 20, 20]
 
 
 def test_load_identified_outliers_file_not_found(capsys):
-    """Test that a missing file returns an empty DataFrame and prints an error."""
-    df = load_identified_outliers("non_existent_file.csv")
-    assert df.empty
+    """Test that a missing file raises and prints an error."""
+    with pytest.raises(OutlierLoadError):
+        load_identified_outliers("non_existent_file.csv")
 
     captured = capsys.readouterr()
     assert "Error: The file 'non_existent_file.csv' was not found." in captured.out
@@ -150,13 +155,13 @@ def test_load_identified_outliers_file_not_found(capsys):
     ],
 )
 def test_load_identified_outliers_missing_columns(tmp_path, capsys, test_case):
-    """Test that a CSV with missing required columns returns an empty DataFrame."""
+    """Test that a CSV with missing required columns raises an error."""
     data, expected_error_fragment = test_case
     csv_file = tmp_path / "test_data.csv"
     pd.DataFrame(data).to_csv(csv_file, index=False)
 
-    df = load_identified_outliers(str(csv_file))
-    assert df.empty
+    with pytest.raises(OutlierLoadError):
+        load_identified_outliers(str(csv_file))
 
     captured = capsys.readouterr()
     assert f"{expected_error_fragment} {csv_file}." in captured.out
@@ -247,10 +252,138 @@ def test_parse_year_pair_empty():
 
 @patch("pandas.read_csv")
 def test_load_identified_outliers_exception(mock_read_csv, capsys):
-    """Test that an unexpected Exception during read_csv returns an empty DataFrame and prints an error."""
+    """Test that an unexpected Exception during read_csv raises and prints an error."""
     mock_read_csv.side_effect = Exception("Mocked unexpected error")
-    df = load_identified_outliers("dummy_path.csv")
-    assert df.empty
+    with pytest.raises(OutlierLoadError):
+        load_identified_outliers("dummy_path.csv")
 
     captured = capsys.readouterr()
     assert "An unexpected error occurred while loading outliers." in captured.out
+
+
+@pytest.mark.parametrize(
+    ("outlier_info", "raw_file_map", "raw_dataframes", "expected_reason"),
+    [
+        (
+            ("invalid year pair", "Sensor 1", 0.5),
+            {},
+            {},
+            "Unparseable Year_Pair",
+        ),
+        (
+            (None, "Sensor 1", 0.5),
+            {},
+            {},
+            "Unparseable Year_Pair",
+        ),
+        (
+            ("1995 (Y01) to 1996 (Y02)", "Sensor 99", 0.5),
+            {},
+            {},
+            "Invalid sensor name",
+        ),
+        (
+            ("1995 (Y01) to 1996 (Y02)", "Sensor 1", 0.5),
+            {},
+            {},
+            "No raw files found for Y01/Y02",
+        ),
+        (
+            ("1995 (Y01) to 1996 (Y02)", "Sensor 1", 0.5),
+            {"S26": {1: "previous.txt", 2: "next.txt"}},
+            {
+                "previous.txt": pd.DataFrame({0: [1, 2, 3, 4]}),
+                "next.txt": pd.DataFrame({0: [1, 2, 3, 4]}),
+            },
+            "Insufficient rows/columns for sensor window",
+        ),
+    ],
+)
+def test_apply_level_shift_correction_skips_invalid_outliers(
+    outlier_info, raw_file_map, raw_dataframes, expected_reason, caplog
+):
+    caplog.set_level(logging.WARNING)
+
+    result = apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes)
+
+    assert result["Status"] == "Skipped"
+    assert result["Rationale"] == expected_reason
+    assert any("Skipped outlier" in record.message for record in caplog.records)
+
+
+def test_save_corrected_files_ignores_skipped_records(tmp_path):
+    raw_file = str(tmp_path / "S26_Y01.txt")
+    raw_file_map = {"S26": {1: raw_file}}
+    raw_dataframes = {raw_file: pd.DataFrame({0: [1, 2, 3]})}
+    skipped = {
+        "File_Corrected": None,
+        "Status": "Skipped",
+        "Rationale": "No raw files found for Y01/Y02",
+    }
+
+    save_corrected_files([skipped], raw_file_map, raw_dataframes, tmp_path)
+
+    assert not (tmp_path / output_file_name(raw_file)).exists()
+
+
+def _patch_main_paths(monkeypatch, tmp_path, csv_path):
+    data_dir = tmp_path / "raw"
+    data_dir.mkdir(exist_ok=True)
+    monkeypatch.setattr(correction_module, "YTY_DIFF_CSV_PATH", str(csv_path))
+    monkeypatch.setattr(correction_module, "DATA_DIR", str(data_dir))
+    monkeypatch.setattr(
+        correction_module, "CORRECTED_OUTPUT_DIR", str(tmp_path / "corrected")
+    )
+    monkeypatch.setattr(
+        correction_module, "CORRECTION_LOG_PATH", str(tmp_path / "corrections.csv")
+    )
+    return data_dir
+
+
+def test_main_returns_nonzero_when_outlier_csv_is_missing(
+    tmp_path, monkeypatch, capsys
+):
+    _patch_main_paths(monkeypatch, tmp_path, tmp_path / "missing.csv")
+
+    assert correction_module.main() == 1
+
+    captured = capsys.readouterr()
+    assert "Aborting: outlier data could not be loaded." in captured.err
+
+
+def test_main_returns_zero_when_no_outliers_are_found(tmp_path, monkeypatch):
+    csv_path = tmp_path / "differences.csv"
+    pd.DataFrame(
+        {
+            "Year_Pair": ["1995 (Y01) to 1996 (Y02)"],
+            "Sensor 01": [0.05],
+        }
+    ).to_csv(csv_path, index=False)
+    _patch_main_paths(monkeypatch, tmp_path, csv_path)
+
+    assert correction_module.main() == 0
+    assert not (tmp_path / "corrections.csv").exists()
+
+
+def test_main_logs_applied_and_skipped_outliers(tmp_path, monkeypatch, capsys):
+    csv_path = tmp_path / "differences.csv"
+    pd.DataFrame(
+        {
+            "Year_Pair": [
+                "1995 (Y01) to 1996 (Y02)",
+                "1997 (Y03) to 1998 (Y04)",
+            ],
+            "Sensor 01": [0.5, 0.7],
+        }
+    ).to_csv(csv_path, index=False)
+    data_dir = _patch_main_paths(monkeypatch, tmp_path, csv_path)
+    (data_dir / "S26_Y01.txt").write_text("1\n2\n3\n4\n5\n", encoding="utf-8")
+    (data_dir / "S26_Y02.txt").write_text("10\n11\n12\n13\n14\n", encoding="utf-8")
+
+    assert correction_module.main() == 0
+
+    records = pd.read_csv(tmp_path / "corrections.csv")
+    assert len(records) == 2
+    assert records["Status"].tolist() == ["Applied", "Skipped"]
+    captured = capsys.readouterr()
+    assert "Applied 1 correction(s); skipped 1 of 2 outlier(s)." in captured.out
