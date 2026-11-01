@@ -459,9 +459,10 @@ def test_batch_process_with_processor_module(
     assert summary_df.iloc[0]["Records"] == 5
 
 
-def test_batch_process_writes_summary_csv(
+def test_writes_summary_csv(
     mock_dependencies, mock_config_loader, mock_processor_mod, mocker
 ):
+    """Write the batch summary for a non-dry-run."""
     series_selection = 26
     river_miles = None
     years = (1995, 1995)
@@ -483,9 +484,10 @@ def test_batch_process_writes_summary_csv(
     pd.testing.assert_frame_equal(written_summary, summary_df)
 
 
-def test_batch_process_dry_run_does_not_write_summary_csv(
+def test_dry_run_skips_summary_csv(
     mock_dependencies, mock_config_loader, mock_processor_mod, mocker
 ):
+    """Skip writing the batch summary during a dry run."""
     mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
     mock_dependencies["isfile"].return_value = True
     mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
@@ -529,9 +531,9 @@ def test_batch_process_load_error(
     assert "Failed to process S26_Y01.txt" in caplog.text
 
 
+@pytest.mark.usefixtures("mock_config_loader")
 def test_batch_process_process_error(
     mock_dependencies: dict[str, mock.MagicMock],
-    mock_config_loader,
     mock_processor_mod: mock.MagicMock,
     caplog,
     mocker,
@@ -566,9 +568,10 @@ def test_batch_process_process_error(
 
 
 def test_count_failed():
-    assert bc.count_failed(None) == 0
-    assert bc.count_failed(pd.DataFrame()) == 0
-    assert bc.count_failed(pd.DataFrame({"Other": ["Failed"]})) == 0
+    """Count failed statuses and ignore missing status columns."""
+    assert not bc.count_failed(None)
+    assert not bc.count_failed(pd.DataFrame())
+    assert not bc.count_failed(pd.DataFrame({"Other": ["Failed"]}))
     summary_df = pd.DataFrame(
         {
             "Status": [

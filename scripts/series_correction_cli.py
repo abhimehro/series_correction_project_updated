@@ -5,6 +5,8 @@ import sys
 
 from .batch_correction import BatchConfig, batch_process, count_failed
 
+log = logging.getLogger(__name__)
+
 
 def main():
     """Main entry point for the series correction CLI."""
@@ -66,7 +68,7 @@ def main():
 
     failed = count_failed(summary_df)
     if failed:
-        logging.error("%d of %d files failed processing", failed, len(summary_df))
+        log.error("%d of %d files failed processing", failed, len(summary_df))
         sys.exit(1)
 
 

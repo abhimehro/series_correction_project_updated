@@ -6,6 +6,28 @@ import pandas as pd
 import scripts.series_correction_cli as cli
 
 
+def _run_main_with_summary(monkeypatch, summary_df):
+    """Run cli.main() with batch_process stubbed to return summary_df."""
+    monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
+    monkeypatch.setattr(cli, "batch_process", lambda config: summary_df)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prog",
+            "--series",
+            "all",
+            "--river-miles",
+            "1.0",
+            "2.0",
+            "--years",
+            "2010",
+            "2015",
+        ],
+    )
+    return cli.main()
+
+
 def test_main_happy_path(monkeypatch):
     # Stub logging.basicConfig to avoid writing to file
     monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
@@ -132,56 +154,21 @@ def test_main_batch_process_value_error(monkeypatch):
     assert excinfo.value.code == 1
 
 
-def test_main_exits_nonzero_when_a_file_fails(monkeypatch):
-    monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
-    monkeypatch.setattr(
-        cli,
-        "batch_process",
-        lambda config: pd.DataFrame({"Status": ["Failed (Processing Error)"]}),
-    )
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "prog",
-            "--series",
-            "all",
-            "--river-miles",
-            "1.0",
-            "2.0",
-            "--years",
-            "2010",
-            "2015",
-        ],
-    )
-
+def test_main_exits_on_failed_file(monkeypatch):
+    """Exit nonzero when a file failed."""
     with pytest.raises(SystemExit) as excinfo:
-        cli.main()
+        _run_main_with_summary(
+            monkeypatch, pd.DataFrame({"Status": ["Failed (Processing Error)"]})
+        )
 
     assert excinfo.value.code == 1
 
 
-def test_main_returns_normally_when_all_files_succeed(monkeypatch):
-    monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
-    monkeypatch.setattr(
-        cli,
-        "batch_process",
-        lambda config: pd.DataFrame({"Status": ["Processed", "Processed"]}),
+def test_main_ok_when_all_succeed(monkeypatch):
+    """Return normally when all files succeed."""
+    assert (
+        _run_main_with_summary(
+            monkeypatch, pd.DataFrame({"Status": ["Processed", "Processed"]})
+        )
+        is None
     )
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "prog",
-            "--series",
-            "all",
-            "--river-miles",
-            "1.0",
-            "2.0",
-            "--years",
-            "2010",
-            "2015",
-        ],
-    )
-
-    assert cli.main() is None
