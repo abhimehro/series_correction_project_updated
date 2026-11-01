@@ -1,6 +1,7 @@
 import sys
 
 import pytest
+import pandas as pd
 
 import scripts.series_correction_cli as cli
 
@@ -45,10 +46,14 @@ def test_main_with_dry_run_flag(monkeypatch):
     monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
     # Capture dry_run flag
     called = {}
+
+    def fake_batch(config):
+        called["dry_run"] = config.dry_run
+
     monkeypatch.setattr(
         cli,
         "batch_process",
-        lambda config: called.setdefault("dry_run", config.dry_run),
+        fake_batch,
     )
     test_args = [
         "prog",
@@ -125,3 +130,58 @@ def test_main_batch_process_value_error(monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         cli.main()
     assert excinfo.value.code == 1
+
+
+def test_main_exits_nonzero_when_a_file_fails(monkeypatch):
+    monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
+    monkeypatch.setattr(
+        cli,
+        "batch_process",
+        lambda config: pd.DataFrame({"Status": ["Failed (Processing Error)"]}),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prog",
+            "--series",
+            "all",
+            "--river-miles",
+            "1.0",
+            "2.0",
+            "--years",
+            "2010",
+            "2015",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main()
+
+    assert excinfo.value.code == 1
+
+
+def test_main_returns_normally_when_all_files_succeed(monkeypatch):
+    monkeypatch.setattr(cli.logging, "basicConfig", lambda **kwargs: None)
+    monkeypatch.setattr(
+        cli,
+        "batch_process",
+        lambda config: pd.DataFrame({"Status": ["Processed", "Processed"]}),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "prog",
+            "--series",
+            "all",
+            "--river-miles",
+            "1.0",
+            "2.0",
+            "--years",
+            "2010",
+            "2015",
+        ],
+    )
+
+    assert cli.main() is None

@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 
-from .batch_correction import BatchConfig, batch_process
+from .batch_correction import BatchConfig, batch_process, count_failed
 
 
 def main():
@@ -48,6 +48,7 @@ def main():
 
     # Ensure year range is in ascending order
     years = sorted(args.years)
+    summary_df = None
     try:
         config = BatchConfig(
             series_selection=args.series,
@@ -55,12 +56,17 @@ def main():
             years=years,
             dry_run=args.dry_run,
         )
-        batch_process(config)
+        summary_df = batch_process(config)
     except (OSError, ValueError):
         logging.exception("Known error in processing")
         sys.exit(1)
     except Exception:
         logging.exception("Unexpected error in processing")
+        sys.exit(1)
+
+    failed = count_failed(summary_df)
+    if failed:
+        logging.error("%d of %d files failed processing", failed, len(summary_df))
         sys.exit(1)
 
 
