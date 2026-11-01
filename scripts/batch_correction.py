@@ -24,6 +24,7 @@ from scripts import spreadsheet_safety
 
 # ⚡ Bolt: Compile regex once for performance
 _FILE_NAME_REGEX = re.compile(r"S(.+?)_Y(\d+)\.txt$")
+_DEFAULT_BASE_YEAR = 1995
 
 # Import optional dependencies from the helper module if possible
 try:
@@ -247,25 +248,20 @@ def _determine_series_to_process(
 
 
 def _determine_year_for_index(
-    y_index: int, reverse_year_index_map: dict, years_to_process: range
+    y_index: int, reverse_year_index_map: dict, base_year: int
 ) -> int | None:
     """Helper function to map a Y-index back to a specific year."""
     if reverse_year_index_map:
-        year = reverse_year_index_map.get(y_index)
-        if year is not None and year in years_to_process:
-            return year
-        return None
+        return reverse_year_index_map.get(y_index)
 
-    if y_index <= len(years_to_process):
-        return years_to_process[y_index - 1]
-    return None
+    return base_year + y_index - 1
 
 
 def _parse_and_validate_file(
     file_name: str,
     series_map: dict,
     reverse_year_index_map: dict,
-    years_to_process: range,
+    base_year: int,
     year_start: int,
     year_end: int,
     data_dir: str,
@@ -283,7 +279,7 @@ def _parse_and_validate_file(
         return None
 
     y_index = int(match.group(2))
-    year = _determine_year_for_index(y_index, reverse_year_index_map, years_to_process)
+    year = _determine_year_for_index(y_index, reverse_year_index_map, base_year)
 
     if year is not None and year_start <= year <= year_end:
         original_series = series_map[series_str]
@@ -300,7 +296,8 @@ def _find_files_to_process(
 ) -> list[tuple[int, int, int, str]]:
     """
     Discover S{series}_Y{index:02d}.txt files that correspond to the requested
-    years.  The simplistic mapping assumes sequential Y01, Y02… for each year.
+    years. The Y-index is anchored to the base year (Y01 = base_year, default
+    1995) or mapped through year_index_map.
 
     Args:
         series_list: List of series IDs to process
@@ -318,8 +315,16 @@ def _find_files_to_process(
         return []
 
     year_start, year_end = years
-    years_to_process = range(year_start, year_end + 1)
     year_index_map = config_data.get("year_index_map", {}) if config_data else {}
+    base_year = _DEFAULT_BASE_YEAR
+    if not year_index_map:
+        if config_data and "base_year" in config_data:
+            base_year = int(config_data["base_year"])
+        else:
+            log.warning(
+                "No 'year_index_map' or 'base_year' in config; assuming Y01 = %d",
+                _DEFAULT_BASE_YEAR,
+            )
 
     # Pre-compute reverse map for O(1) lookups
     reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
@@ -335,7 +340,7 @@ def _find_files_to_process(
             file_name,
             series_map,
             reverse_year_index_map,
-            years_to_process,
+            base_year,
             year_start,
             year_end,
             data_dir,
@@ -533,6 +538,8 @@ def _process_fallback_mode(
             if str_series_id in config_data.get("series", {}):
                 series_cfg = config_data["series"][str_series_id]
                 for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
+                    match = _FILE_NAME_REGEX.search(os.path.basename(file_path))
+                    y_index = int(match.group(2)) if match else None
                     log.info(
                         f"Fallback processing file: {file_path} (series {series_id})"
                     )
@@ -546,9 +553,8 @@ def _process_fallback_mode(
                             processed_df = processor.process_data(df, processor_config)
 
                             if not dry_run:
-                                out_name = (
-                                    f"Series{series_id}_File{i:02d}_Processed.xlsx"
-                                )
+                                file_index = y_index if y_index is not None else i
+                                out_name = f"Series{series_id}_File{file_index:02d}_Processed.xlsx"
                                 out_path = os.path.join(output_dir, out_name)
                                 spreadsheet_safety.write_excel_safely(
                                     processed_df, out_path, index=False
@@ -559,7 +565,7 @@ def _process_fallback_mode(
                                 {
                                     "Series": series_id,
                                     "Year": None,
-                                    "Y-Index": i,
+                                    "Y-Index": y_index,
                                     "Filename": os.path.basename(file_path),
                                     "Status": "Fallback Processed",
                                     "Records": len(processed_df),
@@ -571,7 +577,7 @@ def _process_fallback_mode(
                             {
                                 "Series": series_id,
                                 "Year": None,
-                                "Y-Index": i,
+                                "Y-Index": y_index,
                                 "Filename": os.path.basename(file_path),
                                 "Status": "Failed (Processing Error)",
                                 "Records": 0,

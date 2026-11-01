@@ -21,8 +21,11 @@ import scripts.loaders
 from scripts.batch_correction import (
     BatchConfig,
     _determine_series_to_process,
+    _determine_year_for_index,
+    _find_files_to_process,
     _get_data_directory,
     _load_raw_data,
+    _process_fallback_mode,
     batch_process,
 )
 
@@ -731,3 +734,73 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+def test_determine_year_for_index_uses_base_year_and_mapping():
+    assert _determine_year_for_index(1, {}, 1995) == 1995
+    assert _determine_year_for_index(6, {}, 1995) == 2000
+    assert _determine_year_for_index(3, {3: 2001}, 1995) == 2001
+    assert _determine_year_for_index(4, {3: 2001}, 1995) is None
+
+
+def test_find_files_to_process_anchors_indexes_to_default_base_year(tmp_path):
+    for y_index in (1, 6, 7, 8):
+        (tmp_path / f"S26_Y{y_index:02d}.txt").touch()
+
+    files = _find_files_to_process([26], (2000, 2001), str(tmp_path), {})
+
+    assert files == [
+        (26, 2000, 6, str(tmp_path / "S26_Y06.txt")),
+        (26, 2001, 7, str(tmp_path / "S26_Y07.txt")),
+    ]
+
+
+def test_find_files_to_process_uses_configured_base_year(tmp_path):
+    for y_index in (1, 2):
+        (tmp_path / f"S26_Y{y_index:02d}.txt").touch()
+
+    files = _find_files_to_process(
+        [26], (2000, 2000), str(tmp_path), {"base_year": 2000}
+    )
+
+    assert files == [(26, 2000, 1, str(tmp_path / "S26_Y01.txt"))]
+
+
+def test_process_fallback_mode_uses_filename_y_index(tmp_path):
+    mock_processor = MagicMock()
+    mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
+    raw_data = pd.DataFrame({"value": [1]})
+
+    with patch("scripts.batch_correction.processor", mock_processor), patch(
+        "scripts.batch_correction._load_raw_data", return_value=raw_data
+    ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
+        summary = _process_fallback_mode(
+            [26],
+            {"series": {"26": {"raw_data": ["data/S26_Y06.txt", "data/S26_Y08.txt"]}}},
+            str(tmp_path),
+            False,
+        )
+
+    assert summary["Y-Index"].tolist() == [6, 8]
+    assert [call.args[1] for call in write.call_args_list] == [
+        str(tmp_path / "Series26_File06_Processed.xlsx"),
+        str(tmp_path / "Series26_File08_Processed.xlsx"),
+    ]
+
+
+def test_process_fallback_mode_uses_filename_y_index_on_failure(tmp_path):
+    mock_processor = MagicMock()
+    mock_processor.process_data.side_effect = ValueError("processing failed")
+
+    with patch("scripts.batch_correction.processor", mock_processor), patch(
+        "scripts.batch_correction._load_raw_data",
+        return_value=pd.DataFrame({"value": [1]}),
+    ):
+        summary = _process_fallback_mode(
+            [26],
+            {"series": {"26": {"raw_data": ["data/S26_Y08.txt"]}}},
+            str(tmp_path),
+            False,
+        )
+
+    assert summary["Y-Index"].tolist() == [8]
