@@ -262,47 +262,47 @@ def test_load_identified_outliers_exception(mock_read_csv, capsys):
 
 
 @pytest.mark.parametrize(
-    ("outlier_info", "raw_file_map", "raw_dataframes", "expected_reason"),
+    ("outlier_info", "raw_inputs", "expected_reason"),
     [
         (
             ("invalid year pair", "Sensor 1", 0.5),
-            {},
-            {},
+            ({}, {}),
             "Unparseable Year_Pair",
         ),
         (
             (None, "Sensor 1", 0.5),
-            {},
-            {},
+            ({}, {}),
             "Unparseable Year_Pair",
         ),
         (
             ("1995 (Y01) to 1996 (Y02)", "Sensor 99", 0.5),
-            {},
-            {},
+            ({}, {}),
             "Invalid sensor name",
         ),
         (
             ("1995 (Y01) to 1996 (Y02)", "Sensor 1", 0.5),
-            {},
-            {},
+            ({}, {}),
             "No raw files found for Y01/Y02",
         ),
         (
             ("1995 (Y01) to 1996 (Y02)", "Sensor 1", 0.5),
-            {"S26": {1: "previous.txt", 2: "next.txt"}},
-            {
-                "previous.txt": pd.DataFrame({0: [1, 2, 3, 4]}),
-                "next.txt": pd.DataFrame({0: [1, 2, 3, 4]}),
-            },
+            (
+                {"S26": {1: "previous.txt", 2: "next.txt"}},
+                {
+                    "previous.txt": pd.DataFrame({0: [1, 2, 3, 4]}),
+                    "next.txt": pd.DataFrame({0: [1, 2, 3, 4]}),
+                },
+            ),
             "Insufficient rows/columns for sensor window",
         ),
     ],
 )
 def test_apply_level_shift_correction_skips_invalid_outliers(
-    outlier_info, raw_file_map, raw_dataframes, expected_reason, caplog
+    outlier_info, raw_inputs, expected_reason, caplog
 ):
+    """Log and return the expected skip record for invalid input."""
     caplog.set_level(logging.WARNING)
+    raw_file_map, raw_dataframes = raw_inputs
 
     result = apply_level_shift_correction(outlier_info, raw_file_map, raw_dataframes)
 
@@ -312,6 +312,7 @@ def test_apply_level_shift_correction_skips_invalid_outliers(
 
 
 def test_save_corrected_files_ignores_skipped_records(tmp_path):
+    """Ignore skipped records when writing corrected data files."""
     raw_file = str(tmp_path / "S26_Y01.txt")
     raw_file_map = {"S26": {1: raw_file}}
     raw_dataframes = {raw_file: pd.DataFrame({0: [1, 2, 3]})}
@@ -327,6 +328,7 @@ def test_save_corrected_files_ignores_skipped_records(tmp_path):
 
 
 def _patch_main_paths(monkeypatch, tmp_path, csv_path):
+    """Set main() paths to temporary test files."""
     data_dir = tmp_path / "raw"
     data_dir.mkdir(exist_ok=True)
     monkeypatch.setattr(correction_module, "YTY_DIFF_CSV_PATH", str(csv_path))
@@ -343,6 +345,7 @@ def _patch_main_paths(monkeypatch, tmp_path, csv_path):
 def test_main_returns_nonzero_when_outlier_csv_is_missing(
     tmp_path, monkeypatch, capsys
 ):
+    """Return failure when the outlier CSV cannot be loaded."""
     _patch_main_paths(monkeypatch, tmp_path, tmp_path / "missing.csv")
 
     assert correction_module.main() == 1
@@ -352,6 +355,7 @@ def test_main_returns_nonzero_when_outlier_csv_is_missing(
 
 
 def test_main_returns_zero_when_no_outliers_are_found(tmp_path, monkeypatch):
+    """Return success when the CSV contains no qualifying outliers."""
     csv_path = tmp_path / "differences.csv"
     pd.DataFrame(
         {
@@ -366,6 +370,7 @@ def test_main_returns_zero_when_no_outliers_are_found(tmp_path, monkeypatch):
 
 
 def test_main_logs_applied_and_skipped_outliers(tmp_path, monkeypatch, capsys):
+    """Log both applied and skipped outlier correction records."""
     csv_path = tmp_path / "differences.csv"
     pd.DataFrame(
         {

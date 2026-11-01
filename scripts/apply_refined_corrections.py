@@ -7,6 +7,8 @@ import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
 
+logger = logging.getLogger(__name__)
+
 
 class OutlierLoadError(Exception):
     """Raised when the outlier CSV cannot be loaded or lacks required columns."""
@@ -43,43 +45,10 @@ def find_sensor_columns(columns):
     ]
 
 
-def load_identified_outliers(csv_path):
-    """Loads and melts the year-to-year differences CSV to identify outliers."""
+def _read_outlier_csv(csv_path):
+    """Read the outlier CSV and normalize file-loading errors."""
     try:
-        df_yty_diff = pd.read_csv(csv_path)
-        actual_cols = df_yty_diff.columns.tolist()
-        sensor_cols = find_sensor_columns(actual_cols)
-
-        if not sensor_cols:
-            message = f"Error: No sensor columns found in {csv_path}."
-            print(message)
-            raise OutlierLoadError(message)
-
-        if "Year_Pair" not in actual_cols:
-            message = f"Error: 'Year_Pair' column not found in {csv_path}."
-            print(message)
-            raise OutlierLoadError(message)
-
-        df_melted = df_yty_diff.melt(
-            id_vars=["Year_Pair"],
-            value_vars=sensor_cols,
-            var_name="Sensor",
-            value_name="Difference",
-        )
-
-        # NaN.abs() is NaN and NaN >= 0.1 is False, so NaN rows are already
-        # excluded by the abs() filter; no separate dropna is needed.
-        outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
-
-        if outliers_df.empty:
-            print("No outliers (|Difference| >= 0.1) found.")
-        else:
-            print(f"Successfully loaded {len(outliers_df)} outliers.")
-
-        return outliers_df
-
-    except OutlierLoadError:
-        raise
+        return pd.read_csv(csv_path)
     except FileNotFoundError as exc:
         print(f"Error: The file '{csv_path}' was not found.")
         raise OutlierLoadError(f"Error: The file '{csv_path}' was not found.") from exc
@@ -91,6 +60,52 @@ def load_identified_outliers(csv_path):
         raise OutlierLoadError(
             "An unexpected error occurred while loading outliers."
         ) from exc
+
+
+def _require_outlier_columns(df, csv_path):
+    """Check for required sensor and year-pair columns."""
+    actual_cols = df.columns.tolist()
+    sensor_cols = find_sensor_columns(actual_cols)
+
+    if not sensor_cols:
+        message = f"Error: No sensor columns found in {csv_path}."
+        print(message)
+        raise OutlierLoadError(message)
+
+    if "Year_Pair" not in actual_cols:
+        message = f"Error: 'Year_Pair' column not found in {csv_path}."
+        print(message)
+        raise OutlierLoadError(message)
+
+    return sensor_cols
+
+
+def _filter_outliers(df, sensor_cols):
+    """Melt the input and retain year-to-year outliers."""
+    df_melted = df.melt(
+        id_vars=["Year_Pair"],
+        value_vars=sensor_cols,
+        var_name="Sensor",
+        value_name="Difference",
+    )
+
+    # NaN.abs() is NaN and NaN >= 0.1 is False, so NaN rows are already
+    # excluded by the abs() filter; no separate dropna is needed.
+    outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
+
+    if outliers_df.empty:
+        print("No outliers (|Difference| >= 0.1) found.")
+    else:
+        print(f"Successfully loaded {len(outliers_df)} outliers.")
+
+    return outliers_df
+
+
+def load_identified_outliers(csv_path):
+    """Loads and melts the year-to-year differences CSV to identify outliers."""
+    df_yty_diff = _read_outlier_csv(csv_path)
+    sensor_cols = _require_outlier_columns(df_yty_diff, csv_path)
+    return _filter_outliers(df_yty_diff, sensor_cols)
 
 
 def build_raw_file_map(data_dir):
@@ -195,7 +210,11 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
     prev_yy, next_yy = parsed_years
 
     if not has_sensor_window(df_prev, df_next, sensor_idx):
-        return None
+        return _skipped_record(
+            outlier_info,
+            series_id,
+            "Insufficient rows/columns for sensor window",
+        )
 
     prev_avg = calculate_non_zero_average(df_prev.iloc[-5:, sensor_idx])
     next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
@@ -218,8 +237,9 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
 
 
 def _skipped_record(outlier_info, series_id, reason):
+    """Build a correction-log record for a skipped outlier."""
     year_pair_str, sensor_name, orig_diff = outlier_info
-    logging.warning("Skipped outlier %s, %s: %s", year_pair_str, sensor_name, reason)
+    logger.warning("Skipped outlier %s, %s: %s", year_pair_str, sensor_name, reason)
     return {
         "Series": series_id or "",
         "Year_Pair_Outlier": year_pair_str,
@@ -263,18 +283,11 @@ def apply_level_shift_correction(
         df_prev = raw_dataframes[prev_file]
         df_next = raw_dataframes[next_file]
 
-        result = _calculate_and_apply_shift(
+        return _calculate_and_apply_shift(
             (df_prev, df_next),
             (sensor_idx, next_file, series_id),
             (outlier_info, parsed_years),
         )
-        if result is None:
-            return _skipped_record(
-                outlier_info,
-                series_id,
-                "Insufficient rows/columns for sensor window",
-            )
-        return result
 
     except Exception:
         logging.exception(
