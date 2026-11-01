@@ -731,3 +731,22 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+def test_load_and_enrich_config_file_not_found(caplog, mocker):
+    """Test that _load_and_enrich_config handles FileNotFoundError by logging a warning and returning empty config."""
+    mocker.patch(
+        "scripts.batch_correction.load_config_func", side_effect=FileNotFoundError()
+    )
+    mocker.patch("os.path.isfile", return_value=False)
+
+    config = bc._load_and_enrich_config("missing_config.json")
+
+    assert config == {}
+    warning_logged = any(
+        "Config file missing_config.json not found – continuing with empty config."
+        in record.message
+        for record in caplog.records
+        if record.levelname == "WARNING"
+    )
+    assert warning_logged
