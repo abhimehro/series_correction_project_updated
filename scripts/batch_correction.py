@@ -530,7 +530,7 @@ def batch_process(config: BatchConfig):
 
 def count_failed(summary_df: pd.DataFrame | None) -> int:
     """Return the number of summary rows whose Status starts with 'Failed'."""
-    if "Status" not in getattr(summary_df, "columns", ()):
+    if summary_df is None or "Status" not in summary_df.columns:
         return 0
     return int(summary_df["Status"].astype(str).str.startswith("Failed").sum())
 
