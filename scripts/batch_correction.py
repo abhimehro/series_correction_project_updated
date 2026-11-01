@@ -15,6 +15,7 @@ scripts/tests/test_batch_correction.py.
 import logging
 import os
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -543,20 +544,18 @@ def _process_fallback_mode(
         )
         return pd.DataFrame()
 
-    summary_records = []
     series_config = config_data["series"]
-    for series_id in series_to_process:
-        series_key = str(series_id)
-        if series_key not in series_config:
-            continue
-        for position, file_path in enumerate(
-            series_config[series_key].get("raw_data", []), start=1
-        ):
-            record = _process_fallback_file(
-                series_id, position, file_path, config_data, output_dir, dry_run
-            )
-            if record is not None:
-                summary_records.append(record)
+    context = _FallbackContext(config_data, output_dir, dry_run, processor)
+    summary_records = []
+    for series_id, position, file_path in _iter_fallback_inputs(
+        series_to_process, series_config
+    ):
+        fallback_input = _FallbackInput(
+            series_id, position, file_path, _y_index_from_path(file_path)
+        )
+        record = _process_fallback_file(fallback_input, context)
+        if record is not None:
+            summary_records.append(record)
 
     if summary_records:
         return pd.DataFrame(summary_records)
@@ -565,60 +564,113 @@ def _process_fallback_mode(
     return pd.DataFrame()
 
 
+@dataclass(frozen=True)
+class _FallbackInput:
+    """Describe one fallback input file."""
+
+    series_id: int
+    position: int
+    file_path: str
+    y_index: int | None
+
+
+@dataclass(frozen=True)
+class _FallbackContext:
+    """Provide the shared configuration for fallback processing."""
+
+    config_data: dict[str, Any]
+    output_dir: str
+    dry_run: bool
+    processor: Any
+
+
+def _iter_fallback_inputs(
+    series_to_process: list[int], series_config: dict[str, Any]
+) -> Iterator[tuple[int, int, str]]:
+    """Yield configured fallback inputs with their positions."""
+    for series_id in series_to_process:
+        raw_files = series_config.get(str(series_id), {}).get("raw_data", [])
+        for position, file_path in enumerate(raw_files, start=1):
+            yield series_id, position, file_path
+
+
 def _y_index_from_path(file_path: str) -> int | None:
     """Return the filename's Y-index when it matches the expected pattern."""
     match = _FILE_NAME_REGEX.search(os.path.basename(file_path))
     return int(match.group(2)) if match else None
 
 
-def _process_fallback_file(
-    series_id: int,
-    position: int,
-    file_path: str,
-    config_data: dict[str, Any],
-    output_dir: str,
-    dry_run: bool,
+def _fallback_summary_record(
+    fallback_input: _FallbackInput, status: str, records: int
+) -> dict[str, Any]:
+    """Build a summary record for a processed or failed input."""
+    return {
+        "Series": fallback_input.series_id,
+        "Year": None,
+        "Y-Index": fallback_input.y_index,
+        "Filename": os.path.basename(fallback_input.file_path),
+        "Status": status,
+        "Records": records,
+    }
+
+
+def _write_fallback_output(
+    processed_df: pd.DataFrame,
+    fallback_input: _FallbackInput,
+    context: _FallbackContext,
+) -> None:
+    """Write processed fallback data unless this is a dry run."""
+    if context.dry_run:
+        return
+
+    if fallback_input.y_index is not None:
+        out_name = (
+            f"Series{fallback_input.series_id}_File"
+            f"{fallback_input.y_index:02d}_Processed.xlsx"
+        )
+    else:
+        out_name = (
+            f"Series{fallback_input.series_id}_Pos"
+            f"{fallback_input.position:02d}_Processed.xlsx"
+        )
+    out_path = os.path.join(context.output_dir, out_name)
+    spreadsheet_safety.write_excel_safely(processed_df, out_path, index=False)
+    log.info("Wrote output: %s", out_path)
+
+
+def _run_fallback_file(
+    fallback_input: _FallbackInput, context: _FallbackContext
 ) -> dict[str, Any] | None:
-    """Process one fallback input and return its summary record."""
-    y_index = _y_index_from_path(file_path)
-    log.info(f"Fallback processing file: {file_path} (series {series_id})")
+    """Load, process, and write one fallback input."""
+    raw_data = _load_raw_data(fallback_input.file_path)
+    if raw_data.empty:
+        return None
 
+    processor_config = {
+        **context.config_data.get("defaults", {}),
+        **context.config_data.get("processor_config", {}),
+    }
+    processed_df = context.processor.process_data(raw_data, processor_config)
+    _write_fallback_output(processed_df, fallback_input, context)
+    return _fallback_summary_record(
+        fallback_input, "Fallback Processed", len(processed_df)
+    )
+
+
+def _process_fallback_file(
+    fallback_input: _FallbackInput, context: _FallbackContext
+) -> dict[str, Any] | None:
+    """Process one fallback file and return its summary record."""
+    log.info(
+        "Fallback processing file: %s (series %s)",
+        fallback_input.file_path,
+        fallback_input.series_id,
+    )
     try:
-        df = _load_raw_data(file_path)
-        if df.empty:
-            return None
-
-        processor_config = {
-            **config_data.get("defaults", {}),
-            **config_data.get("processor_config", {}),
-        }
-        processed_df = processor.process_data(df, processor_config)
-
-        if not dry_run:
-            file_index = y_index if y_index is not None else position
-            out_name = f"Series{series_id}_File{file_index:02d}_Processed.xlsx"
-            out_path = os.path.join(output_dir, out_name)
-            spreadsheet_safety.write_excel_safely(processed_df, out_path, index=False)
-            log.info(f"Wrote output: {out_path}")
-
-        return {
-            "Series": series_id,
-            "Year": None,
-            "Y-Index": y_index,
-            "Filename": os.path.basename(file_path),
-            "Status": "Fallback Processed",
-            "Records": len(processed_df),
-        }
+        return _run_fallback_file(fallback_input, context)
     except Exception:
-        log.exception(f"Failed to process {file_path}")
-        return {
-            "Series": series_id,
-            "Year": None,
-            "Y-Index": y_index,
-            "Filename": os.path.basename(file_path),
-            "Status": "Failed (Processing Error)",
-            "Records": 0,
-        }
+        log.exception("Failed to process %s", fallback_input.file_path)
+        return _fallback_summary_record(fallback_input, "Failed (Processing Error)", 0)
 
 
 def _process_single_file(
