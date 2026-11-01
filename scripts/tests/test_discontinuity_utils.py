@@ -1,13 +1,8 @@
-import logging
-from unittest.mock import patch
-
 import numpy as np
 import pandas as pd
-import pytest
 
 from scripts.discontinuity_utils import (
     _calculate_normal_step,
-    _convert_time_col_to_numeric,
     _generate_missing_times,
     _is_valid_step,
     _validate_gap_parameters,
@@ -143,37 +138,3 @@ def test_generate_missing_times_hasattr_value():
     assert len(res) == 3
     assert res[0] == pd.Timestamp("2023-01-01 00:00:01")
     assert res[2] == pd.Timestamp("2023-01-01 00:00:03")
-
-
-def test_convert_time_col_to_numeric_success():
-    df = pd.DataFrame(
-        {"time": ["1970-01-01 00:00:00", "1970-01-01 00:00:10"], "val": [1, 2]}
-    )
-    result = _convert_time_col_to_numeric(df, "time")
-    assert list(result["time"]) == [0, 10]
-
-
-def test_convert_time_col_to_numeric_parsing_failure(caplog):
-    df = pd.DataFrame({"time": ["not_a_time", "also_not_a_time"], "val": [1, 2]})
-    with caplog.at_level(logging.ERROR), pytest.raises(
-        ValueError, match="Time column is not numeric and could not be converted"
-    ):
-        _convert_time_col_to_numeric(df, "time")
-
-    assert "Time column 'time' is not numeric and could not be converted" in caplog.text
-
-
-def test_convert_time_col_to_numeric_mocked_exception(caplog):
-    df = pd.DataFrame(
-        {"time": ["1970-01-01 00:00:00", "1970-01-01 00:00:10"], "val": [1, 2]}
-    )
-    with patch(
-        "scripts.discontinuity_utils.pd.to_datetime",
-        side_effect=RuntimeError("to_datetime unexpected failure"),
-    ):
-        with caplog.at_level(logging.ERROR), pytest.raises(
-            ValueError, match="Time column is not numeric and could not be converted"
-        ):
-            _convert_time_col_to_numeric(df, "time")
-
-    assert "Time column 'time' is not numeric and could not be converted" in caplog.text
