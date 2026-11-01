@@ -257,6 +257,20 @@ def _determine_year_for_index(
     return base_year + y_index - 1
 
 
+def _resolve_base_year(config_data: dict[str, Any] | None, year_index_map: dict) -> int:
+    """Resolve the configured base year or use the default."""
+    if year_index_map:
+        return _DEFAULT_BASE_YEAR
+    if config_data and "base_year" in config_data:
+        return int(config_data["base_year"])
+
+    log.warning(
+        "No 'year_index_map' or 'base_year' in config; assuming Y01 = %d",
+        _DEFAULT_BASE_YEAR,
+    )
+    return _DEFAULT_BASE_YEAR
+
+
 def _parse_and_validate_file(
     file_name: str,
     series_map: dict,
@@ -316,15 +330,7 @@ def _find_files_to_process(
 
     year_start, year_end = years
     year_index_map = config_data.get("year_index_map", {}) if config_data else {}
-    base_year = _DEFAULT_BASE_YEAR
-    if not year_index_map:
-        if config_data and "base_year" in config_data:
-            base_year = int(config_data["base_year"])
-        else:
-            log.warning(
-                "No 'year_index_map' or 'base_year' in config; assuming Y01 = %d",
-                _DEFAULT_BASE_YEAR,
-            )
+    base_year = _resolve_base_year(config_data, year_index_map)
 
     # Pre-compute reverse map for O(1) lookups
     reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
@@ -531,64 +537,88 @@ def _process_fallback_mode(
     output_dir: str,
     dry_run: bool,
 ) -> pd.DataFrame:
+    if "series" not in config_data or processor is None:
+        log.warning(
+            "Fallback processing found no viable files. Returning empty DataFrame."
+        )
+        return pd.DataFrame()
+
     summary_records = []
-    if "series" in config_data and processor is not None:
-        for series_id in series_to_process:
-            str_series_id = str(series_id)
-            if str_series_id in config_data.get("series", {}):
-                series_cfg = config_data["series"][str_series_id]
-                for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
-                    match = _FILE_NAME_REGEX.search(os.path.basename(file_path))
-                    y_index = int(match.group(2)) if match else None
-                    log.info(
-                        f"Fallback processing file: {file_path} (series {series_id})"
-                    )
-                    try:
-                        df = _load_raw_data(file_path)
-                        if not df.empty:
-                            processor_config = {
-                                **config_data.get("defaults", {}),
-                                **config_data.get("processor_config", {}),
-                            }
-                            processed_df = processor.process_data(df, processor_config)
+    series_config = config_data["series"]
+    for series_id in series_to_process:
+        series_key = str(series_id)
+        if series_key not in series_config:
+            continue
+        for position, file_path in enumerate(
+            series_config[series_key].get("raw_data", []), start=1
+        ):
+            record = _process_fallback_file(
+                series_id, position, file_path, config_data, output_dir, dry_run
+            )
+            if record is not None:
+                summary_records.append(record)
 
-                            if not dry_run:
-                                file_index = y_index if y_index is not None else i
-                                out_name = f"Series{series_id}_File{file_index:02d}_Processed.xlsx"
-                                out_path = os.path.join(output_dir, out_name)
-                                spreadsheet_safety.write_excel_safely(
-                                    processed_df, out_path, index=False
-                                )
-                                log.info(f"Wrote output: {out_path}")
-
-                            summary_records.append(
-                                {
-                                    "Series": series_id,
-                                    "Year": None,
-                                    "Y-Index": y_index,
-                                    "Filename": os.path.basename(file_path),
-                                    "Status": "Fallback Processed",
-                                    "Records": len(processed_df),
-                                }
-                            )
-                    except Exception:
-                        log.exception(f"Failed to process {file_path}")
-                        summary_records.append(
-                            {
-                                "Series": series_id,
-                                "Year": None,
-                                "Y-Index": y_index,
-                                "Filename": os.path.basename(file_path),
-                                "Status": "Failed (Processing Error)",
-                                "Records": 0,
-                            }
-                        )
-
-        if summary_records:
-            return pd.DataFrame(summary_records)
+    if summary_records:
+        return pd.DataFrame(summary_records)
 
     log.warning("Fallback processing found no viable files. Returning empty DataFrame.")
     return pd.DataFrame()
+
+
+def _y_index_from_path(file_path: str) -> int | None:
+    """Return the filename's Y-index when it matches the expected pattern."""
+    match = _FILE_NAME_REGEX.search(os.path.basename(file_path))
+    return int(match.group(2)) if match else None
+
+
+def _process_fallback_file(
+    series_id: int,
+    position: int,
+    file_path: str,
+    config_data: dict[str, Any],
+    output_dir: str,
+    dry_run: bool,
+) -> dict[str, Any] | None:
+    """Process one fallback input and return its summary record."""
+    y_index = _y_index_from_path(file_path)
+    log.info(f"Fallback processing file: {file_path} (series {series_id})")
+
+    try:
+        df = _load_raw_data(file_path)
+        if df.empty:
+            return None
+
+        processor_config = {
+            **config_data.get("defaults", {}),
+            **config_data.get("processor_config", {}),
+        }
+        processed_df = processor.process_data(df, processor_config)
+
+        if not dry_run:
+            file_index = y_index if y_index is not None else position
+            out_name = f"Series{series_id}_File{file_index:02d}_Processed.xlsx"
+            out_path = os.path.join(output_dir, out_name)
+            spreadsheet_safety.write_excel_safely(processed_df, out_path, index=False)
+            log.info(f"Wrote output: {out_path}")
+
+        return {
+            "Series": series_id,
+            "Year": None,
+            "Y-Index": y_index,
+            "Filename": os.path.basename(file_path),
+            "Status": "Fallback Processed",
+            "Records": len(processed_df),
+        }
+    except Exception:
+        log.exception(f"Failed to process {file_path}")
+        return {
+            "Series": series_id,
+            "Year": None,
+            "Y-Index": y_index,
+            "Filename": os.path.basename(file_path),
+            "Status": "Failed (Processing Error)",
+            "Records": 0,
+        }
 
 
 def _process_single_file(

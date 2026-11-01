@@ -736,14 +736,16 @@ def test_batch_process_fallback_mode_exception(
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
 
 
-def test_determine_year_for_index_uses_base_year_and_mapping():
+def test_year_index():
+    """Map default and explicit year indexes."""
     assert _determine_year_for_index(1, {}, 1995) == 1995
     assert _determine_year_for_index(6, {}, 1995) == 2000
     assert _determine_year_for_index(3, {3: 2001}, 1995) == 2001
     assert _determine_year_for_index(4, {3: 2001}, 1995) is None
 
 
-def test_find_files_to_process_anchors_indexes_to_default_base_year(tmp_path):
+def test_files_default_year(tmp_path):
+    """Find files using the default Y01 base year."""
     for y_index in (1, 6, 7, 8):
         (tmp_path / f"S26_Y{y_index:02d}.txt").touch()
 
@@ -755,7 +757,8 @@ def test_find_files_to_process_anchors_indexes_to_default_base_year(tmp_path):
     ]
 
 
-def test_find_files_to_process_uses_configured_base_year(tmp_path):
+def test_files_config_year(tmp_path):
+    """Find files using a configured base year."""
     for y_index in (1, 2):
         (tmp_path / f"S26_Y{y_index:02d}.txt").touch()
 
@@ -766,7 +769,8 @@ def test_find_files_to_process_uses_configured_base_year(tmp_path):
     assert files == [(26, 2000, 1, str(tmp_path / "S26_Y01.txt"))]
 
 
-def test_process_fallback_mode_uses_filename_y_index(tmp_path):
+def test_fallback_y_indices(tmp_path):
+    """Use filename indexes for fallback summaries and output files."""
     mock_processor = MagicMock()
     mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
     raw_data = pd.DataFrame({"value": [1]})
@@ -788,7 +792,8 @@ def test_process_fallback_mode_uses_filename_y_index(tmp_path):
     ]
 
 
-def test_process_fallback_mode_uses_filename_y_index_on_failure(tmp_path):
+def test_fallback_error_index(tmp_path):
+    """Keep filename indexes in fallback failure records."""
     mock_processor = MagicMock()
     mock_processor.process_data.side_effect = ValueError("processing failed")
 
