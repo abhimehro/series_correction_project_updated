@@ -62,9 +62,9 @@ def _read_outlier_csv(csv_path):
         ) from exc
 
 
-def _require_outlier_columns(df, csv_path):
+def _require_outlier_columns(outlier_df, csv_path):
     """Check for required sensor and year-pair columns."""
-    actual_cols = df.columns.tolist()
+    actual_cols = outlier_df.columns.tolist()
     sensor_cols = find_sensor_columns(actual_cols)
 
     if not sensor_cols:
@@ -80,9 +80,9 @@ def _require_outlier_columns(df, csv_path):
     return sensor_cols
 
 
-def _filter_outliers(df, sensor_cols):
+def _filter_outliers(outlier_df, sensor_cols):
     """Melt the input and retain year-to-year outliers."""
-    df_melted = df.melt(
+    df_melted = outlier_df.melt(
         id_vars=["Year_Pair"],
         value_vars=sensor_cols,
         var_name="Sensor",
