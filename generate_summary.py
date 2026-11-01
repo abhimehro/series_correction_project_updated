@@ -1,3 +1,5 @@
+"""Generate a summary workbook from processed sensor files."""
+
 import logging
 import os
 import sys
@@ -69,7 +71,7 @@ def process_summary_data(output_dir, processed_files):
                 }
             )
         except Exception:
-            log.exception(f"Internal error processing {file}")
+            log.exception("Internal error processing %s", file)
             print(f"Error processing {file}: An unexpected error occurred.")
             summary_data.append(
                 {
@@ -120,6 +122,7 @@ def format_summary_excel(summary_file):
 
 
 def main() -> int:
+    """Build the summary workbook and return a failure status."""
     processed_files = get_processed_files(OUTPUT_DIR)
     if not processed_files:
         print(f"No processed files found in {OUTPUT_DIR}")
