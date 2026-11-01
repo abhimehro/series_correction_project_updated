@@ -80,21 +80,21 @@ def _is_cell_write_call(node: ast.Call) -> bool:
     return False
 
 
+def _is_cell_write_node(node: ast.AST) -> bool:
+    """Return True if an AST node writes worksheet cell values."""
+    if isinstance(node, ast.Assign):
+        return any(_is_cell_value_target(target) for target in node.targets)
+    if isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+        return _is_cell_value_target(node.target)
+    if isinstance(node, ast.Call):
+        return _is_cell_write_call(node)
+    return False
+
+
 def _has_cell_value_write(file_path: Path) -> bool:
     """Return True if the file writes worksheet cell values."""
     tree = ast.parse(file_path.read_text(encoding="utf-8"))
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and any(
-            _is_cell_value_target(target) for target in node.targets
-        ):
-            return True
-        if isinstance(node, (ast.AugAssign, ast.AnnAssign)) and (
-            _is_cell_value_target(node.target)
-        ):
-            return True
-        if isinstance(node, ast.Call) and _is_cell_write_call(node):
-            return True
-    return False
+    return any(_is_cell_write_node(node) for node in ast.walk(tree))
 
 
 def _find_python_files():
