@@ -21,8 +21,12 @@ import scripts.loaders
 from scripts.batch_correction import (
     BatchConfig,
     _determine_series_to_process,
+    _determine_year_for_index,
+    _find_files_to_process,
     _get_data_directory,
     _load_raw_data,
+    _process_fallback_mode,
+    _resolve_base_year,
     batch_process,
 )
 
@@ -731,3 +735,153 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+def test_year_index():
+    """Map default and explicit year indexes."""
+    assert _determine_year_for_index(1, {}, 1995) == 1995
+    assert _determine_year_for_index(6, {}, 1995) == 2000
+    assert _determine_year_for_index(3, {3: 2001}, 1995) == 2001
+    assert _determine_year_for_index(4, {3: 2001}, 1995) is None
+
+
+def test_files_default_year(tmp_path):
+    """Find files using the default Y01 base year."""
+    for y_index in (1, 6, 7, 8):
+        (tmp_path / f"S26_Y{y_index:02d}.txt").touch()
+
+    files = _find_files_to_process([26], (2000, 2001), str(tmp_path), {})
+
+    assert files == [
+        (26, 2000, 6, str(tmp_path / "S26_Y06.txt")),
+        (26, 2001, 7, str(tmp_path / "S26_Y07.txt")),
+    ]
+
+
+def test_files_config_year(tmp_path):
+    """Find files using a configured base year."""
+    for y_index in (1, 2):
+        (tmp_path / f"S26_Y{y_index:02d}.txt").touch()
+
+    files = _find_files_to_process(
+        [26], (2000, 2000), str(tmp_path), {"base_year": 2000}
+    )
+
+    assert files == [(26, 2000, 1, str(tmp_path / "S26_Y01.txt"))]
+
+
+def test_resolve_year_map():
+    """Use the default base year when an index map is configured."""
+    assert _resolve_base_year({"year_index_map": {"1995": 1}}, {"1995": 1}) == 1995
+
+
+def test_resolve_year_default_warning(caplog):
+    """Warn when fallback processing uses the default base year."""
+    assert _resolve_base_year({}, {}) == 1995
+    assert "No 'year_index_map' or 'base_year' in config" in caplog.text
+
+
+def test_resolve_year_no_config():
+    """Use the default base year when configuration is unavailable."""
+    assert _resolve_base_year(None, {}) == 1995
+
+
+def test_fallback_y_indices(tmp_path):
+    """Use filename indexes for fallback summaries and output files."""
+    mock_processor = MagicMock()
+    mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
+    raw_data = pd.DataFrame({"value": [1]})
+
+    with patch("scripts.batch_correction.processor", mock_processor), patch(
+        "scripts.batch_correction._load_raw_data", return_value=raw_data
+    ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
+        summary = _process_fallback_mode(
+            [26],
+            {"series": {"26": {"raw_data": ["data/S26_Y06.txt", "data/S26_Y08.txt"]}}},
+            str(tmp_path),
+            False,
+        )
+
+    assert summary["Y-Index"].tolist() == [6, 8]
+    assert [call.args[1] for call in write.call_args_list] == [
+        str(tmp_path / "Series26_File06_Processed.xlsx"),
+        str(tmp_path / "Series26_File08_Processed.xlsx"),
+    ]
+
+
+def test_fallback_name_collision(tmp_path):
+    """Separate positional and Y-index output names for mixed inputs."""
+    mock_processor = MagicMock()
+    mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
+
+    with patch("scripts.batch_correction.processor", mock_processor), patch(
+        "scripts.batch_correction._load_raw_data",
+        return_value=pd.DataFrame({"value": [1]}),
+    ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
+        summary = _process_fallback_mode(
+            [26],
+            {"series": {"26": {"raw_data": ["data/custom.txt", "data/S26_Y01.txt"]}}},
+            str(tmp_path),
+            False,
+        )
+
+    y_indexes = summary["Y-Index"].tolist()
+    assert pd.isna(y_indexes[0]) and y_indexes[1] == 1
+    assert [call.args[1] for call in write.call_args_list] == [
+        str(tmp_path / "Series26_Pos01_Processed.xlsx"),
+        str(tmp_path / "Series26_File01_Processed.xlsx"),
+    ]
+
+
+def test_fallback_dry_run(tmp_path):
+    """Avoid writing processed fallback files during a dry run."""
+    mock_processor = MagicMock()
+    mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
+
+    with patch("scripts.batch_correction.processor", mock_processor), patch(
+        "scripts.batch_correction._load_raw_data",
+        return_value=pd.DataFrame({"value": [1]}),
+    ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
+        summary = _process_fallback_mode(
+            [26],
+            {"series": {"26": {"raw_data": ["data/S26_Y01.txt"]}}},
+            str(tmp_path),
+            True,
+        )
+
+    assert summary["Y-Index"].tolist() == [1]
+    write.assert_not_called()
+
+
+def test_fallback_empty_data(tmp_path):
+    """Skip fallback inputs whose loader returns no rows."""
+    with patch("scripts.batch_correction.processor", MagicMock()), patch(
+        "scripts.batch_correction._load_raw_data", return_value=pd.DataFrame()
+    ):
+        summary = _process_fallback_mode(
+            [26],
+            {"series": {"26": {"raw_data": ["data/S26_Y01.txt"]}}},
+            str(tmp_path),
+            False,
+        )
+
+    assert summary.empty
+
+
+def test_fallback_error_index(tmp_path):
+    """Keep filename indexes in fallback failure records."""
+    mock_processor = MagicMock()
+    mock_processor.process_data.side_effect = ValueError("processing failed")
+
+    with patch("scripts.batch_correction.processor", mock_processor), patch(
+        "scripts.batch_correction._load_raw_data",
+        return_value=pd.DataFrame({"value": [1]}),
+    ):
+        summary = _process_fallback_mode(
+            [26],
+            {"series": {"26": {"raw_data": ["data/S26_Y08.txt"]}}},
+            str(tmp_path),
+            False,
+        )
+
+    assert summary["Y-Index"].tolist() == [8]
