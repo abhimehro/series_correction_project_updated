@@ -71,10 +71,12 @@ The core logic in `processor.py` applies these steps sequentially to
 ## 3. Output
 
 - **Corrected Data**: Final DataFrame saved (unless `dry_run`) in `output_dir`
-  (e.g., `S26_Y01_1995_CorrectedData.csv`).
-- **Summary Report**: `Batch_Processing_Summary.csv` with processing status,
-  filenames, record counts.
-- **Logs**: Detailed logs in `processing_log.txt` (or configured path).
+  as `Year_{year} (Y{index:02d})_Data.xlsx` (for example
+  `Year_1995 (Y01)_Data.xlsx`). The CLI writes into the raw data directory.
+  `scripts/manual_batch_run.py` writes under `data/output/`.
+- **Summary Report**: `batch_process()` returns a summary DataFrame (status,
+  filenames, record counts). It does not write `Batch_Processing_Summary.csv`.
+- **Logs**: The CLI writes `processing_log.txt`.
 
 ## Configuration Parameters
 
