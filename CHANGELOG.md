@@ -122,6 +122,9 @@
 **Merged pull requests:**
 
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#638](https://github.com/abhimehro/series_correction_project_updated/pull/638) ([dependabot[bot]](https://github.com/apps/dependabot))
+- 🧪 test: verify \_optional\_import ImportError and logging [\#630](https://github.com/abhimehro/series_correction_project_updated/pull/630) ([abhimehro](https://github.com/abhimehro))
+- 🧪 test: cover \_load\_and\_enrich\_config FileNotFoundError [\#629](https://github.com/abhimehro/series_correction_project_updated/pull/629) ([abhimehro](https://github.com/abhimehro))
+- 🧪 add test for fallback error on to\_datetime conversion in discontinuity utils [\#628](https://github.com/abhimehro/series_correction_project_updated/pull/628) ([abhimehro](https://github.com/abhimehro))
 - fix\(hooks\): remove hardcoded personal path from pre-push hook [\#622](https://github.com/abhimehro/series_correction_project_updated/pull/622) ([sinatraai[bot]](https://github.com/apps/sinatraai))
 - chore\(deps\): bump ruby/setup-ruby from 1.328.0 to 1.335.0 [\#620](https://github.com/abhimehro/series_correction_project_updated/pull/620) ([dependabot[bot]](https://github.com/apps/dependabot))
 - chore\(deps\): bump actions/setup-python from 7.0.0 to 7.1.0 [\#616](https://github.com/abhimehro/series_correction_project_updated/pull/616) ([dependabot[bot]](https://github.com/apps/dependabot))
