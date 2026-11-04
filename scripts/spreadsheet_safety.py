@@ -3,10 +3,12 @@ from typing import Any
 
 import pandas as pd
 
-# Formula initiators: =, +, -, @ and their full-width Unicode equivalents.
+# Formula initiators: =, +, -, @, %, | and their full-width Unicode equivalents.
 # These may be hidden by leading whitespace/control characters.
+# SECURITY: Neutralize pipe (|) and percent (%) prefixes along with standard
+# spreadsheet formula prefixes to prevent DDE / command execution (CWE-1236).
 FORMULA_PREFIX_RE = re.compile(
-    r"^[\s]*[" r"=\+\-@\uff1d\uff0b\uff0d\uff20]",
+    r"^[\s]*[" r"=\+\-@%\|\uff1d\uff0b\uff0d\uff20\uff05\uff5c]",
     re.UNICODE,
 )
 

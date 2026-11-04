@@ -166,3 +166,9 @@ debug. **Prevention:** Keep full error tracebacks in internal logs via
 error messages. Furthermore, `log.exception` automatically captures stack
 traces; changing the message string does not stop the stack trace from being
 logged.
+
+## 2025-03-02 - Comprehensive CSV/Formula Injection Neutralization for DDE & Shell Payloads
+
+**Vulnerability:** Spreadsheet sanitization protected against `=`, `+`, `-`, and `@`, but missed `|` (pipe) and `%` (percent) formula prefixes along with their full-width equivalents (CWE-1236).
+**Learning:** Modern spreadsheet software and CSV parsers evaluate pipe symbols (`|`) for Dynamic Data Exchange (DDE) command execution and percent characters (`%`) in format strings or macro execution contexts.
+**Prevention:** Extend spreadsheet prefix sanitization regex to include `|`, `%`, and Unicode full-width characters (`\uff5c`, `\uff05`) in `FORMULA_PREFIX_RE`.
