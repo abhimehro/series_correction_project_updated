@@ -6,8 +6,10 @@
 
 **Security fixes:**
 
+- Review run\_analysis CWE-209 logging PR \#418 [\#520](https://github.com/abhimehro/series_correction_project_updated/issues/520)
 - Review CWE-209 fix\_output logging PR \#457 [\#517](https://github.com/abhimehro/series_correction_project_updated/issues/517)
 - Decide whether to adopt Google Jules workflows \(\#477\) [\#514](https://github.com/abhimehro/series_correction_project_updated/issues/514)
+- Reconcile loader path-traversal PR \#492 with \#496 [\#510](https://github.com/abhimehro/series_correction_project_updated/issues/510)
 - \[SECURITY\] Secrets & SSRF Priority Scan - Initial Assessment [\#435](https://github.com/abhimehro/series_correction_project_updated/issues/435)
 - 🔒 Supply Chain: Pin and update dependencies to current versions [\#300](https://github.com/abhimehro/series_correction_project_updated/issues/300)
 - P0: Spreadsheet Formula Injection Vulnerability [\#279](https://github.com/abhimehro/series_correction_project_updated/issues/279)
@@ -16,6 +18,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-11-05 [\#648](https://github.com/abhimehro/series_correction_project_updated/issues/648)
+- Daily QA & Agentic Review — 2026-11-04 [\#646](https://github.com/abhimehro/series_correction_project_updated/issues/646)
 - Daily QA & Agentic Review — 2026-11-03 [\#643](https://github.com/abhimehro/series_correction_project_updated/issues/643)
 - Daily QA & Agentic Review — 2026-11-02 [\#641](https://github.com/abhimehro/series_correction_project_updated/issues/641)
 - Daily QA & Agentic Review — 2026-11-01 [\#637](https://github.com/abhimehro/series_correction_project_updated/issues/637)
@@ -34,6 +38,9 @@
 - Daily QA & Agentic Review — 2026-10-10 [\#567](https://github.com/abhimehro/series_correction_project_updated/issues/567)
 - Daily QA & Agentic Review — 2026-10-09 [\#562](https://github.com/abhimehro/series_correction_project_updated/issues/562)
 - Narrow try/except in RIVER\_MILE\_MAP\_PATH loading to stop mislabeling CSV errors [\#553](https://github.com/abhimehro/series_correction_project_updated/issues/553)
+- PR sweep escalation: \#544 release-drafter 7.7→7.9 — CI workflow change [\#548](https://github.com/abhimehro/series_correction_project_updated/issues/548)
+- PR sweep escalation: \#501 CWE-22 guard in load\_identified\_outliers — sensitive path review [\#547](https://github.com/abhimehro/series_correction_project_updated/issues/547)
+- PR sweep escalation: \#527 CWE-22 rm\_map\_path guard — sensitive path review [\#546](https://github.com/abhimehro/series_correction_project_updated/issues/546)
 - Daily QA & Agentic Review — 2026-10-04 [\#543](https://github.com/abhimehro/series_correction_project_updated/issues/543)
 - Daily QA & Agentic Review — 2026-10-03 [\#540](https://github.com/abhimehro/series_correction_project_updated/issues/540)
 - Daily QA & Agentic Review — 2026-10-02 [\#535](https://github.com/abhimehro/series_correction_project_updated/issues/535)
