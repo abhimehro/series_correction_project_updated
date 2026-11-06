@@ -190,7 +190,9 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
     next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
     shift = prev_avg - next_avg
 
-    df_next[sensor_idx] = pd.to_numeric(df_next[sensor_idx], errors="coerce") + shift
+    col = pd.to_numeric(df_next[sensor_idx], errors="coerce")
+    valid = col.notna() & (col != 0)
+    df_next[sensor_idx] = col.mask(valid, col + shift)
     output_name = output_file_name(next_file)
 
     return {
@@ -199,6 +201,8 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
         "Sensor": sensor_name,
         "Original_Difference_Summary": orig_diff,
         "Calculated_Level_Shift": shift,
+        "Cells_Shifted": int(valid.sum()),
+        "Cells_Skipped_Missing": int((~valid).sum()),
         "Correction_Type": "Level Shift",
         "File_Corrected": output_name,
         "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
