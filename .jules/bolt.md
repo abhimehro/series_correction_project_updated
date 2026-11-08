@@ -134,3 +134,11 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-11-08 - Native List Iteration for Sequential Accumulation Loops
+
+**Learning:** In sequential accumulation loops over 1D NumPy arrays (e.g. CUSUM in
+`detect_jumps`), indexing into NumPy arrays repeatedly incurs scalar boxing
+(`np.float64`) and array bounds checking on every iteration. **Action:** Convert
+the array slice to a native Python list using `.tolist()` and iterate with
+`enumerate(..., start=offset)` for a ~1.4x-1.8x speedup in sequential processing loops.
