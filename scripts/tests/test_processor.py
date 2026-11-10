@@ -255,3 +255,86 @@ def test_correct_outliers_shallow_copy_remove():
     res = correct_outliers(df, [1], value_col="Value", method="remove")
     assert np.isnan(res.loc[1, "Value"])
     assert df.loc[1, "Value"] == 100.0
+
+
+def test_detect_jumps_basic():
+    """Test detecting a jump upward in values."""
+    from scripts.processor import detect_jumps
+
+    values = [1.0, 1.1, 0.9, 1.0, 1.2, 10.0, 10.2, 9.8, 10.1, 10.0, 10.1, 9.9]
+    data = pd.DataFrame({"value": values})
+    jumps = detect_jumps(data, value_col="value", window_size=5, threshold=3.0)
+    assert 5 in jumps
+
+
+def test_detect_jumps_negative():
+    """Test detecting a downward jump."""
+    from scripts.processor import detect_jumps
+
+    values = [10.0, 10.1, 9.9, 10.0, 10.2, 1.0, 1.1, 0.9, 1.0, 1.2, 1.0, 0.9]
+    data = pd.DataFrame({"value": values})
+    jumps = detect_jumps(data, value_col="value", window_size=5, threshold=3.0)
+    assert 5 in jumps
+
+
+def test_detect_jumps_multiple():
+    """Test detecting multiple jumps."""
+    from scripts.processor import detect_jumps
+
+    values = (
+        [1.0, 1.1, 0.9, 1.0, 1.2]
+        + [10.0, 10.1, 9.9, 10.0, 10.2, 10.1, 9.9, 10.0, 10.1, 10.0]
+        + [2.0, 2.1, 1.9, 2.0, 2.2, 2.0]
+    )
+    data = pd.DataFrame({"value": values})
+    jumps = detect_jumps(data, value_col="value", window_size=5, threshold=3.0)
+    assert 5 in jumps
+    assert 15 in jumps
+
+
+def test_detect_jumps_no_jumps():
+    """Test series with normal variance and no jumps."""
+    from scripts.processor import detect_jumps
+
+    values = [1.0, 1.1, 0.9, 1.0, 1.2, 1.0, 1.1, 0.9, 1.0, 1.2, 1.0, 0.9]
+    data = pd.DataFrame({"value": values})
+    jumps = detect_jumps(data, value_col="value", window_size=5, threshold=3.0)
+    assert jumps == []
+
+
+def test_detect_jumps_insufficient_data():
+    """Test dataframe smaller than 2 * window_size."""
+    from scripts.processor import detect_jumps
+
+    data = pd.DataFrame({"value": [1.0, 1.1, 0.9, 1.0, 1.2, 10.0, 10.2, 9.8, 10.1]})
+    assert len(data) == 9
+    jumps = detect_jumps(data, value_col="value", window_size=5, threshold=3.0)
+    assert jumps == []
+
+
+def test_detect_jumps_empty_data():
+    """Test empty dataframe."""
+    from scripts.processor import detect_jumps
+
+    data = pd.DataFrame({"value": []})
+    jumps = detect_jumps(data, value_col="value", window_size=5, threshold=3.0)
+    assert jumps == []
+
+
+def test_detect_jumps_zero_variance():
+    """Test series where standard deviation is zero (identical values)."""
+    from scripts.processor import detect_jumps
+
+    data = pd.DataFrame({"value": [5.0] * 15})
+    jumps = detect_jumps(data, value_col="value", window_size=5, threshold=3.0)
+    assert jumps == []
+
+
+def test_detect_jumps_custom_parameters():
+    """Test detect_jumps with custom window_size and threshold."""
+    from scripts.processor import detect_jumps
+
+    values = [1.0, 1.1, 0.9, 8.0, 8.2, 7.9, 8.0]
+    data = pd.DataFrame({"value": values})
+    jumps = detect_jumps(data, value_col="value", window_size=3, threshold=2.0)
+    assert 3 in jumps
