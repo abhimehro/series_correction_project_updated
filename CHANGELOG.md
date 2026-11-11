@@ -18,6 +18,8 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-11-10 [\#667](https://github.com/abhimehro/series_correction_project_updated/issues/667)
+- Daily QA & Agentic Review — 2026-11-09 [\#662](https://github.com/abhimehro/series_correction_project_updated/issues/662)
 - Daily QA & Agentic Review — 2026-11-05 [\#648](https://github.com/abhimehro/series_correction_project_updated/issues/648)
 - Daily QA & Agentic Review — 2026-11-04 [\#646](https://github.com/abhimehro/series_correction_project_updated/issues/646)
 - Daily QA & Agentic Review — 2026-11-03 [\#643](https://github.com/abhimehro/series_correction_project_updated/issues/643)
@@ -37,6 +39,7 @@
 - Daily QA & Agentic Review — 2026-10-11 [\#570](https://github.com/abhimehro/series_correction_project_updated/issues/570)
 - Daily QA & Agentic Review — 2026-10-10 [\#567](https://github.com/abhimehro/series_correction_project_updated/issues/567)
 - Daily QA & Agentic Review — 2026-10-09 [\#562](https://github.com/abhimehro/series_correction_project_updated/issues/562)
+- PR lifecycle: needs human decision [\#561](https://github.com/abhimehro/series_correction_project_updated/issues/561)
 - Narrow try/except in RIVER\_MILE\_MAP\_PATH loading to stop mislabeling CSV errors [\#553](https://github.com/abhimehro/series_correction_project_updated/issues/553)
 - PR sweep escalation: \#544 release-drafter 7.7→7.9 — CI workflow change [\#548](https://github.com/abhimehro/series_correction_project_updated/issues/548)
 - PR sweep escalation: \#501 CWE-22 guard in load\_identified\_outliers — sensitive path review [\#547](https://github.com/abhimehro/series_correction_project_updated/issues/547)
@@ -47,6 +50,7 @@
 - Daily QA & Agentic Review — 2026-10-01 [\#528](https://github.com/abhimehro/series_correction_project_updated/issues/528)
 - Daily QA & Agentic Review — 2026-09-30 [\#525](https://github.com/abhimehro/series_correction_project_updated/issues/525)
 - Resolve Codacy B101-in-tests failure blocking \#474 [\#515](https://github.com/abhimehro/series_correction_project_updated/issues/515)
+- Approve CI action bump codescene-oss/pr-refactoring-agent 1.1.4 \(\#498\) [\#508](https://github.com/abhimehro/series_correction_project_updated/issues/508)
 - Daily QA & Agentic Review — 2026-09-29 [\#505](https://github.com/abhimehro/series_correction_project_updated/issues/505)
 - Daily QA & Agentic Review — 2026-09-27 [\#497](https://github.com/abhimehro/series_correction_project_updated/issues/497)
 - Daily QA & Agentic Review — 2026-09-26 [\#493](https://github.com/abhimehro/series_correction_project_updated/issues/493)
@@ -131,6 +135,7 @@
 
 - ⚡ Bolt: vectorize calculate\_non\_zero\_average with NumPy [\#642](https://github.com/abhimehro/series_correction_project_updated/pull/642) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#638](https://github.com/abhimehro/series_correction_project_updated/pull/638) ([dependabot[bot]](https://github.com/apps/dependabot))
+- fix: make QA notebook workbook selection deterministic [\#631](https://github.com/abhimehro/series_correction_project_updated/pull/631) ([abhimehro](https://github.com/abhimehro))
 - 🧪 test: verify \_optional\_import ImportError and logging [\#630](https://github.com/abhimehro/series_correction_project_updated/pull/630) ([abhimehro](https://github.com/abhimehro))
 - 🧪 test: cover \_load\_and\_enrich\_config FileNotFoundError [\#629](https://github.com/abhimehro/series_correction_project_updated/pull/629) ([abhimehro](https://github.com/abhimehro))
 - 🧪 add test for fallback error on to\_datetime conversion in discontinuity utils [\#628](https://github.com/abhimehro/series_correction_project_updated/pull/628) ([abhimehro](https://github.com/abhimehro))
