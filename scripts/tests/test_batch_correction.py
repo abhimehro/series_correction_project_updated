@@ -731,3 +731,19 @@ def test_batch_process_fallback_mode_exception(
 
     assert len(summary_df) == 1
     assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
+
+
+def test_load_config_not_found(mock_dependencies, mock_config_loader, caplog):
+    """Test that _load_and_enrich_config handles FileNotFoundError by logging a warning."""
+    mock_config_loader.side_effect = FileNotFoundError()
+    mock_dependencies["isfile"].return_value = False
+
+    config = bc._load_and_enrich_config(
+        "missing_config.json"
+    )  # pylint: disable=protected-access
+
+    assert config == {}
+    assert (
+        "Config file missing_config.json not found – continuing with empty config."
+        in caplog.text
+    )
