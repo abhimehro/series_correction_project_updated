@@ -257,7 +257,7 @@ def _determine_year_for_index(
             return year
         return None
 
-    if y_index <= len(years_to_process):
+    if 1 <= y_index <= len(years_to_process):
         return years_to_process[y_index - 1]
     return None
 

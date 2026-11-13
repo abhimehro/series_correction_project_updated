@@ -53,6 +53,38 @@ def test_detect_outliers_zero_mad():
     assert outliers == [3]
 
 
+def test_detect_outliers_empty_dataframe():
+    """Test empty input returns no outliers instead of raising."""
+    data = pd.DataFrame({"value": pd.Series(dtype=float)})
+
+    outliers = detect_outliers(data, value_col="value", window_size=5, threshold=3.0)
+    assert outliers == []
+
+
+def test_detect_outliers_all_nan():
+    """Test an all-NaN series returns no outliers without raising."""
+    data = pd.DataFrame({"value": [np.nan] * 10})
+
+    outliers = detect_outliers(data, value_col="value", window_size=5, threshold=3.0)
+    assert outliers == []
+
+
+def test_detect_outliers_all_zeros():
+    """Test an all-zero series is not flagged (constant series, MAD = 0)."""
+    data = pd.DataFrame({"value": [0.0] * 10})
+
+    outliers = detect_outliers(data, value_col="value", window_size=5, threshold=3.0)
+    assert outliers == []
+
+
+def test_detect_outliers_constant_series():
+    """Test a constant non-zero series is not flagged."""
+    data = pd.DataFrame({"value": [5.0] * 10})
+
+    outliers = detect_outliers(data, value_col="value", window_size=5, threshold=3.0)
+    assert outliers == []
+
+
 def test_process_data_time_col_parsing_failure(caplog):
     """Test that process_data correctly raises ValueError and logs an exception when time_col parsing fails."""
     df = pd.DataFrame(
