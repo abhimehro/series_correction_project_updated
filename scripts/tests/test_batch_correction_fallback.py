@@ -3,14 +3,11 @@
 Unit tests for batch_correction fallback mode and year-index helpers.
 """
 
-import os
-from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pandas as pd  # type: ignore
 import pytest
 
-import scripts.loaders
 from scripts.batch_correction import (
     _determine_series_to_process,
     _determine_year_for_index,
@@ -20,58 +17,15 @@ from scripts.batch_correction import (
 )
 
 
-def read_csv_side_effect(path, *args, **kwargs):
-
-    fname = os.path.basename(path)
-    if fname == "river_mile_map.csv":
-        return pd.DataFrame(
-            {"SENSOR_ID": [26, 27, 30, 31], "RIVER_MILE": [54.0, 53.0, 52.0, 51.0]}
-        )
-    else:
-        # Simulate sensor data: 5 rows, 2 columns with integer columns
-        return pd.DataFrame({0: range(5), 1: range(5)})
+# Shared patcher bodies live in conftest; these wrappers keep them autouse
+# for this module only.
+@pytest.fixture(autouse=True)
+def patch_pd_read_csv(pd_read_csv_patcher):
+    yield
 
 
 @pytest.fixture(autouse=True)
-def patch_read_csv():
-    with mock.patch("pandas.read_csv", side_effect=read_csv_side_effect):
-        yield
-
-
-@pytest.fixture(autouse=True)
-def patch_pd_read_csv(monkeypatch):
-    def read_csv_side_effect(path, *_args, **_kwargs):
-        if isinstance(path, str) and path.endswith("river_mile_map.csv"):
-            return pd.DataFrame(
-                {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
-            )
-        return pd.DataFrame(
-            {
-                "Data": [1, 2, 3, 4, 5],
-                "SENSOR_ID": [26, 26, 27, 27, 28],
-                "RIVER_MILE": [54.0, 54.0, 53.0, 53.0, 52.0],
-            }
-        )
-
-    monkeypatch.setattr("scripts.batch_correction.pd.read_csv", read_csv_side_effect)
-
-
-@pytest.fixture(autouse=True)
-def patch_load_config(monkeypatch):
-    # Always patch scripts.loaders.load_config to return a valid config dict
-    config_dict = {
-        "RAW_DATA_DIR": "/fake/data/dir",
-        "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
-        "RIVER_TO_SENSORS": {54.0: [26], 53.0: [27]},
-        "SENSOR_TO_RIVER": {26: 54.0, 27: 53.0},
-    }
-    try:
-
-        monkeypatch.setattr(
-            scripts.loaders, "load_config", lambda path=None: config_dict
-        )
-    except ImportError:
-        pass
+def patch_load_config(load_config_patcher):
     yield
 
 

@@ -13,7 +13,6 @@ import pandas as pd  # type: ignore
 import pytest
 
 import scripts.batch_correction as bc
-import scripts.loaders
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
@@ -100,40 +99,15 @@ def patch_read_csv():
         yield
 
 
+# Shared patcher bodies live in conftest; these wrappers keep them autouse
+# for this module only.
 @pytest.fixture(autouse=True)
-def patch_pd_read_csv(monkeypatch):
-    def read_csv_side_effect(path, *_args, **_kwargs):
-        if isinstance(path, str) and path.endswith("river_mile_map.csv"):
-            return pd.DataFrame(
-                {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
-            )
-        return pd.DataFrame(
-            {
-                "Data": [1, 2, 3, 4, 5],
-                "SENSOR_ID": [26, 26, 27, 27, 28],
-                "RIVER_MILE": [54.0, 54.0, 53.0, 53.0, 52.0],
-            }
-        )
-
-    monkeypatch.setattr("scripts.batch_correction.pd.read_csv", read_csv_side_effect)
+def patch_pd_read_csv(pd_read_csv_patcher):
+    yield
 
 
 @pytest.fixture(autouse=True)
-def patch_load_config(monkeypatch):
-    # Always patch scripts.loaders.load_config to return a valid config dict
-    config_dict = {
-        "RAW_DATA_DIR": "/fake/data/dir",
-        "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
-        "RIVER_TO_SENSORS": {54.0: [26], 53.0: [27]},
-        "SENSOR_TO_RIVER": {26: 54.0, 27: 53.0},
-    }
-    try:
-
-        monkeypatch.setattr(
-            scripts.loaders, "load_config", lambda path=None: config_dict
-        )
-    except ImportError:
-        pass
+def patch_load_config(load_config_patcher):
     yield
 
 
