@@ -1,11 +1,8 @@
-"""Boundary tests for batch_correction file discovery, year mapping, and
-raw-data parsing.
+"""Boundary tests for batch_correction file discovery, year mapping, and parsing."""
 
-These cover the filename -> year mapping and the forgiving text loader that
-previously lived in the retired ``updated_processor`` script: sequential
-Y-index -> year mapping, explicit ``year_index_map`` overrides, malformed
-filenames, and ragged/empty input files.
-"""
+# Covers the filename -> year mapping and forgiving text loader that replaced
+# the retired updated_processor script: sequential Y-index -> year mapping,
+# explicit year_index_map overrides, malformed filenames, and ragged files.
 
 import os
 
@@ -48,8 +45,7 @@ def test_year_index_zero_returns_none():
 
 
 def test_year_index_explicit_map():
-    """An explicit year_index_map (as {idx: year} reverse map) wins over the
-    sequential fallback and rejects unmapped indices."""
+    """Explicit year_index_map ({idx: year} reverse map) beats the fallback."""
     reverse_map = {1: 1995, 20: 1996}
     assert _determine_year_for_index(1, reverse_map, YEARS_TO_PROCESS) == 1995
     assert _determine_year_for_index(20, reverse_map, YEARS_TO_PROCESS) == 1996
@@ -62,6 +58,7 @@ def test_year_index_explicit_map():
 
 
 def test_parse_valid_filename():
+    """A conforming name yields (series, year, y_index, path)."""
     result = _parse_and_validate_file(
         "S26_Y01.txt", SERIES_MAP, {}, YEARS_TO_PROCESS, *YEARS, "/data"
     )
@@ -144,6 +141,7 @@ def test_find_files_honors_explicit_year_index_map(tmp_path):
 
 
 def test_find_files_missing_directory_returns_empty(tmp_path):
+    """A missing data directory yields no files, not an error."""
     found = _find_files_to_process([26], YEARS, str(tmp_path / "nope"), {})
     assert found == []
 
@@ -166,6 +164,7 @@ def test_load_raw_data_short_rows_are_counted_not_dropped(tmp_path):
 
 
 def test_load_raw_data_comments_and_blanks_skipped(tmp_path):
+    """Comment and blank lines are skipped; data rows are kept."""
     path = tmp_path / "S26_Y01.txt"
     path.write_text("# header comment\n\n0.0 1.0\n# inline section\n1.0 2.0\n")
 
@@ -175,6 +174,7 @@ def test_load_raw_data_comments_and_blanks_skipped(tmp_path):
 
 
 def test_load_raw_data_comments_only_file_is_empty(tmp_path):
+    """A file with only comments and blanks loads as an empty DataFrame."""
     path = tmp_path / "S26_Y01.txt"
     path.write_text("# only comments\n\n# nothing else\n")
 
@@ -195,5 +195,6 @@ def test_load_raw_data_overwide_rows_raise_processing_error(tmp_path):
 
 
 def test_load_raw_data_missing_file_raises_processing_error(tmp_path):
+    """A nonexistent file raises ProcessingError."""
     with pytest.raises(bc.ProcessingError, match="Failed to load data from file"):
         _load_raw_data(str(tmp_path / "does_not_exist.txt"))

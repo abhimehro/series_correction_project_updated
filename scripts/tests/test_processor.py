@@ -62,8 +62,7 @@ def test_detect_outliers_empty_dataframe():
 
 
 def test_detect_outliers_all_nan():
-    """Test an all-NaN series returns no outliers instead of raising or
-    flagging every point."""
+    """Test an all-NaN series returns no outliers without raising."""
     data = pd.DataFrame({"value": [np.nan] * 10})
 
     outliers = detect_outliers(data, value_col="value", window_size=5, threshold=3.0)
