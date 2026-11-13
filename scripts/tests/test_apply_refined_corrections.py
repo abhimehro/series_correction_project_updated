@@ -43,6 +43,69 @@ def test_calculate_non_zero_average_mixed_zeros_nans():
     assert calculate_non_zero_average(series) == 2.0
 
 
+def test_apply_level_shift_preserves_zero_and_nan_sentinels(tmp_path):
+    previous_file = str(tmp_path / "S26_Y01.txt")
+    next_file = str(tmp_path / "S26_Y02.txt")
+    raw_file_map = {"S26": {1: previous_file, 2: next_file}}
+    previous_values = [10.0, 20.0, 30.0, 40.0, 50.0]
+    next_values = [1.0, 0.0, np.nan, 3.0, 4.0]
+    raw_dataframes = {
+        previous_file: pd.DataFrame({0: previous_values}),
+        next_file: pd.DataFrame({0: next_values}),
+    }
+
+    result = apply_level_shift_correction(
+        ("1995 (Y01) to 1996 (Y02)", "Sensor 01", 0.9),
+        raw_file_map,
+        raw_dataframes,
+    )
+
+    shift = np.mean(previous_values) - np.mean([1.0, 3.0, 4.0])
+    corrected_values = raw_dataframes[next_file][0]
+    assert corrected_values.iloc[1] == 0.0
+    assert pd.isna(corrected_values.iloc[2])
+    np.testing.assert_allclose(
+        corrected_values.iloc[[0, 3, 4]].to_numpy(),
+        np.array([1.0, 3.0, 4.0]) + shift,
+    )
+    assert result["Calculated_Level_Shift"] == pytest.approx(shift)
+    assert result["Cells_Shifted"] == 3
+    assert result["Cells_Skipped_Missing"] == 2
+
+
+def test_chained_level_shifts_preserve_zero_sentinels_in_tail_average(tmp_path):
+    previous_file = str(tmp_path / "S26_Y01.txt")
+    middle_file = str(tmp_path / "S26_Y02.txt")
+    next_file = str(tmp_path / "S26_Y03.txt")
+    raw_file_map = {"S26": {1: previous_file, 2: middle_file, 3: next_file}}
+    raw_dataframes = {
+        previous_file: pd.DataFrame({0: [10.0] * 5}),
+        middle_file: pd.DataFrame({0: [20.0] * 5 + [0.0, 0.0, 0.0, 0.0, 40.0]}),
+        next_file: pd.DataFrame({0: [10.0] * 5}),
+    }
+
+    first_result = apply_level_shift_correction(
+        ("1995 (Y01) to 1996 (Y02)", "Sensor 01", 0.9),
+        raw_file_map,
+        raw_dataframes,
+    )
+    second_result = apply_level_shift_correction(
+        ("1996 (Y02) to 1997 (Y03)", "Sensor 01", 0.9),
+        raw_file_map,
+        raw_dataframes,
+    )
+
+    assert first_result["Calculated_Level_Shift"] == pytest.approx(-10.0)
+    np.testing.assert_array_equal(raw_dataframes[middle_file][0].iloc[-5:-1], [0.0] * 4)
+    expected_tail_average = np.mean([30.0])
+    expected_next_average = np.mean([10.0] * 5)
+    assert second_result["Calculated_Level_Shift"] == pytest.approx(
+        expected_tail_average - expected_next_average
+    )
+    assert raw_dataframes[middle_file][0].iloc[-1] == 30.0
+    np.testing.assert_allclose(raw_dataframes[next_file][0], [30.0] * 5)
+
+
 def test_calculate_non_zero_average_all_zeros():
     """Test with all zero values."""
     series = pd.Series([0.0, 0.0, 0.0])
