@@ -458,6 +458,47 @@ def test_batch_process_with_processor_module(
     assert summary_df.iloc[0]["Records"] == 5
 
 
+def test_writes_summary_csv(
+    mock_dependencies, mock_config_loader, mock_processor_mod, mocker
+):
+    """Write the batch summary for a non-dry-run."""
+    series_selection = 26
+    river_miles = None
+    years = (1995, 1995)
+    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
+    mock_dependencies["isfile"].return_value = True
+    mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
+    write_csv = mocker.patch(
+        "scripts.batch_correction.spreadsheet_safety.write_csv_safely"
+    )
+
+    summary_df = batch_process(
+        BatchConfig(series_selection, river_miles, years, dry_run=False)
+    )
+
+    write_csv.assert_called_once()
+    written_summary, path = write_csv.call_args.args
+    assert path.endswith("Batch_Processing_Summary.csv")
+    assert write_csv.call_args.kwargs == {"index": False}
+    pd.testing.assert_frame_equal(written_summary, summary_df)
+
+
+def test_dry_run_skips_summary_csv(
+    mock_dependencies, mock_config_loader, mock_processor_mod, mocker
+):
+    """Skip writing the batch summary during a dry run."""
+    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
+    mock_dependencies["isfile"].return_value = True
+    mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
+    write_csv = mocker.patch(
+        "scripts.batch_correction.spreadsheet_safety.write_csv_safely"
+    )
+
+    batch_process(BatchConfig(26, None, (1995, 1995), dry_run=True))
+
+    write_csv.assert_not_called()
+
+
 def test_batch_process_load_error(
     mock_dependencies, mock_config_loader, caplog, mocker
 ):
@@ -486,13 +527,14 @@ def test_batch_process_load_error(
     status = summary_df.iloc[0]["Status"]
     assert "Failed" in status
     assert summary_df.iloc[0]["Records"] == 0
-    assert "S26_Y01.txt" in caplog.text
+    assert "Failed to process S26_Y01.txt" in caplog.text
 
 
+@pytest.mark.usefixtures("mock_config_loader")
 def test_batch_process_process_error(
     mock_dependencies: dict[str, mock.MagicMock],
-    mock_config_loader,
     mock_processor_mod: mock.MagicMock,
+    caplog,
     mocker,
 ) -> None:
     """Test handling of error during data processing."""
@@ -513,6 +555,33 @@ def test_batch_process_process_error(
     assert status == "Failed (Unexpected Error)"
     assert summary_df.iloc[0]["Records"] == 0
     assert mock_dependencies["to_excel"].call_count == 0
+    error_records = [
+        record
+        for record in caplog.records
+        if record.levelname == "ERROR"
+        and "Unexpected error processing S26_Y01.txt" in record.message
+    ]
+    assert error_records
+    assert error_records[0].exc_info is not None
+    assert "1 failed" in caplog.text
+
+
+def test_count_failed():
+    """Count failed statuses and ignore missing status columns."""
+    assert not bc.count_failed(None)
+    assert not bc.count_failed(pd.DataFrame())
+    assert not bc.count_failed(pd.DataFrame({"Other": ["Failed"]}))
+    summary_df = pd.DataFrame(
+        {
+            "Status": [
+                "Processed",
+                "Failed (Processing Error)",
+                "Failed (Unexpected Error)",
+                "Fallback Processed",
+            ]
+        }
+    )
+    assert bc.count_failed(summary_df) == 2
 
 
 def test_batch_process_invalid_series_selection(monkeypatch):
@@ -535,7 +604,7 @@ def test_batch_process_invalid_series_selection(monkeypatch):
         )
 
 
-def test_minimal_happy_path(monkeypatch):
+def test_minimal_happy_path(monkeypatch, mocker):
     """Minimal working happy path test for batch_process."""
 
     import pandas as pd
@@ -581,6 +650,7 @@ def test_minimal_happy_path(monkeypatch):
 
     # Patch to_excel to do nothing
     monkeypatch.setattr("pandas.DataFrame.to_excel", lambda self, path, **kwargs: None)
+    mocker.patch("scripts.batch_correction.spreadsheet_safety.write_csv_safely")
 
     # Patch processor module with a real module and function
     def process_data(df, config=None):
@@ -651,3 +721,19 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
+
+
+def test_load_config_not_found(mock_dependencies, mock_config_loader, caplog):
+    """Test that _load_and_enrich_config handles FileNotFoundError by logging a warning."""
+    mock_config_loader.side_effect = FileNotFoundError()
+    mock_dependencies["isfile"].return_value = False
+
+    config = bc._load_and_enrich_config(
+        "missing_config.json"
+    )  # pylint: disable=protected-access
+
+    assert config == {}
+    assert (
+        "Config file missing_config.json not found – continuing with empty config."
+        in caplog.text
+    )

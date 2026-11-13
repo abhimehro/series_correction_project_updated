@@ -150,6 +150,8 @@ options:
 Logging writes to `processing_log.txt` in the working directory. Configuration
 defaults come from `scripts/config.json` (loaded by the batch processor); there
 are no `--config` / `--output` / `--log` CLI flags today.
+The command exits with status 1 if any file fails; the summary CSV is written
+to the output directory.
 
 **Example: Process Series 26 data between river miles 53.0 and 54.0 for the
 years 1995 to 2014.**
