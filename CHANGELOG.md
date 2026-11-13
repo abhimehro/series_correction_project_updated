@@ -152,6 +152,7 @@
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#638](https://github.com/abhimehro/series_correction_project_updated/pull/638) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(batch\): log per-file failures, write summary CSV, exit non-zero on failure [\#634](https://github.com/abhimehro/series_correction_project_updated/pull/634) ([abhimehro](https://github.com/abhimehro))
 - fix\(corrections\): fail non-zero on outlier load errors and log skipped outliers [\#633](https://github.com/abhimehro/series_correction_project_updated/pull/633) ([abhimehro](https://github.com/abhimehro))
+- fix\(corrections\): skip 0.00 sentinels when applying level shift [\#632](https://github.com/abhimehro/series_correction_project_updated/pull/632) ([abhimehro](https://github.com/abhimehro))
 - fix: make QA notebook workbook selection deterministic [\#631](https://github.com/abhimehro/series_correction_project_updated/pull/631) ([abhimehro](https://github.com/abhimehro))
 - 🧪 test: verify \_optional\_import ImportError and logging [\#630](https://github.com/abhimehro/series_correction_project_updated/pull/630) ([abhimehro](https://github.com/abhimehro))
 - 🧪 test: cover \_load\_and\_enrich\_config FileNotFoundError [\#629](https://github.com/abhimehro/series_correction_project_updated/pull/629) ([abhimehro](https://github.com/abhimehro))
