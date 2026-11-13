@@ -24,6 +24,7 @@ from scripts import spreadsheet_safety
 
 # ⚡ Bolt: Compile regex once for performance
 _FILE_NAME_REGEX = re.compile(r"S(.+?)_Y(\d+)\.txt$")
+SUMMARY_FILENAME = "Batch_Processing_Summary.csv"
 
 # Import optional dependencies from the helper module if possible
 try:
@@ -476,7 +477,8 @@ def batch_process(config: BatchConfig):
             - output_dir: Directory for output files (defaults to data directory)
 
     Returns:
-        DataFrame with summary of processed files
+        DataFrame with summary of processed files; writes
+        Batch_Processing_Summary.csv to the output directory unless dry_run.
     """
     series_selection = config.series_selection
     river_miles = config.river_miles
@@ -508,16 +510,37 @@ def batch_process(config: BatchConfig):
 
     if not files_to_process:
         log.warning("No matching files found! Entering fallback processing mode.")
-        return _process_fallback_mode(
+        summary_df = _process_fallback_mode(
             series_to_process, config_data, output_dir, dry_run
         )
+        _write_summary(summary_df, output_dir, dry_run)
+        return summary_df
 
     processor_config = {
         **config_data.get("defaults", {}),
         **config_data.get("processor_config", {}),
     }
 
-    return _process_main_mode(files_to_process, processor_config, output_dir, dry_run)
+    summary_df = _process_main_mode(
+        files_to_process, processor_config, output_dir, dry_run
+    )
+    _write_summary(summary_df, output_dir, dry_run)
+    return summary_df
+
+
+def count_failed(summary_df: pd.DataFrame | None) -> int:
+    """Return the number of summary rows whose Status starts with 'Failed'."""
+    if summary_df is None or "Status" not in summary_df.columns:
+        return 0
+    return int(summary_df["Status"].astype(str).str.startswith("Failed").sum())
+
+
+def _write_summary(summary_df: pd.DataFrame, output_dir: str, dry_run: bool) -> None:
+    if dry_run or summary_df.empty:
+        return
+    out_path = os.path.join(output_dir, SUMMARY_FILENAME)
+    spreadsheet_safety.write_csv_safely(summary_df, out_path, index=False)
+    log.info("Wrote batch processing summary to %s", out_path)
 
 
 def _process_fallback_mode(
@@ -623,10 +646,12 @@ def _process_single_file(
             )
             log.info(f"Saved corrected data to {out_path}")
 
-    except ProcessingError:
+    except ProcessingError as err:
+        log.error("Failed to process %s: %s", fname, err)
         status = "Failed (Processing Error)"
         processed_df = None
-    except Exception:  # pragma: no cover
+    except Exception:
+        log.exception("Unexpected error processing %s", fname)
         status = "Failed (Unexpected Error)"
         processed_df = None
 
@@ -661,9 +686,17 @@ def _process_main_mode(
 
     # Create a summary DataFrame and return it
     summary_df = pd.DataFrame(summary_records)
-    log.info(
-        f"--- Batch processing COMPLETE --- Processed {len(summary_records)} files"
+    failed = count_failed(summary_df)
+    succeeded = len(summary_df) - failed
+    log_message = (
+        "--- Batch processing COMPLETE --- Processed %d files, %d failed",
+        succeeded,
+        failed,
     )
+    if failed:
+        log.warning(*log_message)
+    else:
+        log.info(*log_message)
     return summary_df
 
 
