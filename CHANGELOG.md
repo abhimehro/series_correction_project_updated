@@ -148,8 +148,10 @@
 
 **Merged pull requests:**
 
+- test: boundary tests for batch filename/year parsing and detect\_outliers; fix Y00 year wrap [\#675](https://github.com/abhimehro/series_correction_project_updated/pull/675) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: vectorize calculate\_non\_zero\_average with NumPy [\#642](https://github.com/abhimehro/series_correction_project_updated/pull/642) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#638](https://github.com/abhimehro/series_correction_project_updated/pull/638) ([dependabot[bot]](https://github.com/apps/dependabot))
+- fix\(summary\): restore generate\_summary.py with failure rows and non-zero exit [\#636](https://github.com/abhimehro/series_correction_project_updated/pull/636) ([abhimehro](https://github.com/abhimehro))
 - fix\(batch\): log per-file failures, write summary CSV, exit non-zero on failure [\#634](https://github.com/abhimehro/series_correction_project_updated/pull/634) ([abhimehro](https://github.com/abhimehro))
 - fix\(corrections\): fail non-zero on outlier load errors and log skipped outliers [\#633](https://github.com/abhimehro/series_correction_project_updated/pull/633) ([abhimehro](https://github.com/abhimehro))
 - fix\(corrections\): skip 0.00 sentinels when applying level shift [\#632](https://github.com/abhimehro/series_correction_project_updated/pull/632) ([abhimehro](https://github.com/abhimehro))
