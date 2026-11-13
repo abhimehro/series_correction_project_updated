@@ -22,6 +22,7 @@
 
 **Closed issues:**
 
+- Daily QA & Agentic Review — 2026-11-13 [\#676](https://github.com/abhimehro/series_correction_project_updated/issues/676)
 - Daily QA & Agentic Review — 2026-11-12 [\#672](https://github.com/abhimehro/series_correction_project_updated/issues/672)
 - Daily QA & Agentic Review — 2026-11-11 [\#670](https://github.com/abhimehro/series_correction_project_updated/issues/670)
 - Daily QA & Agentic Review — 2026-11-10 [\#667](https://github.com/abhimehro/series_correction_project_updated/issues/667)
@@ -152,6 +153,7 @@
 - ⚡ Bolt: vectorize calculate\_non\_zero\_average with NumPy [\#642](https://github.com/abhimehro/series_correction_project_updated/pull/642) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#638](https://github.com/abhimehro/series_correction_project_updated/pull/638) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(summary\): restore generate\_summary.py with failure rows and non-zero exit [\#636](https://github.com/abhimehro/series_correction_project_updated/pull/636) ([abhimehro](https://github.com/abhimehro))
+- fix\(batch\): anchor Y-index to base year \(Y01=1995\) and parse fallback Y-index from filename [\#635](https://github.com/abhimehro/series_correction_project_updated/pull/635) ([abhimehro](https://github.com/abhimehro))
 - fix\(batch\): log per-file failures, write summary CSV, exit non-zero on failure [\#634](https://github.com/abhimehro/series_correction_project_updated/pull/634) ([abhimehro](https://github.com/abhimehro))
 - fix\(corrections\): fail non-zero on outlier load errors and log skipped outliers [\#633](https://github.com/abhimehro/series_correction_project_updated/pull/633) ([abhimehro](https://github.com/abhimehro))
 - fix\(corrections\): skip 0.00 sentinels when applying level shift [\#632](https://github.com/abhimehro/series_correction_project_updated/pull/632) ([abhimehro](https://github.com/abhimehro))
