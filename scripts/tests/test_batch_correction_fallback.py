@@ -203,21 +203,30 @@ def test_resolve_year_no_config():
     assert _resolve_base_year(None, {}) == 1995
 
 
-def test_fallback_y_indices(tmp_path):
-    """Use filename indexes for fallback summaries and output files."""
+def _run_fallback(tmp_path, raw_files, dry_run=False, process_side_effect=None):
+    """Run _process_fallback_mode with a stub processor and data loader."""
     mock_processor = MagicMock()
-    mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
-    raw_data = pd.DataFrame({"value": [1]})
+    if process_side_effect is not None:
+        mock_processor.process_data.side_effect = process_side_effect
+    else:
+        mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
 
     with patch("scripts.batch_correction.processor", mock_processor), patch(
-        "scripts.batch_correction._load_raw_data", return_value=raw_data
+        "scripts.batch_correction._load_raw_data",
+        return_value=pd.DataFrame({"value": [1]}),
     ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
         summary = _process_fallback_mode(
             [26],
-            {"series": {"26": {"raw_data": ["data/S26_Y06.txt", "data/S26_Y08.txt"]}}},
+            {"series": {"26": {"raw_data": raw_files}}},
             str(tmp_path),
-            False,
+            dry_run,
         )
+    return summary, write
+
+
+def test_fallback_y_indices(tmp_path):
+    """Use filename indexes for fallback summaries and output files."""
+    summary, write = _run_fallback(tmp_path, ["data/S26_Y06.txt", "data/S26_Y08.txt"])
 
     assert summary["Y-Index"].tolist() == [6, 8]
     assert [call.args[1] for call in write.call_args_list] == [
@@ -228,19 +237,7 @@ def test_fallback_y_indices(tmp_path):
 
 def test_fallback_name_collision(tmp_path):
     """Separate positional and Y-index output names for mixed inputs."""
-    mock_processor = MagicMock()
-    mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
-
-    with patch("scripts.batch_correction.processor", mock_processor), patch(
-        "scripts.batch_correction._load_raw_data",
-        return_value=pd.DataFrame({"value": [1]}),
-    ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
-        summary = _process_fallback_mode(
-            [26],
-            {"series": {"26": {"raw_data": ["data/custom.txt", "data/S26_Y01.txt"]}}},
-            str(tmp_path),
-            False,
-        )
+    summary, write = _run_fallback(tmp_path, ["data/custom.txt", "data/S26_Y01.txt"])
 
     y_indexes = summary["Y-Index"].tolist()
     assert pd.isna(y_indexes[0]) and y_indexes[1] == 1
@@ -252,19 +249,7 @@ def test_fallback_name_collision(tmp_path):
 
 def test_fallback_dry_run(tmp_path):
     """Avoid writing processed fallback files during a dry run."""
-    mock_processor = MagicMock()
-    mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
-
-    with patch("scripts.batch_correction.processor", mock_processor), patch(
-        "scripts.batch_correction._load_raw_data",
-        return_value=pd.DataFrame({"value": [1]}),
-    ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
-        summary = _process_fallback_mode(
-            [26],
-            {"series": {"26": {"raw_data": ["data/S26_Y01.txt"]}}},
-            str(tmp_path),
-            True,
-        )
+    summary, write = _run_fallback(tmp_path, ["data/S26_Y01.txt"], dry_run=True)
 
     assert summary["Y-Index"].tolist() == [1]
     write.assert_not_called()
@@ -287,18 +272,10 @@ def test_fallback_empty_data(tmp_path):
 
 def test_fallback_error_index(tmp_path):
     """Keep filename indexes in fallback failure records."""
-    mock_processor = MagicMock()
-    mock_processor.process_data.side_effect = ValueError("processing failed")
-
-    with patch("scripts.batch_correction.processor", mock_processor), patch(
-        "scripts.batch_correction._load_raw_data",
-        return_value=pd.DataFrame({"value": [1]}),
-    ):
-        summary = _process_fallback_mode(
-            [26],
-            {"series": {"26": {"raw_data": ["data/S26_Y08.txt"]}}},
-            str(tmp_path),
-            False,
-        )
+    summary, _ = _run_fallback(
+        tmp_path,
+        ["data/S26_Y08.txt"],
+        process_side_effect=ValueError("processing failed"),
+    )
 
     assert summary["Y-Index"].tolist() == [8]
