@@ -1,11 +1,19 @@
 import logging
 import os
 import re
+import sys
 
 import numpy as np
 import pandas as pd
 
 from scripts.spreadsheet_safety import write_csv_safely
+
+logger = logging.getLogger(__name__)
+
+
+class OutlierLoadError(Exception):
+    """Raised when the outlier CSV cannot be loaded or lacks required columns."""
+
 
 # Define directories (adjust paths if your local structure is different)
 DATA_DIR = "../data"  # Updated path
@@ -44,48 +52,67 @@ def find_sensor_columns(columns):
     ]
 
 
-def load_identified_outliers(csv_path):
-    """Loads and melts the year-to-year differences CSV to identify outliers."""
+def _read_outlier_csv(csv_path):
+    """Read the outlier CSV and normalize file-loading errors."""
     try:
-        df_yty_diff = pd.read_csv(csv_path)
-        actual_cols = df_yty_diff.columns.tolist()
-        sensor_cols = find_sensor_columns(actual_cols)
-
-        if not sensor_cols:
-            print(f"Error: No sensor columns found in {csv_path}.")
-            return pd.DataFrame()
-
-        if "Year_Pair" not in actual_cols:
-            print(f"Error: 'Year_Pair' column not found in {csv_path}.")
-            return pd.DataFrame()
-
-        df_melted = df_yty_diff.melt(
-            id_vars=["Year_Pair"],
-            value_vars=sensor_cols,
-            var_name="Sensor",
-            value_name="Difference",
-        )
-
-        # NaN.abs() is NaN and NaN >= 0.1 is False, so NaN rows are already
-        # excluded by the abs() filter; no separate dropna is needed.
-        outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
-
-        if outliers_df.empty:
-            print("No outliers (|Difference| >= 0.1) found.")
-        else:
-            print(f"Successfully loaded {len(outliers_df)} outliers.")
-
-        return outliers_df
-
-    except FileNotFoundError:
+        return pd.read_csv(csv_path)
+    except FileNotFoundError as exc:
         print(f"Error: The file '{csv_path}' was not found.")
-        return pd.DataFrame()
-    except Exception:
+        raise OutlierLoadError(f"Error: The file '{csv_path}' was not found.") from exc
+    except Exception as exc:
         logging.exception(
             "An unexpected error occurred while loading outliers from %s", csv_path
         )
         print("An unexpected error occurred while loading outliers.")
-        return pd.DataFrame()
+        raise OutlierLoadError(
+            "An unexpected error occurred while loading outliers."
+        ) from exc
+
+
+def _require_outlier_columns(outlier_df, csv_path):
+    """Check for required sensor and year-pair columns."""
+    actual_cols = outlier_df.columns.tolist()
+    sensor_cols = find_sensor_columns(actual_cols)
+
+    if not sensor_cols:
+        message = f"Error: No sensor columns found in {csv_path}."
+        print(message)
+        raise OutlierLoadError(message)
+
+    if "Year_Pair" not in actual_cols:
+        message = f"Error: 'Year_Pair' column not found in {csv_path}."
+        print(message)
+        raise OutlierLoadError(message)
+
+    return sensor_cols
+
+
+def _filter_outliers(outlier_df, sensor_cols):
+    """Melt the input and retain year-to-year outliers."""
+    df_melted = outlier_df.melt(
+        id_vars=["Year_Pair"],
+        value_vars=sensor_cols,
+        var_name="Sensor",
+        value_name="Difference",
+    )
+
+    # NaN.abs() is NaN and NaN >= 0.1 is False, so NaN rows are already
+    # excluded by the abs() filter; no separate dropna is needed.
+    outliers_df = df_melted[df_melted["Difference"].abs() >= 0.1].copy()
+
+    if outliers_df.empty:
+        print("No outliers (|Difference| >= 0.1) found.")
+    else:
+        print(f"Successfully loaded {len(outliers_df)} outliers.")
+
+    return outliers_df
+
+
+def load_identified_outliers(csv_path):
+    """Loads and melts the year-to-year differences CSV to identify outliers."""
+    df_yty_diff = _read_outlier_csv(csv_path)
+    sensor_cols = _require_outlier_columns(df_yty_diff, csv_path)
+    return _filter_outliers(df_yty_diff, sensor_cols)
 
 
 def build_raw_file_map(data_dir):
@@ -125,6 +152,9 @@ _YEAR_PAIR_REGEX = re.compile(r"(\d+) \(Y(\d+)\) to (\d+) \(Y(\d+)\)")
 
 def parse_year_pair(year_pair_str):
     """Parses the Year_Pair string into previous and next year numbers."""
+    if not isinstance(year_pair_str, str):
+        return None
+
     pair_match = _YEAR_PAIR_REGEX.match(year_pair_str)
     if not pair_match:
         return None
@@ -138,6 +168,9 @@ def parse_year_pair(year_pair_str):
 
 
 def parse_sensor_index(sensor_name):
+    if not isinstance(sensor_name, str):
+        return None
+
     try:
         sensor_idx = int(sensor_name.replace("Sensor ", "")) - 1
     except ValueError:
@@ -184,7 +217,11 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
     prev_yy, next_yy = parsed_years
 
     if not has_sensor_window(df_prev, df_next, sensor_idx):
-        return None
+        return _skipped_record(
+            outlier_info,
+            series_id,
+            "Insufficient rows/columns for sensor window",
+        )
 
     prev_avg = calculate_non_zero_average(df_prev.iloc[-5:, sensor_idx])
     next_avg = calculate_non_zero_average(df_next.iloc[:5, sensor_idx])
@@ -202,6 +239,24 @@ def _calculate_and_apply_shift(dfs, metadata, outlier_data):
         "Correction_Type": "Level Shift",
         "File_Corrected": output_name,
         "Rationale": f"Aligned Y{next_yy:02d} head with Y{prev_yy:02d} tail.",
+        "Status": "Applied",
+    }
+
+
+def _skipped_record(outlier_info, series_id, reason):
+    """Build a correction-log record for a skipped outlier."""
+    year_pair_str, sensor_name, orig_diff = outlier_info
+    logger.warning("Skipped outlier %s, %s: %s", year_pair_str, sensor_name, reason)
+    return {
+        "Series": series_id or "",
+        "Year_Pair_Outlier": year_pair_str,
+        "Sensor": sensor_name,
+        "Original_Difference_Summary": orig_diff,
+        "Calculated_Level_Shift": None,
+        "Correction_Type": None,
+        "File_Corrected": None,
+        "Rationale": reason,
+        "Status": "Skipped",
     }
 
 
@@ -213,11 +268,11 @@ def apply_level_shift_correction(
     year_pair_str, sensor_name, orig_diff = outlier_info
     parsed_years = parse_year_pair(year_pair_str)
     if not parsed_years:
-        return None
+        return _skipped_record(outlier_info, None, "Unparseable Year_Pair")
 
     sensor_idx = parse_sensor_index(sensor_name)
     if sensor_idx is None:
-        return None
+        return _skipped_record(outlier_info, None, "Invalid sensor name")
 
     prev_yy, next_yy = parsed_years
     series_id, prev_file, next_file = find_year_files(
@@ -225,7 +280,11 @@ def apply_level_shift_correction(
     )
 
     if not series_id:
-        return None
+        return _skipped_record(
+            outlier_info,
+            None,
+            f"No raw files found for Y{prev_yy:02d}/Y{next_yy:02d}",
+        )
 
     try:
         df_prev = raw_dataframes[prev_file]
@@ -246,17 +305,19 @@ def apply_level_shift_correction(
         print(
             f"An unexpected error occurred while processing outlier {year_pair_str}, {sensor_name}."
         )
-        return None
+        return _skipped_record(
+            outlier_info,
+            series_id,
+            "Unexpected error during level shift calculation",
+        )
 
 
 def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, output_dir):
-    """Writes each corrected dataframe whose output filename appears in
-    ``applied_corrections``. ``None`` entries (e.g. from skipped outliers) are
-    ignored so callers can pass unfiltered results safely."""
+    """Writes corrected dataframes referenced by applied records only."""
     corrected_names = {
         correction["File_Corrected"]
         for correction in applied_corrections
-        if correction is not None
+        if correction is not None and correction.get("File_Corrected")
     }
     for year_files in raw_file_map.values():
         for file_path in year_files.values():
@@ -268,8 +329,9 @@ def save_corrected_files(applied_corrections, raw_file_map, raw_dataframes, outp
                 )
 
 
-def _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections):
+def _apply_corrections(outliers_df, raw_file_map, raw_dataframes):
     sorted_series_ids = sorted(raw_file_map)
+    records = []
     for year_pair, sensor, diff in zip(
         outliers_df["Year_Pair"].to_numpy(),
         outliers_df["Sensor"].to_numpy(),
@@ -278,37 +340,47 @@ def _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_correc
         result = apply_level_shift_correction(
             (year_pair, sensor, diff), raw_file_map, raw_dataframes, sorted_series_ids
         )
-        if result:
-            applied_corrections.append(result)
+        records.append(result)
+    return records
 
 
 def main():
-    outliers_df = load_identified_outliers(YTY_DIFF_CSV_PATH)
+    try:
+        outliers_df = load_identified_outliers(YTY_DIFF_CSV_PATH)
+    except OutlierLoadError:
+        print("Aborting: outlier data could not be loaded.", file=sys.stderr)
+        return 1
+
     if outliers_df.empty:
-        return
+        return 0
 
     os.makedirs(CORRECTED_OUTPUT_DIR, exist_ok=True)
     print("\n--- Applying Refined Level Shift Corrections ---")
 
     raw_file_map = build_raw_file_map(DATA_DIR)
     raw_dataframes = load_raw_dataframes(raw_file_map)
-    applied_corrections = []
+    records = _apply_corrections(outliers_df, raw_file_map, raw_dataframes)
+    applied = [record for record in records if record["Status"] == "Applied"]
+    skipped = [record for record in records if record["Status"] != "Applied"]
 
-    _apply_corrections(outliers_df, raw_file_map, raw_dataframes, applied_corrections)
-
-    if applied_corrections:
+    if applied:
         save_corrected_files(
-            applied_corrections, raw_file_map, raw_dataframes, CORRECTED_OUTPUT_DIR
+            applied, raw_file_map, raw_dataframes, CORRECTED_OUTPUT_DIR
         )
-        write_csv_safely(
-            pd.DataFrame(applied_corrections), CORRECTION_LOG_PATH, index=False
-        )
+
+    if records:
+        write_csv_safely(pd.DataFrame(records), CORRECTION_LOG_PATH, index=False)
         print(f"\nCorrection log saved to: {CORRECTION_LOG_PATH}")
-    else:
+    if not applied:
         print("\nNo refined corrections were applied.")
 
+    print(
+        f"\nApplied {len(applied)} correction(s); skipped {len(skipped)} of "
+        f"{len(records)} outlier(s)."
+    )
     print("\n--- Refined Level Shift Corrections Complete ---")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
