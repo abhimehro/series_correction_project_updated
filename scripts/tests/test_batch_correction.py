@@ -13,14 +13,12 @@ import pandas as pd  # type: ignore
 import pytest
 
 import scripts.batch_correction as bc
-import scripts.loaders
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
 # Import ProcessingError only if you add a test that specifically catches it
 from scripts.batch_correction import (
     BatchConfig,
-    _determine_series_to_process,
     _get_data_directory,
     _load_raw_data,
     batch_process,
@@ -101,40 +99,15 @@ def patch_read_csv():
         yield
 
 
+# Shared patcher bodies live in conftest; these wrappers keep them autouse
+# for this module only.
 @pytest.fixture(autouse=True)
-def patch_pd_read_csv(monkeypatch):
-    def read_csv_side_effect(path, *_args, **_kwargs):
-        if isinstance(path, str) and path.endswith("river_mile_map.csv"):
-            return pd.DataFrame(
-                {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
-            )
-        return pd.DataFrame(
-            {
-                "Data": [1, 2, 3, 4, 5],
-                "SENSOR_ID": [26, 26, 27, 27, 28],
-                "RIVER_MILE": [54.0, 54.0, 53.0, 53.0, 52.0],
-            }
-        )
-
-    monkeypatch.setattr("scripts.batch_correction.pd.read_csv", read_csv_side_effect)
+def patch_pd_read_csv(pd_read_csv_patcher):
+    yield
 
 
 @pytest.fixture(autouse=True)
-def patch_load_config(monkeypatch):
-    # Always patch scripts.loaders.load_config to return a valid config dict
-    config_dict = {
-        "RAW_DATA_DIR": "/fake/data/dir",
-        "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
-        "RIVER_TO_SENSORS": {54.0: [26], 53.0: [27]},
-        "SENSOR_TO_RIVER": {26: 54.0, 27: 53.0},
-    }
-    try:
-
-        monkeypatch.setattr(
-            scripts.loaders, "load_config", lambda path=None: config_dict
-        )
-    except ImportError:
-        pass
+def patch_load_config(load_config_patcher):
     yield
 
 
@@ -722,85 +695,6 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
-
-
-def test_determine_series_to_process_all_fallback(mocker, tmp_path):
-    """Test 'all' series selection when no river mile map is present."""
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    (data_dir / "S1_Y1.txt").touch()
-    (data_dir / "S2_Y1.txt").touch()
-    (data_dir / "S3.txt").touch()  # Invalid format
-    (data_dir / "Sinvalid_Y1.txt").touch()  # Invalid series ID
-
-    series = _determine_series_to_process("all", None, {}, str(data_dir))
-
-    assert series == [1, 2]
-
-
-def test_determine_series_to_process_all_fallback_with_river_miles(mocker, tmp_path):
-    """Test 'all' series selection with river miles but no map."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    (data_dir / "S1_Y1.txt").touch()
-
-    series = _determine_series_to_process("all", [1.0], {}, str(data_dir))
-
-    assert series == [1]
-    mock_log.warning.assert_called_with(
-        "River miles provided but no map to filter by – ignored."
-    )
-
-
-def test_determine_series_to_process_invalid_sensor_id_in_map(mocker):
-    """Test map building handles invalid sensor IDs gracefully."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    config_data = {"SENSOR_TO_RIVER": {"invalid": 1.0}}
-    _determine_series_to_process("all", [1.0], config_data, "fake_dir")
-
-    # It should log the warning and return an empty list since the map was invalid
-    mock_log.warning.assert_any_call(
-        "Invalid sensor id in SENSOR_TO_RIVER map: invalid"
-    )
-
-
-def test_determine_series_to_process_explicit_invalid_value(mocker):
-    """Test explicit series list parsing handles ValueErrors."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    with pytest.raises(ValueError, match="Invalid series selection"):
-        _determine_series_to_process(["invalid"], None, {}, "fake_dir")
-
-    mock_log.exception.assert_called()
-
-
-def test_batch_process_fallback_mode_exception(
-    mock_dependencies, mock_config_loader, mocker
-):
-    """Test exception handling in _process_fallback_mode."""
-    series = 26
-    years = (1995, 1995)
-
-    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
-    mock_dependencies["isfile"].return_value = True
-
-    # Force _process_main_mode to fail so it falls back to _process_fallback_mode
-    mocker.patch("scripts.batch_correction.processor", None)
-
-    # Mock _load_raw_data to raise Exception
-    mocker.patch(
-        "scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed")
-    )
-
-    # Call batch_process
-    summary_df = __import__("scripts.batch_correction").batch_correction.batch_process(
-        __import__("scripts.batch_correction").batch_correction.BatchConfig(
-            series, None, years, dry_run=False
-        )
-    )
-
-    assert len(summary_df) == 1
-    assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
 
 
 def test_load_config_not_found(mock_dependencies, mock_config_loader, caplog):

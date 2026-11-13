@@ -198,8 +198,9 @@ include:
   `RAW_DATA_DIR` in the config, or the `./data/` directory by default.
 - **Filename Pattern**: Files must follow the pattern `S<series>_Y<index>.txt`,
   where `<series>` is the series number (e.g., 26) and `<index>` is a
-  zero-padded sequential index representing the year within the processing range
-  (e.g., Y01 for the first year, Y02 for the second, etc.).
+  zero-padded year index anchored to the data's base year: Y01 = 1995
+  (configurable via `base_year` in config, or an explicit `year_index_map`),
+  Y02 = 1996, etc.
 - **File Format**: Text files (.txt).
 - **Content**: Space or tab-delimited columns. Must contain at least a time
   column and one numeric sensor value column. Header rows are typically absent

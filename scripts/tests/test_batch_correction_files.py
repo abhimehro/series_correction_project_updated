@@ -18,7 +18,7 @@ from scripts.batch_correction import (
 )
 
 YEARS = (1995, 2014)
-YEARS_TO_PROCESS = range(YEARS[0], YEARS[1] + 1)
+BASE_YEAR = 1995
 SERIES_MAP = {"26": 26}
 
 
@@ -28,28 +28,28 @@ SERIES_MAP = {"26": 26}
 
 
 def test_year_index_maps_first_and_last_year():
-    """Sequential fallback: Y01 -> first year, Y20 -> last year."""
-    assert _determine_year_for_index(1, {}, YEARS_TO_PROCESS) == 1995
-    assert _determine_year_for_index(20, {}, YEARS_TO_PROCESS) == 2014
+    """Sequential fallback: Y01 -> base year, Y20 -> base year + 19."""
+    assert _determine_year_for_index(1, {}, BASE_YEAR) == 1995
+    assert _determine_year_for_index(20, {}, BASE_YEAR) == 2014
 
 
-def test_year_index_out_of_range_returns_none():
-    """Y-indices beyond the requested range are not mapped."""
-    assert _determine_year_for_index(21, {}, YEARS_TO_PROCESS) is None
-    assert _determine_year_for_index(100, {}, YEARS_TO_PROCESS) is None
+def test_year_index_maps_sequentially_beyond_default_window():
+    """High Y-indices keep mapping sequentially; callers filter by years."""
+    assert _determine_year_for_index(21, {}, BASE_YEAR) == 2015
+    assert _determine_year_for_index(100, {}, BASE_YEAR) == 2094
 
 
 def test_year_index_zero_returns_none():
     """Y00 is not a valid index; it must not wrap to the last year."""
-    assert _determine_year_for_index(0, {}, YEARS_TO_PROCESS) is None
+    assert _determine_year_for_index(0, {}, BASE_YEAR) is None
 
 
 def test_year_index_explicit_map():
     """Explicit year_index_map ({idx: year} reverse map) beats the fallback."""
     reverse_map = {1: 1995, 20: 1996}
-    assert _determine_year_for_index(1, reverse_map, YEARS_TO_PROCESS) == 1995
-    assert _determine_year_for_index(20, reverse_map, YEARS_TO_PROCESS) == 1996
-    assert _determine_year_for_index(2, reverse_map, YEARS_TO_PROCESS) is None
+    assert _determine_year_for_index(1, reverse_map, BASE_YEAR) == 1995
+    assert _determine_year_for_index(20, reverse_map, BASE_YEAR) == 1996
+    assert _determine_year_for_index(2, reverse_map, BASE_YEAR) is None
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ def test_year_index_explicit_map():
 def test_parse_valid_filename():
     """A conforming name yields (series, year, y_index, path)."""
     result = _parse_and_validate_file(
-        "S26_Y01.txt", SERIES_MAP, {}, YEARS_TO_PROCESS, *YEARS, "/data"
+        "S26_Y01.txt", SERIES_MAP, {}, BASE_YEAR, *YEARS, "/data"
     )
     assert result == (26, 1995, 1, os.path.join("/data", "S26_Y01.txt"))
 
@@ -68,7 +68,7 @@ def test_parse_valid_filename():
 def test_parse_filename_outside_requested_series():
     """A well-formed name for an unrequested series is skipped."""
     result = _parse_and_validate_file(
-        "S27_Y01.txt", SERIES_MAP, {}, YEARS_TO_PROCESS, *YEARS, "/data"
+        "S27_Y01.txt", SERIES_MAP, {}, BASE_YEAR, *YEARS, "/data"
     )
     assert result is None
 
@@ -92,7 +92,7 @@ def test_parse_filename_outside_requested_series():
 def test_parse_malformed_filenames_return_none(file_name):
     """Non-conforming filenames are skipped, not parsed or raising."""
     result = _parse_and_validate_file(
-        file_name, SERIES_MAP, {}, YEARS_TO_PROCESS, *YEARS, "/data"
+        file_name, SERIES_MAP, {}, BASE_YEAR, *YEARS, "/data"
     )
     assert result is None
 

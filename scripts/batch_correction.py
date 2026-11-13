@@ -15,6 +15,7 @@ scripts/tests/test_batch_correction.py.
 import logging
 import os
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -24,6 +25,7 @@ from scripts import spreadsheet_safety
 
 # ⚡ Bolt: Compile regex once for performance
 _FILE_NAME_REGEX = re.compile(r"S(.+?)_Y(\d+)\.txt$")
+_DEFAULT_BASE_YEAR = 1995
 SUMMARY_FILENAME = "Batch_Processing_Summary.csv"
 
 # Import optional dependencies from the helper module if possible
@@ -248,25 +250,36 @@ def _determine_series_to_process(
 
 
 def _determine_year_for_index(
-    y_index: int, reverse_year_index_map: dict, years_to_process: range
+    y_index: int, reverse_year_index_map: dict, base_year: int
 ) -> int | None:
     """Helper function to map a Y-index back to a specific year."""
     if reverse_year_index_map:
-        year = reverse_year_index_map.get(y_index)
-        if year is not None and year in years_to_process:
-            return year
-        return None
+        return reverse_year_index_map.get(y_index)
 
-    if 1 <= y_index <= len(years_to_process):
-        return years_to_process[y_index - 1]
-    return None
+    if y_index < 1:
+        return None
+    return base_year + y_index - 1
+
+
+def _resolve_base_year(config_data: dict[str, Any] | None, year_index_map: dict) -> int:
+    """Resolve the configured base year or use the default."""
+    if year_index_map:
+        return _DEFAULT_BASE_YEAR
+    if config_data and "base_year" in config_data:
+        return int(config_data["base_year"])
+
+    log.warning(
+        "No 'year_index_map' or 'base_year' in config; assuming Y01 = %d",
+        _DEFAULT_BASE_YEAR,
+    )
+    return _DEFAULT_BASE_YEAR
 
 
 def _parse_and_validate_file(
     file_name: str,
     series_map: dict,
     reverse_year_index_map: dict,
-    years_to_process: range,
+    base_year: int,
     year_start: int,
     year_end: int,
     data_dir: str,
@@ -284,7 +297,7 @@ def _parse_and_validate_file(
         return None
 
     y_index = int(match.group(2))
-    year = _determine_year_for_index(y_index, reverse_year_index_map, years_to_process)
+    year = _determine_year_for_index(y_index, reverse_year_index_map, base_year)
 
     if year is not None and year_start <= year <= year_end:
         original_series = series_map[series_str]
@@ -301,7 +314,8 @@ def _find_files_to_process(
 ) -> list[tuple[int, int, int, str]]:
     """
     Discover S{series}_Y{index:02d}.txt files that correspond to the requested
-    years.  The simplistic mapping assumes sequential Y01, Y02… for each year.
+    years. The Y-index is anchored to the base year (Y01 = base_year, default
+    1995) or mapped through year_index_map.
 
     Args:
         series_list: List of series IDs to process
@@ -319,8 +333,8 @@ def _find_files_to_process(
         return []
 
     year_start, year_end = years
-    years_to_process = range(year_start, year_end + 1)
     year_index_map = config_data.get("year_index_map", {}) if config_data else {}
+    base_year = _resolve_base_year(config_data, year_index_map)
 
     # Pre-compute reverse map for O(1) lookups
     reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
@@ -336,7 +350,7 @@ def _find_files_to_process(
             file_name,
             series_map,
             reverse_year_index_map,
-            years_to_process,
+            base_year,
             year_start,
             year_end,
             data_dir,
@@ -511,7 +525,7 @@ def batch_process(config: BatchConfig):
     if not files_to_process:
         log.warning("No matching files found! Entering fallback processing mode.")
         summary_df = _process_fallback_mode(
-            series_to_process, config_data, output_dir, dry_run
+            series_to_process, config_data, output_dir, dry_run, years
         )
         _write_summary(summary_df, output_dir, dry_run)
         return summary_df
@@ -548,64 +562,163 @@ def _process_fallback_mode(
     config_data: dict[str, Any],
     output_dir: str,
     dry_run: bool,
+    years: tuple[int, int],
 ) -> pd.DataFrame:
+    if "series" not in config_data or processor is None:
+        log.warning(
+            "Fallback processing found no viable files. Returning empty DataFrame."
+        )
+        return pd.DataFrame()
+
+    series_config = config_data["series"]
+    year_index_map = config_data.get("year_index_map", {})
+    base_year = _resolve_base_year(config_data, year_index_map)
+    reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
+    context = _FallbackContext(config_data, output_dir, dry_run, processor)
     summary_records = []
-    if "series" in config_data and processor is not None:
-        for series_id in series_to_process:
-            str_series_id = str(series_id)
-            if str_series_id in config_data.get("series", {}):
-                series_cfg = config_data["series"][str_series_id]
-                for i, file_path in enumerate(series_cfg.get("raw_data", []), start=1):
-                    log.info(
-                        f"Fallback processing file: {file_path} (series {series_id})"
-                    )
-                    try:
-                        df = _load_raw_data(file_path)
-                        if not df.empty:
-                            processor_config = {
-                                **config_data.get("defaults", {}),
-                                **config_data.get("processor_config", {}),
-                            }
-                            processed_df = processor.process_data(df, processor_config)
+    for series_id, position, file_path in _iter_fallback_inputs(
+        series_to_process, series_config
+    ):
+        y_index = _y_index_from_path(file_path)
+        # Files without a parseable Y-index have no derivable year and are
+        # always processed; Y-indexed files are skipped when their year is
+        # undeterminable or outside the requested range.
+        if y_index is not None:
+            year = _determine_year_for_index(y_index, reverse_year_index_map, base_year)
+            if year is None:
+                log.warning(
+                    "Skipping %s: Y%02d cannot be mapped to a year",
+                    file_path,
+                    y_index,
+                )
+                continue
+            if not years[0] <= year <= years[1]:
+                log.info(
+                    "Skipping %s: year %d outside requested years %s",
+                    file_path,
+                    year,
+                    years,
+                )
+                continue
+        fallback_input = _FallbackInput(series_id, position, file_path, y_index)
+        record = _process_fallback_file(fallback_input, context)
+        if record is not None:
+            summary_records.append(record)
 
-                            if not dry_run:
-                                out_name = (
-                                    f"Series{series_id}_File{i:02d}_Processed.xlsx"
-                                )
-                                out_path = os.path.join(output_dir, out_name)
-                                spreadsheet_safety.write_excel_safely(
-                                    processed_df, out_path, index=False
-                                )
-                                log.info(f"Wrote output: {out_path}")
-
-                            summary_records.append(
-                                {
-                                    "Series": series_id,
-                                    "Year": None,
-                                    "Y-Index": i,
-                                    "Filename": os.path.basename(file_path),
-                                    "Status": "Fallback Processed",
-                                    "Records": len(processed_df),
-                                }
-                            )
-                    except Exception:
-                        log.exception(f"Failed to process {file_path}")
-                        summary_records.append(
-                            {
-                                "Series": series_id,
-                                "Year": None,
-                                "Y-Index": i,
-                                "Filename": os.path.basename(file_path),
-                                "Status": "Failed (Processing Error)",
-                                "Records": 0,
-                            }
-                        )
-
-        if summary_records:
-            return pd.DataFrame(summary_records)
+    if summary_records:
+        return pd.DataFrame(summary_records)
 
     log.warning("Fallback processing found no viable files. Returning empty DataFrame.")
     return pd.DataFrame()
+
+
+@dataclass(frozen=True)
+class _FallbackInput:
+    """Describe one fallback input file."""
+
+    series_id: int
+    position: int
+    file_path: str
+    y_index: int | None
+
+
+@dataclass(frozen=True)
+class _FallbackContext:
+    """Provide the shared configuration for fallback processing."""
+
+    config_data: dict[str, Any]
+    output_dir: str
+    dry_run: bool
+    processor: Any
+
+
+def _iter_fallback_inputs(
+    series_to_process: list[int], series_config: dict[str, Any]
+) -> Iterator[tuple[int, int, str]]:
+    """Yield configured fallback inputs with their positions."""
+    for series_id in series_to_process:
+        raw_files = series_config.get(str(series_id), {}).get("raw_data", [])
+        for position, file_path in enumerate(raw_files, start=1):
+            yield series_id, position, file_path
+
+
+def _y_index_from_path(file_path: str) -> int | None:
+    """Return the filename's Y-index when it matches the expected pattern."""
+    match = _FILE_NAME_REGEX.search(os.path.basename(file_path))
+    return int(match.group(2)) if match else None
+
+
+def _fallback_summary_record(
+    fallback_input: _FallbackInput, status: str, records: int
+) -> dict[str, Any]:
+    """Build a summary record for a processed or failed input."""
+    return {
+        "Series": fallback_input.series_id,
+        "Year": None,
+        "Y-Index": fallback_input.y_index,
+        "Filename": os.path.basename(fallback_input.file_path),
+        "Status": status,
+        "Records": records,
+    }
+
+
+def _write_fallback_output(
+    processed_df: pd.DataFrame,
+    fallback_input: _FallbackInput,
+    context: _FallbackContext,
+) -> None:
+    """Write processed fallback data unless this is a dry run."""
+    if context.dry_run:
+        return
+
+    if fallback_input.y_index is not None:
+        out_name = (
+            f"Series{fallback_input.series_id}_File"
+            f"{fallback_input.y_index:02d}_Processed.xlsx"
+        )
+    else:
+        out_name = (
+            f"Series{fallback_input.series_id}_Pos"
+            f"{fallback_input.position:02d}_Processed.xlsx"
+        )
+    out_path = os.path.join(context.output_dir, out_name)
+    spreadsheet_safety.write_excel_safely(processed_df, out_path, index=False)
+    log.info("Wrote output: %s", out_path)
+
+
+def _run_fallback_file(
+    fallback_input: _FallbackInput, context: _FallbackContext
+) -> dict[str, Any] | None:
+    """Load, process, and write one fallback input."""
+    raw_data = _load_raw_data(fallback_input.file_path)
+    if raw_data.empty:
+        return None
+
+    processor_config = {
+        **context.config_data.get("defaults", {}),
+        **context.config_data.get("processor_config", {}),
+    }
+    processed_df = context.processor.process_data(raw_data, processor_config)
+    _write_fallback_output(processed_df, fallback_input, context)
+    return _fallback_summary_record(
+        fallback_input, "Fallback Processed", len(processed_df)
+    )
+
+
+def _process_fallback_file(
+    fallback_input: _FallbackInput, context: _FallbackContext
+) -> dict[str, Any] | None:
+    """Process one fallback file and return its summary record."""
+    log.info(
+        "Fallback processing file: %s (series %s)",
+        fallback_input.file_path,
+        fallback_input.series_id,
+    )
+    try:
+        return _run_fallback_file(fallback_input, context)
+    except Exception:
+        log.exception("Failed to process %s", fallback_input.file_path)
+        return _fallback_summary_record(fallback_input, "Failed (Processing Error)", 0)
 
 
 def _process_single_file(
