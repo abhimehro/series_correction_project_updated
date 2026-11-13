@@ -157,26 +157,28 @@ def test_resolve_year_no_config():
     assert _resolve_base_year(None, {}) == 1995
 
 
-def _run_fallback(
-    tmp_path, raw_files, dry_run=False, process_side_effect=None, years=(1900, 2100)
-):
+def _run_fallback(tmp_path, raw_files, **options):
     """Run _process_fallback_mode with a stub processor and data loader."""
     mock_processor = MagicMock()
-    if process_side_effect is not None:
-        mock_processor.process_data.side_effect = process_side_effect
+    if options.get("process_side_effect") is not None:
+        mock_processor.process_data.side_effect = options["process_side_effect"]
     else:
         mock_processor.process_data.return_value = pd.DataFrame({"value": [1]})
 
+    config = {
+        "series": {"26": {"raw_data": raw_files}},
+        **options.get("extra_config", {}),
+    }
     with patch("scripts.batch_correction.processor", mock_processor), patch(
         "scripts.batch_correction._load_raw_data",
         return_value=pd.DataFrame({"value": [1]}),
     ), patch("scripts.batch_correction.spreadsheet_safety.write_excel_safely") as write:
         summary = _process_fallback_mode(
             [26],
-            {"series": {"26": {"raw_data": raw_files}}},
+            config,
             str(tmp_path),
-            dry_run,
-            years,
+            options.get("dry_run", False),
+            options.get("years", (1900, 2100)),
         )
     return summary, write
 
@@ -258,3 +260,19 @@ def test_fallback_keeps_unindexed_files_when_filtering_years(tmp_path):
     summary, _ = _run_fallback(tmp_path, ["data/custom.txt"], years=(1996, 1996))
 
     assert summary["Filename"].tolist() == ["custom.txt"]
+
+
+def test_fallback_skips_unmappable_y_index(tmp_path):
+    """Warn and skip Y-indexed files missing from a partial year_index_map."""
+    with patch("scripts.batch_correction.log") as mock_log:
+        summary, _ = _run_fallback(
+            tmp_path,
+            ["data/S26_Y04.txt", "data/S26_Y03.txt"],
+            years=(2001, 2001),
+            extra_config={"year_index_map": {"2001": 3}},
+        )
+
+    assert summary["Y-Index"].tolist() == [3]
+    mock_log.warning.assert_any_call(
+        "Skipping %s: Y%02d cannot be mapped to a year", "data/S26_Y04.txt", 4
+    )
