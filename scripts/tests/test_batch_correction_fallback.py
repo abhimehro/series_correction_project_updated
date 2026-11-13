@@ -157,7 +157,9 @@ def test_resolve_year_no_config():
     assert _resolve_base_year(None, {}) == 1995
 
 
-def _run_fallback(tmp_path, raw_files, dry_run=False, process_side_effect=None):
+def _run_fallback(
+    tmp_path, raw_files, dry_run=False, process_side_effect=None, years=(1900, 2100)
+):
     """Run _process_fallback_mode with a stub processor and data loader."""
     mock_processor = MagicMock()
     if process_side_effect is not None:
@@ -174,6 +176,7 @@ def _run_fallback(tmp_path, raw_files, dry_run=False, process_side_effect=None):
             {"series": {"26": {"raw_data": raw_files}}},
             str(tmp_path),
             dry_run,
+            years,
         )
     return summary, write
 
@@ -219,6 +222,7 @@ def test_fallback_empty_data(tmp_path):
             {"series": {"26": {"raw_data": ["data/S26_Y01.txt"]}}},
             str(tmp_path),
             False,
+            (1995, 1995),
         )
 
     assert summary.empty
@@ -233,3 +237,24 @@ def test_fallback_error_index(tmp_path):
     )
 
     assert summary["Y-Index"].tolist() == [8]
+
+
+def test_fallback_filters_by_requested_year(tmp_path):
+    """Y-indexed fallback inputs outside the requested years are skipped."""
+    summary, write = _run_fallback(
+        tmp_path,
+        ["data/S26_Y01.txt", "data/S26_Y02.txt", "data/S26_Y03.txt"],
+        years=(1996, 1996),
+    )
+
+    assert summary["Y-Index"].tolist() == [2]
+    assert [call.args[1] for call in write.call_args_list] == [
+        str(tmp_path / "Series26_File02_Processed.xlsx")
+    ]
+
+
+def test_fallback_keeps_unindexed_files_when_filtering_years(tmp_path):
+    """Nonconventional names have no derivable year and stay unfiltered."""
+    summary, _ = _run_fallback(tmp_path, ["data/custom.txt"], years=(1996, 1996))
+
+    assert summary["Filename"].tolist() == ["custom.txt"]

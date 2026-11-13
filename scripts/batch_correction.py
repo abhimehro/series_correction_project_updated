@@ -525,7 +525,7 @@ def batch_process(config: BatchConfig):
     if not files_to_process:
         log.warning("No matching files found! Entering fallback processing mode.")
         summary_df = _process_fallback_mode(
-            series_to_process, config_data, output_dir, dry_run
+            series_to_process, config_data, output_dir, dry_run, years
         )
         _write_summary(summary_df, output_dir, dry_run)
         return summary_df
@@ -557,11 +557,23 @@ def _write_summary(summary_df: pd.DataFrame, output_dir: str, dry_run: bool) -> 
     log.info("Wrote batch processing summary to %s", out_path)
 
 
+def _y_index_in_year_range(
+    y_index: int,
+    years: tuple[int, int],
+    reverse_year_index_map: dict,
+    base_year: int,
+) -> bool:
+    """Return True when the Y-index maps inside the requested year range."""
+    year = _determine_year_for_index(y_index, reverse_year_index_map, base_year)
+    return year is not None and years[0] <= year <= years[1]
+
+
 def _process_fallback_mode(
     series_to_process: list[int],
     config_data: dict[str, Any],
     output_dir: str,
     dry_run: bool,
+    years: tuple[int, int],
 ) -> pd.DataFrame:
     if "series" not in config_data or processor is None:
         log.warning(
@@ -570,14 +582,28 @@ def _process_fallback_mode(
         return pd.DataFrame()
 
     series_config = config_data["series"]
+    year_index_map = config_data.get("year_index_map", {})
+    base_year = _resolve_base_year(config_data, year_index_map)
+    reverse_year_index_map = {idx: int(y) for y, idx in year_index_map.items()}
     context = _FallbackContext(config_data, output_dir, dry_run, processor)
     summary_records = []
     for series_id, position, file_path in _iter_fallback_inputs(
         series_to_process, series_config
     ):
-        fallback_input = _FallbackInput(
-            series_id, position, file_path, _y_index_from_path(file_path)
-        )
+        y_index = _y_index_from_path(file_path)
+        # Files without a parseable Y-index have no derivable year and are
+        # always processed; Y-indexed files honor the requested range.
+        if y_index is not None and not _y_index_in_year_range(
+            y_index, years, reverse_year_index_map, base_year
+        ):
+            log.info(
+                "Skipping %s: Y%02d falls outside requested years %s",
+                file_path,
+                y_index,
+                years,
+            )
+            continue
+        fallback_input = _FallbackInput(series_id, position, file_path, y_index)
         record = _process_fallback_file(fallback_input, context)
         if record is not None:
             summary_records.append(record)
