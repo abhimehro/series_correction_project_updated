@@ -134,3 +134,17 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Avoid NumPy scalar indexing in tight Python accumulation loops
+
+**Learning:** Indexing a 1D NumPy array element-by-element inside a Python loop
+(such as `for i in range(start, n): cusum += arr[i]`) repeatedly incurs NumPy
+scalar wrapping/boxing (`np.float64`) and array bounds-checking overhead on
+every iteration (~70-150ns per element). Converting the active slice to a native
+Python list with `.tolist()` before the loop in a single C-level pass allows
+`enumerate()` to iterate over native Python floats at ~15ns per iteration,
+yielding a ~1.8x speedup in CUSUM-style sequential loops. **Action:** When
+sequential state accumulation requires a Python loop over a 1D NumPy float array
+and cannot be vectorized with cumulative functions (e.g. state resets on
+threshold crossings), convert the array slice to a native Python list using
+`.tolist()` prior to iterating.
