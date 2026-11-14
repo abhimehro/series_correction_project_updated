@@ -1,3 +1,9 @@
+## 2026-11-08 - Comprehensive Formula / DDE Injection Neutralization
+
+**Vulnerability:** Spreadsheet sanitization neutralized `=, +, -, @` formula prefixes but omitted pipe (`|`) and percent (`%`) characters, as well as their full-width Unicode variants (`｜`, `％`), allowing DDE execution or formula interpretation in certain spreadsheet software (CWE-1236).
+**Learning:** Formula injection risks extend beyond the classic `=, +, -, @` initiators; Excel and other spreadsheet consumers can interpret pipes (`|`) in cmd execution strings or percent signs (`%`) in special command contexts. Full-width unicode equivalents can also be normalized by spreadsheet parsers.
+**Prevention:** Include `|` and `%` along with full-width unicode characters `｜` and `％` in `FORMULA_PREFIX_RE` to ensure complete coverage against formula and DDE injection attacks across all export routines.
+
 ## 2025-02-24 - Exception Data Leakage
 
 **Vulnerability:** Raw exception data strings being exposed to users through
