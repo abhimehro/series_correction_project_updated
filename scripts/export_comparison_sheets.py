@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import warnings
@@ -7,6 +8,10 @@ from numpy.lib.stride_tricks import sliding_window_view
 from pandas import concat, merge, read_csv, read_excel
 
 from scripts.spreadsheet_safety import write_excel_safely
+
+log = logging.getLogger(__name__)
+if not logging.getLogger().handlers and not log.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 RAW_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 OUTPUT_DIR = os.path.abspath(
@@ -171,10 +176,10 @@ def load_raw_file(raw_file):
         )
         return _rename_raw_columns(raw_df)
     except (OSError, ValueError):
-        print(f"[WARN] Could not load raw file {raw_file}")
+        log.warning("Could not load raw file %r", raw_file)
         return None
     except Exception:
-        print(f"[WARN] Unexpected error loading raw file {raw_file}")
+        log.exception("Unexpected error loading raw file %r", raw_file)
         return None
 
 
@@ -182,10 +187,10 @@ def load_processed_file(proc_file):
     try:
         return read_excel(proc_file)
     except (OSError, ValueError):
-        print(f"[WARN] Could not load processed file {proc_file}")
+        log.warning("Could not load processed file %r", proc_file)
         return None
     except Exception:
-        print(f"[WARN] Unexpected error loading processed file {proc_file}")
+        log.exception("Unexpected error loading processed file %r", proc_file)
         return None
 
 
@@ -248,7 +253,7 @@ def _process_single_file(proc_file):
 
     raw_file = find_matching_raw_file(fname)
     if not raw_file:
-        print(f"[WARN] No matching raw file for {fname}")
+        log.warning("No matching raw file for %s", fname)
         return
 
     merged = _load_and_merge_data(proc_file, raw_file)
@@ -257,7 +262,7 @@ def _process_single_file(proc_file):
 
     out_path = _get_output_path(proc_file)
     write_excel_safely(merged, out_path, index=False)
-    print(f"[INFO] Exported comparison: {out_path}")
+    log.info("Exported comparison: %s", out_path)
 
 
 def export_comparisons():
