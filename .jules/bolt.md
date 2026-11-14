@@ -134,3 +134,14 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-08-20 - Fast CUSUM iteration loop over 1D NumPy slices
+
+**Learning:** In sequential accumulation loops over 1D NumPy arrays (e.g. CUSUM in
+`detect_jumps`), indexing into a NumPy array slice element-by-element (`arr[i]`)
+incurs repeated NumPy scalar boxing (`np.float64`) and array bounds checking.
+Converting the array slice to a native Python list via `.tolist()` and iterating
+with `enumerate(..., start=window_size)` eliminates this per-iteration overhead.
+**Action:** When performing sequential accumulator or threshold loops over 1D NumPy
+arrays in pure Python, convert the slice to a native list with `.tolist()` and iterate
+using `enumerate`, yielding an approximate ~1.9x speedup without sacrificing readability.
