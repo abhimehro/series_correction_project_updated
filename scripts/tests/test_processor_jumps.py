@@ -30,3 +30,30 @@ def test_detect_jumps_basic():
     )
     jumps = detect_jumps(data, "value", window_size=3, threshold=3.0)
     assert jumps == [5]
+
+
+def test_detect_jumps_multiple():
+    # Level 1.0, jumps to 10.0 at index 5, then jumps to 20.0 at index 10
+    data = pd.DataFrame(
+        {
+            "value": [
+                1.0,
+                1.0,
+                1.1,
+                0.9,
+                1.0,
+                10.0,
+                10.1,
+                9.9,
+                10.0,
+                10.0,
+                20.0,
+                20.1,
+                19.9,
+                20.0,
+                20.0,
+            ]
+        }
+    )
+    jumps = detect_jumps(data, "value", window_size=3, threshold=3.0)
+    assert jumps == [5, 10]
