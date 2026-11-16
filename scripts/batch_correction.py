@@ -435,8 +435,8 @@ def _enrich_config_with_river_mappings(config_data):
     # Mirrors the containment check in loaders.load_config so a malicious
     # config value cannot point the CSV read outside the project tree.
     base_dir = os.path.realpath(os.getcwd())
-    resolved = os.path.realpath(rm_map_path)
     try:
+        resolved = os.path.realpath(rm_map_path)
         if os.path.commonpath([base_dir, resolved]) != base_dir:
             log.warning(
                 "RIVER_MILE_MAP_PATH escapes working directory; skipping enrichment"
