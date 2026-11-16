@@ -150,6 +150,8 @@ options:
 Logging writes to `processing_log.txt` in the working directory. Configuration
 defaults come from `scripts/config.json` (loaded by the batch processor); there
 are no `--config` / `--output` / `--log` CLI flags today.
+The command exits with status 1 if any file fails; the summary CSV is written
+to the output directory.
 
 **Example: Process Series 26 data between river miles 53.0 and 54.0 for the
 years 1995 to 2014.**
@@ -196,8 +198,9 @@ include:
   `RAW_DATA_DIR` in the config, or the `./data/` directory by default.
 - **Filename Pattern**: Files must follow the pattern `S<series>_Y<index>.txt`,
   where `<series>` is the series number (e.g., 26) and `<index>` is a
-  zero-padded sequential index representing the year within the processing range
-  (e.g., Y01 for the first year, Y02 for the second, etc.).
+  zero-padded year index anchored to the data's base year: Y01 = 1995
+  (configurable via `base_year` in config, or an explicit `year_index_map`),
+  Y02 = 1996, etc.
 - **File Format**: Text files (.txt).
 - **Content**: Space or tab-delimited columns. Must contain at least a time
   column and one numeric sensor value column. Header rows are typically absent
