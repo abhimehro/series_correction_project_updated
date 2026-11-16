@@ -2,7 +2,9 @@
 
 from unittest.mock import patch
 
-from scripts.apply_refined_corrections import load_identified_outliers
+import pytest
+
+from scripts.apply_refined_corrections import OutlierLoadError, load_identified_outliers
 
 
 @patch("scripts.apply_refined_corrections.pd.read_csv")
@@ -13,9 +15,11 @@ def test_load_identified_outliers_generic_exception_logs_exception(
     """Verify that a generic exception during outlier loading triggers logging.exception."""
     mock_read_csv.side_effect = RuntimeError("Database read failure")
 
-    result = load_identified_outliers("dummy_path.csv")
+    with pytest.raises(OutlierLoadError) as raised:
+        load_identified_outliers("dummy_path.csv")
 
-    assert result.empty
+    assert "Database read failure" not in str(raised.value)
+    assert isinstance(raised.value.__cause__, RuntimeError)
     mock_log_exception.assert_called_once()
     assert "dummy_path.csv" in mock_log_exception.call_args[0][1]
 
