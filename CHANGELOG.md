@@ -154,6 +154,12 @@
 
 - test: boundary tests for batch filename/year parsing and detect\_outliers; fix Y00 year wrap [\#675](https://github.com/abhimehro/series_correction_project_updated/pull/675) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Neutralize DDE command injection in spreadsheets [\#671](https://github.com/abhimehro/series_correction_project_updated/pull/671) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: optimize CUSUM accumulation loop in detect\_jumps [\#669](https://github.com/abhimehro/series_correction_project_updated/pull/669) ([abhimehro](https://github.com/abhimehro))
+- 🧪 Add comprehensive unit tests for detect\_jumps [\#665](https://github.com/abhimehro/series_correction_project_updated/pull/665) ([abhimehro](https://github.com/abhimehro))
+- 🧪 test\(processor\): add comprehensive tests for correct\_gaps [\#664](https://github.com/abhimehro/series_correction_project_updated/pull/664) ([abhimehro](https://github.com/abhimehro))
+- ⚡ Bolt: reuse one Rolling object in detect\_jumps \(salvage of \#484\) [\#661](https://github.com/abhimehro/series_correction_project_updated/pull/661) ([abhimehro](https://github.com/abhimehro))
+- 🛡️ Sentinel: \[security improvement\] [\#652](https://github.com/abhimehro/series_correction_project_updated/pull/652) ([abhimehro](https://github.com/abhimehro))
+- chore\(deps-dev\): bump pytest from 9.1.1 to 9.2.0 in /scripts [\#651](https://github.com/abhimehro/series_correction_project_updated/pull/651) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ⚡ Bolt: vectorize calculate\_non\_zero\_average with NumPy [\#642](https://github.com/abhimehro/series_correction_project_updated/pull/642) ([abhimehro](https://github.com/abhimehro))
 - chore\(deps\): bump ruby/setup-ruby from 1.335.0 to 1.336.0 [\#638](https://github.com/abhimehro/series_correction_project_updated/pull/638) ([dependabot[bot]](https://github.com/apps/dependabot))
 - fix\(summary\): restore generate\_summary.py with failure rows and non-zero exit [\#636](https://github.com/abhimehro/series_correction_project_updated/pull/636) ([abhimehro](https://github.com/abhimehro))
