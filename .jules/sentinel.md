@@ -166,3 +166,16 @@ debug. **Prevention:** Keep full error tracebacks in internal logs via
 error messages. Furthermore, `log.exception` automatically captures stack
 traces; changing the message string does not stop the stack trace from being
 logged.
+
+## 2026-03-30 - Neutralize DDE Command Injection Prefixes (CWE-1236)
+
+**Vulnerability:** Spreadsheet formula injection (CWE-1236) allows arbitrary
+command execution via Dynamic Data Exchange (DDE) when cells starting with pipe
+(`|`) or percent (`%`) characters are opened by spreadsheet applications.
+**Learning:** Standard formula protection often only checks for `=`, `+`, `-`,
+and `@`. However, spreadsheet tools (such as Excel and LibreOffice) can also
+interpret leading pipe characters as DDE commands or percent prefixes in formula
+contexts.
+**Prevention:** Include pipe (`|`), percent (`%`), and their full-width Unicode
+equivalents (`\uff5c`, `\uff05`) in `FORMULA_PREFIX_RE` so they are safely
+prefixed with an apostrophe (`'`) during spreadsheet export.
