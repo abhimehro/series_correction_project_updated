@@ -89,3 +89,46 @@ def mock_processor_mod(mocker):
     mock_mod.process_data.return_value = pd.DataFrame({0: range(5), 1: range(5)})
     mocker.patch("scripts.batch_correction.processor", mock_mod)
     return mock_mod
+
+
+# Shared patchers for the batch_correction test modules. Non-autouse: each
+# module opts in with a thin autouse wrapper, so files that read real CSVs
+# (e.g. test_batch_correction_files.py) are unaffected.
+@pytest.fixture
+def pd_read_csv_patcher(monkeypatch):
+    """Patch pandas.read_csv with canned river-mile-map and sensor frames."""
+
+    def read_csv_side_effect(path, *_args, **_kwargs):
+        if isinstance(path, str) and path.endswith("river_mile_map.csv"):
+            return pd.DataFrame(
+                {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
+            )
+        return pd.DataFrame(
+            {
+                "Data": [1, 2, 3, 4, 5],
+                "SENSOR_ID": [26, 26, 27, 27, 28],
+                "RIVER_MILE": [54.0, 54.0, 53.0, 53.0, 52.0],
+            }
+        )
+
+    monkeypatch.setattr("scripts.batch_correction.pd.read_csv", read_csv_side_effect)
+
+
+@pytest.fixture
+def load_config_patcher(monkeypatch):
+    """Patch scripts.loaders.load_config to return a valid config dict."""
+    import scripts.loaders
+
+    config_dict = {
+        "RAW_DATA_DIR": "/fake/data/dir",
+        "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
+        "RIVER_TO_SENSORS": {54.0: [26], 53.0: [27]},
+        "SENSOR_TO_RIVER": {26: 54.0, 27: 53.0},
+    }
+    try:
+        monkeypatch.setattr(
+            scripts.loaders, "load_config", lambda path=None: config_dict
+        )
+    except ImportError:
+        pass
+    yield
