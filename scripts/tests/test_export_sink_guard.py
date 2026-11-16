@@ -4,8 +4,11 @@ scripts.spreadsheet_safety.  Any direct DataFrame.to_csv/to_excel, csv.writer,
 ExcelWriter, xlsxwriter, or unreviewed openpyxl cell writes must fail CI.
 """
 
+import ast
 import re
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -26,6 +29,7 @@ EXCLUDE_DIRS = {
 # Files outside tests that are allowed to mention restricted libraries because
 # they have been reviewed and do not write attacker-controlled cell values.
 ALLOWED_OPENPYXL_FILES = {
+    "generate_summary.py",  # loads workbook, styles/chart/saves; no cell.value writes
     "setup.py",  # dependency declaration only
 }
 
@@ -49,11 +53,76 @@ def _is_excluded(path: Path) -> bool:
     )
 
 
+def _is_cell_value_target(target: ast.expr) -> bool:
+    """Return True if the assignment target writes to a worksheet/cell value."""
+    return isinstance(target, ast.Subscript) or (
+        isinstance(target, ast.Attribute) and target.attr == "value"
+    )
+
+
+def _is_worksheet_receiver(receiver: ast.expr) -> bool:
+    """Return True if an expression looks like a worksheet."""
+    return (
+        isinstance(receiver, ast.Name) and receiver.id in {"ws", "worksheet", "sheet"}
+    ) or (isinstance(receiver, ast.Attribute) and receiver.attr == "active")
+
+
+def _is_cell_write_call(node: ast.Call) -> bool:
+    """Return True if a call may write worksheet cell values."""
+    if not isinstance(node.func, ast.Attribute):
+        return False
+    if node.func.attr == "cell":
+        return len(node.args) >= 3 or any(
+            keyword.arg == "value" for keyword in node.keywords
+        )
+    if node.func.attr == "append":
+        return _is_worksheet_receiver(node.func.value)
+    return False
+
+
+def _is_cell_write_node(node: ast.AST) -> bool:
+    """Return True if an AST node writes worksheet cell values."""
+    if isinstance(node, ast.Assign):
+        return any(_is_cell_value_target(target) for target in node.targets)
+    if isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+        return _is_cell_value_target(node.target)
+    if isinstance(node, ast.Call):
+        return _is_cell_write_call(node)
+    return False
+
+
+def _has_cell_value_write(file_path: Path) -> bool:
+    """Return True if the file writes worksheet cell values."""
+    tree = ast.parse(file_path.read_text(encoding="utf-8"))
+    return any(_is_cell_write_node(node) for node in ast.walk(tree))
+
+
 def _find_python_files():
     for path in REPO_ROOT.rglob("*.py"):
         if _is_excluded(path):
             continue
         yield path
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ('ws["A1"] = x', True),
+        ('ws["A1"].value += x', True),
+        ("ws.cell(row=1, column=1, value=x)", True),
+        ("ws.cell(1, 1, x)", True),
+        ("ws.append([x])", True),
+        ("wb.active.append([x])", True),
+        ("rows.append(x)", False),
+        ("ws.cell(row=1, column=1).font = f", False),
+        ('ws.column_dimensions["A"].width = 25', False),
+    ],
+)
+def test_has_cell_value_write(tmp_path, source, expected):
+    source_file = tmp_path / "snippet.py"
+    source_file.write_text(source, encoding="utf-8")
+
+    assert _has_cell_value_write(source_file) is expected
 
 
 def _is_allowed_openpyxl(file_path: Path) -> bool:
@@ -64,6 +133,8 @@ def _check_openpyxl(file_path: Path, rel_str: str) -> list[str]:
     """Return violations for openpyxl usage, or an empty list if allowed."""
     if not _is_allowed_openpyxl(file_path):
         return [f"{rel_str}: unauthorized openpyxl usage"]
+    if file_path.name == "generate_summary.py" and _has_cell_value_write(file_path):
+        return [f"{rel_str}: openpyxl cell value write detected"]
     return []
 
 
