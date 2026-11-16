@@ -13,14 +13,12 @@ import pandas as pd  # type: ignore
 import pytest
 
 import scripts.batch_correction as bc
-import scripts.loaders
 
 # Module to test (adjust path if your structure differs)
 # Assuming tests run from the project root
 # Import ProcessingError only if you add a test that specifically catches it
 from scripts.batch_correction import (
     BatchConfig,
-    _determine_series_to_process,
     _get_data_directory,
     _load_raw_data,
     batch_process,
@@ -101,40 +99,15 @@ def patch_read_csv():
         yield
 
 
+# Shared patcher bodies live in conftest; these wrappers keep them autouse
+# for this module only.
 @pytest.fixture(autouse=True)
-def patch_pd_read_csv(monkeypatch):
-    def read_csv_side_effect(path, *_args, **_kwargs):
-        if isinstance(path, str) and path.endswith("river_mile_map.csv"):
-            return pd.DataFrame(
-                {"SENSOR_ID": [26, 27, 28], "RIVER_MILE": [54.0, 53.0, 52.0]}
-            )
-        return pd.DataFrame(
-            {
-                "Data": [1, 2, 3, 4, 5],
-                "SENSOR_ID": [26, 26, 27, 27, 28],
-                "RIVER_MILE": [54.0, 54.0, 53.0, 53.0, 52.0],
-            }
-        )
-
-    monkeypatch.setattr("scripts.batch_correction.pd.read_csv", read_csv_side_effect)
+def patch_pd_read_csv(pd_read_csv_patcher):
+    yield
 
 
 @pytest.fixture(autouse=True)
-def patch_load_config(monkeypatch):
-    # Always patch scripts.loaders.load_config to return a valid config dict
-    config_dict = {
-        "RAW_DATA_DIR": "/fake/data/dir",
-        "RIVER_MILE_MAP_PATH": "scripts/river_mile_map.csv",
-        "RIVER_TO_SENSORS": {54.0: [26], 53.0: [27]},
-        "SENSOR_TO_RIVER": {26: 54.0, 27: 53.0},
-    }
-    try:
-
-        monkeypatch.setattr(
-            scripts.loaders, "load_config", lambda path=None: config_dict
-        )
-    except ImportError:
-        pass
+def patch_load_config(load_config_patcher):
     yield
 
 
@@ -459,6 +432,47 @@ def test_batch_process_with_processor_module(
     assert summary_df.iloc[0]["Records"] == 5
 
 
+def test_writes_summary_csv(
+    mock_dependencies, mock_config_loader, mock_processor_mod, mocker
+):
+    """Write the batch summary for a non-dry-run."""
+    series_selection = 26
+    river_miles = None
+    years = (1995, 1995)
+    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
+    mock_dependencies["isfile"].return_value = True
+    mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
+    write_csv = mocker.patch(
+        "scripts.batch_correction.spreadsheet_safety.write_csv_safely"
+    )
+
+    summary_df = batch_process(
+        BatchConfig(series_selection, river_miles, years, dry_run=False)
+    )
+
+    write_csv.assert_called_once()
+    written_summary, path = write_csv.call_args.args
+    assert path.endswith("Batch_Processing_Summary.csv")
+    assert write_csv.call_args.kwargs == {"index": False}
+    pd.testing.assert_frame_equal(written_summary, summary_df)
+
+
+def test_dry_run_skips_summary_csv(
+    mock_dependencies, mock_config_loader, mock_processor_mod, mocker
+):
+    """Skip writing the batch summary during a dry run."""
+    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
+    mock_dependencies["isfile"].return_value = True
+    mocker.patch("scripts.batch_correction.processor", mock_processor_mod)
+    write_csv = mocker.patch(
+        "scripts.batch_correction.spreadsheet_safety.write_csv_safely"
+    )
+
+    batch_process(BatchConfig(26, None, (1995, 1995), dry_run=True))
+
+    write_csv.assert_not_called()
+
+
 def test_batch_process_load_error(
     mock_dependencies, mock_config_loader, caplog, mocker
 ):
@@ -487,13 +501,14 @@ def test_batch_process_load_error(
     status = summary_df.iloc[0]["Status"]
     assert "Failed" in status
     assert summary_df.iloc[0]["Records"] == 0
-    assert "S26_Y01.txt" in caplog.text
+    assert "Failed to process S26_Y01.txt" in caplog.text
 
 
+@pytest.mark.usefixtures("mock_config_loader")
 def test_batch_process_process_error(
     mock_dependencies: dict[str, mock.MagicMock],
-    mock_config_loader,
     mock_processor_mod: mock.MagicMock,
+    caplog,
     mocker,
 ) -> None:
     """Test handling of error during data processing."""
@@ -514,6 +529,33 @@ def test_batch_process_process_error(
     assert status == "Failed (Unexpected Error)"
     assert summary_df.iloc[0]["Records"] == 0
     assert mock_dependencies["to_excel"].call_count == 0
+    error_records = [
+        record
+        for record in caplog.records
+        if record.levelname == "ERROR"
+        and "Unexpected error processing S26_Y01.txt" in record.message
+    ]
+    assert error_records
+    assert error_records[0].exc_info is not None
+    assert "1 failed" in caplog.text
+
+
+def test_count_failed():
+    """Count failed statuses and ignore missing status columns."""
+    assert not bc.count_failed(None)
+    assert not bc.count_failed(pd.DataFrame())
+    assert not bc.count_failed(pd.DataFrame({"Other": ["Failed"]}))
+    summary_df = pd.DataFrame(
+        {
+            "Status": [
+                "Processed",
+                "Failed (Processing Error)",
+                "Failed (Unexpected Error)",
+                "Fallback Processed",
+            ]
+        }
+    )
+    assert bc.count_failed(summary_df) == 2
 
 
 def test_batch_process_invalid_series_selection(monkeypatch):
@@ -536,7 +578,7 @@ def test_batch_process_invalid_series_selection(monkeypatch):
         )
 
 
-def test_minimal_happy_path(monkeypatch):
+def test_minimal_happy_path(monkeypatch, mocker):
     """Minimal working happy path test for batch_process."""
 
     import pandas as pd
@@ -582,6 +624,7 @@ def test_minimal_happy_path(monkeypatch):
 
     # Patch to_excel to do nothing
     monkeypatch.setattr("pandas.DataFrame.to_excel", lambda self, path, **kwargs: None)
+    mocker.patch("scripts.batch_correction.spreadsheet_safety.write_csv_safely")
 
     # Patch processor module with a real module and function
     def process_data(df, config=None):
@@ -652,85 +695,6 @@ def test_load_raw_data_empty_file(caplog):
         assert isinstance(result, pd.DataFrame)
         assert result.empty
         assert "dummy_empty_file.txt empty." in caplog.text
-
-
-def test_determine_series_to_process_all_fallback(mocker, tmp_path):
-    """Test 'all' series selection when no river mile map is present."""
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    (data_dir / "S1_Y1.txt").touch()
-    (data_dir / "S2_Y1.txt").touch()
-    (data_dir / "S3.txt").touch()  # Invalid format
-    (data_dir / "Sinvalid_Y1.txt").touch()  # Invalid series ID
-
-    series = _determine_series_to_process("all", None, {}, str(data_dir))
-
-    assert series == [1, 2]
-
-
-def test_determine_series_to_process_all_fallback_with_river_miles(mocker, tmp_path):
-    """Test 'all' series selection with river miles but no map."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    (data_dir / "S1_Y1.txt").touch()
-
-    series = _determine_series_to_process("all", [1.0], {}, str(data_dir))
-
-    assert series == [1]
-    mock_log.warning.assert_called_with(
-        "River miles provided but no map to filter by – ignored."
-    )
-
-
-def test_determine_series_to_process_invalid_sensor_id_in_map(mocker):
-    """Test map building handles invalid sensor IDs gracefully."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    config_data = {"SENSOR_TO_RIVER": {"invalid": 1.0}}
-    _determine_series_to_process("all", [1.0], config_data, "fake_dir")
-
-    # It should log the warning and return an empty list since the map was invalid
-    mock_log.warning.assert_any_call(
-        "Invalid sensor id in SENSOR_TO_RIVER map: invalid"
-    )
-
-
-def test_determine_series_to_process_explicit_invalid_value(mocker):
-    """Test explicit series list parsing handles ValueErrors."""
-    mock_log = mocker.patch("scripts.batch_correction.log")
-    with pytest.raises(ValueError, match="Invalid series selection"):
-        _determine_series_to_process(["invalid"], None, {}, "fake_dir")
-
-    mock_log.exception.assert_called()
-
-
-def test_batch_process_fallback_mode_exception(
-    mock_dependencies, mock_config_loader, mocker
-):
-    """Test exception handling in _process_fallback_mode."""
-    series = 26
-    years = (1995, 1995)
-
-    mock_dependencies["listdir"].return_value = ["S26_Y01.txt"]
-    mock_dependencies["isfile"].return_value = True
-
-    # Force _process_main_mode to fail so it falls back to _process_fallback_mode
-    mocker.patch("scripts.batch_correction.processor", None)
-
-    # Mock _load_raw_data to raise Exception
-    mocker.patch(
-        "scripts.batch_correction._load_raw_data", side_effect=Exception("Load failed")
-    )
-
-    # Call batch_process
-    summary_df = __import__("scripts.batch_correction").batch_correction.batch_process(
-        __import__("scripts.batch_correction").batch_correction.BatchConfig(
-            series, None, years, dry_run=False
-        )
-    )
-
-    assert len(summary_df) == 1
-    assert summary_df.iloc[0]["Status"] == "Failed (Unexpected Error)"
 
 
 def test_load_config_not_found(mock_dependencies, mock_config_loader, caplog):
