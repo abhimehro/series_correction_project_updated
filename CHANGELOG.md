@@ -157,6 +157,7 @@
 
 **Merged pull requests:**
 
+- chore\(deps-dev\): bump pylint from 4.1.3 to 4.1.4 in /scripts [\#687](https://github.com/abhimehro/series_correction_project_updated/pull/687) ([dependabot[bot]](https://github.com/apps/dependabot))
 - test: boundary tests for batch filename/year parsing and detect\_outliers; fix Y00 year wrap [\#675](https://github.com/abhimehro/series_correction_project_updated/pull/675) ([abhimehro](https://github.com/abhimehro))
 - 🛡️ Sentinel: \[HIGH\] Neutralize DDE command injection in spreadsheets [\#671](https://github.com/abhimehro/series_correction_project_updated/pull/671) ([abhimehro](https://github.com/abhimehro))
 - ⚡ Bolt: optimize CUSUM accumulation loop in detect\_jumps [\#669](https://github.com/abhimehro/series_correction_project_updated/pull/669) ([abhimehro](https://github.com/abhimehro))
