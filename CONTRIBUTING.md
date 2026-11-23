@@ -20,7 +20,7 @@ See `AGENTS.md` for the full command table and caveats.
   `*.egg-info/` from editable installs.
 - Follow `.github/PULL_REQUEST_TEMPLATE.md`.
 - Runtime pins live in `scripts/requirements.txt`. Do not bump `pandas` to 3.x
-  without an explicit hold/spike decision (issue #430).
+  without a new explicit decision. Issue #430 was closed as not planned.
 
 ## Code of Conduct
 

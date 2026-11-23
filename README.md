@@ -69,8 +69,9 @@ providing a consistent and efficient way to improve data quality.
   mile criteria (`batch_correction.py`).
 - **Command-Line Interface:** Provides a CLI tool (`seatek-correction`) for easy
   execution (`series_correction_cli.py`).
-- **Reporting:** Generates a summary CSV file (`Batch_Processing_Summary.csv`)
-  and detailed logs (`processing_log.txt`).
+- **Reporting:** `batch_process()` returns an in-memory summary DataFrame. It
+  does not write `Batch_Processing_Summary.csv`. The CLI writes a detailed log
+  (`processing_log.txt`).
 - **Testing & CI:** Includes unit tests under `scripts/tests/`. A GitHub Actions
   workflow (`.github/workflows/python-tests.yml`) runs the test suite on `push`
   and `pull_request` to `main`.
@@ -229,8 +230,10 @@ include:
 **Status: Included**
 
 The repository ships committed Series 26 and Series 27 `.txt` inputs under
-`./data/` (for example `data/S26_Y01.txt`, `data/S27_Y01.txt`). Corrected
-outputs are written under `./data/output/`.
+`./data/` (for example `data/S26_Y01.txt`, `data/S27_Y01.txt`).
+`seatek-correction` leaves `output_dir` unset and writes `Year_*_Data.xlsx`
+into that same `data/` directory. `python3 scripts/manual_batch_run.py` sets
+`output_dir` and writes those workbooks under `./data/output/`.
 
 Real files are typically **headerless, multi-column** whitespace-delimited rows
 (multiple sensors plus trailing metadata), not a two-column `Time`/`Value`
@@ -368,7 +371,7 @@ Based on the audit report and potential enhancements:
 - **Dependency Pinning**: Runtime and dev dependencies are pinned with exact
   `==` versions in `scripts/requirements.txt` and
   `scripts/requirements-dev.txt`. Hold `pandas==2.3.3` (do not merge Dependabot
-  3.x) until the spike in issue #430 is decided.
+  3.x). Issue #430, which tracked that decision, was closed as not planned.
 
 ## Workflow for Efficient Batch Processing, QA, and Visualization Updates (2025)
 
