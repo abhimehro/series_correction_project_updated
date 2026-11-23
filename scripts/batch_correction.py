@@ -446,8 +446,22 @@ def _load_and_enrich_config(config_path):
 def _enrich_config_with_river_mappings(config_data):
     """Enrich configuration with river mile mappings if available."""
     rm_map_path = config_data.get("RIVER_MILE_MAP_PATH", "scripts/river_mile_map.csv")
-    if os.path.isfile(rm_map_path):
-        rm_df = pd.read_csv(rm_map_path)
+    # SECURITY: reject paths that escape the working directory (CWE-22).
+    # Mirrors the containment check in loaders.load_config so a malicious
+    # config value cannot point the CSV read outside the project tree.
+    base_dir = os.path.realpath(os.getcwd())
+    try:
+        resolved = os.path.realpath(rm_map_path)
+        if os.path.commonpath([base_dir, resolved]) != base_dir:
+            log.warning(
+                "RIVER_MILE_MAP_PATH escapes working directory; skipping enrichment"
+            )
+            return
+    except ValueError:
+        log.warning("Invalid RIVER_MILE_MAP_PATH; skipping enrichment")
+        return
+    if os.path.isfile(resolved):
+        rm_df = pd.read_csv(resolved)
         config_data["SENSOR_TO_RIVER"] = rm_df.set_index("SENSOR_ID")[
             "RIVER_MILE"
         ].to_dict()
