@@ -134,3 +134,7 @@ numeric incurs unnecessary type verification and allocation overhead (~12x
 slowdown). **Action:** Always check
 `if pd.api.types.is_numeric_dtype(series): return series` before calling
 `pd.to_numeric` when converting columns in generic data loading logic.
+
+## 2026-09-02 - Eliminate scalar boxing in sequential CUSUM loop
+
+**Learning:** Iterating by index over a 1D NumPy array in sequential accumulation loops (e.g. `normalized_dev[i]`) causes repeated NumPy scalar boxing (`np.float64`) and bounds checking in Python bytecode (~1.5x slowdown). **Action:** Convert the 1D slice to a native Python list using `.tolist()` and iterate with `enumerate(..., start=offset)` to allow the Python loop to run on raw float objects directly.
